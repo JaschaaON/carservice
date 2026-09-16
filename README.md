@@ -8,7 +8,7 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 
 | Bereich | Zweck |
 |---|---|
-| **Fuhrpark** | Alle Fahrzeuge mit Ampelstatus, Halter und nächster Fälligkeit |
+| **Fahrzeuge** | Alle Fahrzeuge mit Statuszeichen, Halter und nächster Fälligkeit |
 | **Übersicht** | Statusring, Zeitstrahl der nächsten zwölf Monate, Einkaufsliste |
 | **Wartungsplan** | Positionen mit Intervall nach km *und* Zeit, Teilebedarf, Verlauf, „erledigt"-Eintrag |
 | **Teilekatalog** | Teilenummern, Preise, Vorrat und **eigene Kauflinks** pro Teil |
@@ -26,7 +26,10 @@ naechsten Service, darunter einen Zeitstrahl der kommenden zwoelf Monate und die
 Kauflinks. Gezeichnet wird das als Inline-SVG, ohne Diagrammbibliothek von einem
 CDN — sonst zerbraeche die Offline-Faehigkeit.
 
-Oben links steht das **Fahrzeug-Auswahlfeld**. Jedes Fahrzeug hat einen eigenen
+Oben links steht das **Fahrzeug-Auswahlfeld**. Die Ansicht *Fahrzeuge* zeigt
+alle nebeneinander; ein Klick auf eine Karte wechselt das aktive Fahrzeug, das
+Stiftsymbol oben rechts auf der Karte oeffnet die Fahrzeugdaten samt
+**Loeschen**. Das letzte verbliebene Fahrzeug laesst sich nicht loeschen. Jedes Fahrzeug hat einen eigenen
 Wartungsplan, einen eigenen Teilekatalog, eine eigene Historie und eigene Umbauten —
 nichts wird zwischen Fahrzeugen vermischt. Über *+ Neues Fahrzeug …* legst du eins an
 (Marke, Bezeichnung, Motor, Baujahr, Kennzeichen, FIN, Erstzulassung, Kilometerstand).

@@ -123,7 +123,7 @@ main{padding:18px 16px 60px;max-width:1080px;margin:0 auto}
 .stat .v{font-size:22px;font-weight:650;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat.crit .v{color:var(--crit)} .stat.warn .v{color:var(--warn)} .stat.ok .v{color:var(--ok)}
 
-/* ---------- Fuhrpark ---------- */
+/* ---------- Fahrzeugkarten ---------- */
 .fz-gitter{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
 .fz-karte{
   display:block;width:100%;text-align:left;background:var(--surface);
@@ -137,6 +137,12 @@ main{padding:18px 16px 60px;max-width:1080px;margin:0 auto}
 .fz-karte.aktiv{background:var(--surface-2)}
 .fz-kopf{display:flex;align-items:center;gap:10px}
 .fz-titel{font-size:16px;font-weight:650;flex:1;letter-spacing:-.01em}
+.fz-stift{
+  flex:none;background:none;border:none;color:var(--text-faint);
+  font-size:14px;padding:4px 7px;border-radius:6px;opacity:.6;
+}
+.fz-stift:hover{opacity:1;color:var(--text);background:var(--surface-2)}
+.fz-karte:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .fz-zeichen{
   width:28px;height:28px;flex:none;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
@@ -618,7 +624,7 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
     <button class="btn icon" id="btnSettings" title="Einstellungen">⚙</button>
   </div>
   <nav id="nav">
-    <button data-view="fuhr">Fuhrpark</button>
+    <button data-view="fuhr">Fahrzeuge</button>
     <button data-view="dash" class="active">Übersicht</button>
     <button data-view="plan">Wartungsplan</button>
     <button data-view="parts">Teilekatalog</button>
@@ -639,10 +645,10 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 </div>
 
 <main>
-  <!-- ══════════ FUHRPARK ══════════ -->
+  <!-- ══════════ FAHRZEUGE ══════════ -->
   <section class="view" id="view-fuhr">
     <div class="spread" style="margin-bottom:14px">
-      <div class="muted tiny">Alle Fahrzeuge auf einen Blick. Klick wechselt das aktive Fahrzeug.</div>
+      <div class="muted tiny">Klick wechselt das aktive Fahrzeug, das Stiftsymbol öffnet die Fahrzeugdaten.</div>
       <button class="btn sm primary" id="btnAddCar">+ Fahrzeug</button>
     </div>
     <div id="fuhrparkListe"></div>
@@ -2313,6 +2319,12 @@ document.addEventListener("input", e=>{
     if(eintrag) eintrag.q = num(e.target.value) || 1;
   }
 });
+document.addEventListener("keydown", e=>{
+  if(e.key !== "Enter" && e.key !== " ") return;
+  const karte = e.target.closest?.(".fz-karte[data-fahrzeug]");
+  if(karte){ e.preventDefault(); karte.click(); }
+});
+
 document.addEventListener("focusin", e=>{
   if(e.target.id==="teileSuche") zeichneTreffer();
   if(e.target.id==="dokPicker")  zeichneDokTreffer();
@@ -2922,7 +2934,7 @@ function parseDate(s){
 }
 
 /* ═══════════ Verdrahtung ═══════════ */
-/* ═══════════ Fuhrpark ═══════════
+/* ═══════════ Fahrzeuge ═══════════
    Bei Fahrzeugen von Familie und Freunden wird das Auswahlfeld allein
    unübersichtlich — hier steht der Zustand aller nebeneinander. */
 function fahrzeugStatus(v){
@@ -2937,7 +2949,7 @@ function fahrzeugStatus(v){
   } finally { CAR = merk; }
 }
 
-function renderFuhrpark(){
+function renderFahrzeuge(){
   const karten = DB.vehicles.map(v=>{
     const z = fahrzeugStatus(v);
     const stufe = z.crit ? "crit" : z.warn ? "warn" : "ok";
@@ -2948,10 +2960,13 @@ function renderFuhrpark(){
         : `${esc(z.naechste.task.name)} in ${z.naechste.lead==="km"
             ? nKm(z.naechste.remKm)+" km" : z.naechste.remDays+" Tagen"}`;
 
-    return `<button class="fz-karte ${stufe} ${v.id===CAR.id?"aktiv":""}" data-fahrzeug="${v.id}">
+    return `<div class="fz-karte ${stufe} ${v.id===CAR.id?"aktiv":""}" data-fahrzeug="${v.id}"
+         role="button" tabindex="0" aria-label="${esc(titel)} auswählen">
       <div class="fz-kopf">
         <div class="fz-titel">${esc(titel)}
           ${v.id===CAR.id?`<span class="pill info">aktiv</span>`:""}</div>
+        <button type="button" class="fz-stift" data-fz-edit="${v.id}"
+                title="Fahrzeugdaten bearbeiten oder löschen">✎</button>
         <span class="fz-zeichen ${stufe}">${
           stufe==="crit" ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M7 7 L17 17"/><path d="M17 7 L7 17"/></svg>`
         : stufe==="warn" ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M12 6 L12 14"/><path d="M12 18 L12 18.4"/></svg>`
@@ -2966,7 +2981,7 @@ function renderFuhrpark(){
         ${z.offen?`<span class="faint"><b>${z.offen}</b> ohne Startwert</span>`:""}
       </div>
       <div class="fz-fuss tiny">${rest}</div>
-    </button>`;
+    </div>`;
   }).join("");
 
   $("#fuhrparkListe").innerHTML = `<div class="fz-gitter">${karten}
@@ -2995,7 +3010,7 @@ function renderAll(){
     $("#kmHinweisText").textContent = grund === "erst"
       ? "Kilometerstand noch nicht erfasst — jetzt eintragen"
       : `Kilometerstand ist ${tage} Tage alt — Fälligkeiten sind womöglich ungenau`;
-  renderFuhrpark();
+  renderFahrzeuge();
   $("#hdModel").textContent = [CAR.model, CAR.plate].filter(Boolean).join(" · ");
   document.title = ([CAR.brand,CAR.name].filter(Boolean).join(" ")||"Fahrzeug") + " — Wartung";
   renderDash(); renderPlan(); renderParts(); renderDocs(); renderHist(); renderMods(); renderTrip(); renderCost();
@@ -3036,6 +3051,8 @@ document.addEventListener("click",e=>{
   const lb = t.closest("[data-lb]");
   if(lb){ lightbox((lb.dataset.lb||"").split(",").filter(Boolean), +lb.dataset.lbi||0); return; }
   if(t.closest("#fzNeu")){ vehicleDialog(null); return; }
+  const fzEdit = t.closest("[data-fz-edit]");
+  if(fzEdit){ vehicleDialog(fzEdit.dataset.fzEdit); return; }
   const fz = t.closest("[data-fahrzeug]");
   if(fz){
     if(fz.dataset.fahrzeug !== CAR.id){
