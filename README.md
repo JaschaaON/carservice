@@ -10,7 +10,7 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 |---|---|
 | **Fuhrpark** | Alle Fahrzeuge mit Ampelstatus, Halter und nächster Fälligkeit |
 | **Übersicht** | Statusring, Zeitstrahl der nächsten zwölf Monate, Einkaufsliste |
-| **Wartungsplan** | 23 Positionen mit Intervall nach km *und* Zeit, Teilebedarf, „erledigt"-Eintrag |
+| **Wartungsplan** | Positionen mit Intervall nach km *und* Zeit, Teilebedarf, Verlauf, „erledigt"-Eintrag |
 | **Teilekatalog** | Teilenummern, Preise, Vorrat und **eigene Kauflinks** pro Teil |
 | **Historie** | Alle Services mit Nachweisfotos |
 | **Fotos und Videos** | Belege an jedem Historieneintrag, Referenzmaterial an jeder Wartungsposition |
@@ -36,6 +36,19 @@ Diesel-Geländewagen, einer **Kopie des Plans eines vorhandenen Fahrzeugs**
 
 Fahrzeugdaten änderst du über das Zahnrad rechts oben; dort liegen auch Sichern,
 Laden und Löschen.
+
+## Verlauf je Position
+
+Jede aufgeklappte Wartungsposition zeigt, wann sie durchgefuehrt wurde — und
+vor allem **in welchen Abstaenden**. Daran laesst sich ablesen, ob das gesetzte
+Intervall zur gelebten Praxis passt: „4× erfasst · im Schnitt alle 13.572 km",
+darunter die einzelnen Termine mit „nach 10.918 km", „nach 14.761 km".
+
+Ein manuell gesetzter Startwert erscheint mit darin, gekennzeichnet als solcher.
+Ueber das Stiftsymbol laesst sich jeder Eintrag direkt bearbeiten.
+
+Teilenamen in der Einkaufsliste und in der Teileliste einer Position sind
+verlinkt und oeffnen den Teiledialog — fuer Teilenummer, Preis und Kauflinks.
 
 ## Kilometerstand
 

@@ -409,6 +409,48 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .bib-name{font-size:14px;font-weight:500}
 .bib-zeile[hidden],.bib-gruppe[hidden]{display:none}
 
+/* ---------- Verlauf einer Position ---------- */
+.verlauf{
+  margin-top:14px;padding-top:13px;border-top:1px solid var(--line);
+}
+.verlauf.leer{padding-top:11px}
+.verlauf-kopf{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.verlauf-titel{
+  font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-dim);
+}
+.verlauf-liste{list-style:none;margin:0;padding:0;position:relative}
+.verlauf-liste::before{          /* durchgehende Linie als Zeitachse */
+  content:"";position:absolute;left:4px;top:9px;bottom:9px;width:1px;background:var(--line);
+}
+.verlauf-liste li{
+  display:grid;grid-template-columns:18px auto 1fr auto auto;align-items:center;gap:10px;
+  padding:5px 0;font-size:13px;position:relative;
+}
+.verlauf-punkt{
+  width:9px;height:9px;border-radius:50%;background:var(--surface-2);
+  border:1.5px solid var(--line);margin-left:-1px;z-index:1;
+}
+.verlauf-liste li.aktuell .verlauf-punkt{background:var(--accent);border-color:var(--accent)}
+.verlauf-liste li.aktuell .verlauf-datum{color:var(--text);font-weight:600}
+.verlauf-datum{color:var(--text-dim);white-space:nowrap}
+.verlauf-km{color:var(--text);font-weight:600;white-space:nowrap}
+.verlauf-abstand{white-space:nowrap}
+.verlauf-extra{display:flex;align-items:center;gap:9px;justify-self:end;color:var(--text-dim)}
+
+@media(max-width:560px){
+  .verlauf-liste li{
+    grid-template-columns:18px 1fr auto;grid-template-areas:
+      "punkt datum extra" ". km abstand";
+    row-gap:1px;padding:7px 0;
+  }
+  .verlauf-punkt{grid-area:punkt}
+  .verlauf-datum{grid-area:datum}
+  .verlauf-km{grid-area:km}
+  .verlauf-abstand{grid-area:abstand;justify-self:end}
+  .verlauf-extra{grid-area:extra}
+}
+
 /* ---------- Hinweis auf veralteten Kilometerstand ---------- */
 #kmHinweis{padding:10px 16px 0;max-width:1080px;margin:0 auto}
 #kmHinweisBtn{
@@ -458,6 +500,12 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
   background:rgba(255,95,86,.14);color:#ff7b73;border-radius:4px;padding:3px 5px;
 }
 .dok-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.teil-sprung{
+  background:none;border:none;padding:0;text-align:left;
+  color:var(--text);font-size:14px;font-weight:600;
+  border-bottom:1px dotted var(--text-faint);
+}
+.teil-sprung:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .dok-link{
   background:none;border:none;padding:0;color:var(--accent);font-size:14px;
   font-weight:500;text-align:left;
@@ -1053,7 +1101,8 @@ function einkaufsliste(liste){
     <div class="tbl-wrap"><table>
       <thead><tr><th>Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th><th>Wofür</th></tr></thead>
       <tbody>${posten.map(e=>`<tr>
-        <td><strong>${esc(e.p.name)}</strong>
+        <td><button type="button" class="teil-sprung" data-edit-part="${e.p.id}"
+              title="Teil bearbeiten — Nummer, Preis, Kauflinks">${esc(e.p.name)}</button>
           ${e.p.oem?`<div class="tiny faint num">${esc(e.p.oem)}</div>`:""}
           ${e.p.qty>0?`<div class="tiny" style="color:var(--ok)">${e.p.qty} ${esc(e.p.unit)} im Regal</div>`:""}</td>
         <td class="r num">${Math.round(e.menge*100)/100} ${e.p.unit==="Stück"?"×":esc(e.p.unit)}</td>
@@ -1148,6 +1197,70 @@ function renderPlan(){
     : `<div class="empty"><p>Noch keine Wartungspositionen.</p></div>`;
 }
 
+/** Verlauf einer Wartungsposition: wann wurde sie gemacht, und in
+ *  welchen Abstaenden. Der Abstand ist das eigentlich Interessante —
+ *  daran sieht man, ob das gesetzte Intervall zur Praxis passt. */
+function positionsVerlauf(t){
+  const eintraege = CAR.history
+    .filter(h => (h.taskIds||[]).includes(t.id))
+    .map(h => ({id:h.id, date:h.date, km:h.km, cost:h.cost, note:h.note,
+                photos:h.photos||[], quelle:"historie"}))
+    .sort((a,b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+  // Manuell gesetzter Startwert zaehlt mit, sofern er aelter ist
+  if((t.lastKm != null || t.lastDate) &&
+     !eintraege.some(e => e.date === t.lastDate && e.km === t.lastKm)){
+    const manuell = {id:null, date:t.lastDate, km:t.lastKm, cost:null, note:"",
+                     photos:[], quelle:"manuell"};
+    if(!eintraege.length || (t.lastDate && t.lastDate < eintraege[0].date))
+      eintraege.unshift(manuell);
+  }
+
+  // Abstand zum jeweils vorigen Mal
+  for(let i=1;i<eintraege.length;i++){
+    const a = eintraege[i-1], b = eintraege[i];
+    if(a.km != null && b.km != null) b.dKm = b.km - a.km;
+    if(a.date && b.date) b.dTage = daysBetween(a.date, b.date);
+  }
+  return eintraege.reverse();          // neueste zuerst
+}
+
+function verlaufBlock(t){
+  const v = positionsVerlauf(t);
+  if(!v.length)
+    return `<div class="verlauf leer">
+      <span class="tiny faint">Noch nie erfasst — beim nächsten Mal eintragen,
+      dann entsteht hier der Verlauf.</span></div>`;
+
+  const mitAbstand = v.filter(e => e.dKm != null);
+  const schnittKm  = mitAbstand.length
+    ? Math.round(mitAbstand.reduce((a,e)=>a+e.dKm,0) / mitAbstand.length) : null;
+  const kosten = v.filter(e=>e.cost!=null).reduce((a,e)=>a+e.cost,0);
+
+  return `<div class="verlauf">
+    <div class="verlauf-kopf">
+      <span class="verlauf-titel">Verlauf</span>
+      <span class="tiny faint">${v.length}× erfasst${
+        schnittKm ? ` · im Schnitt alle ${nKm(schnittKm)} km` : ""}${
+        kosten ? ` · ${eur(kosten)} gesamt` : ""}</span>
+    </div>
+    <ol class="verlauf-liste">
+      ${v.map((e,i)=>`<li class="${i===0?"aktuell":""}">
+        <span class="verlauf-punkt"></span>
+        <span class="verlauf-datum">${e.date?dDE(e.date):"ohne Datum"}</span>
+        <span class="verlauf-km num">${e.km!=null?nKm(e.km)+" km":"—"}</span>
+        <span class="verlauf-abstand tiny faint">${
+          e.dKm != null ? "nach " + nKm(e.dKm) + " km"
+            : e.dTage != null ? "nach " + e.dTage + " Tagen"
+            : e.quelle === "manuell" ? "Startwert" : "erste Erfassung"}</span>
+        <span class="verlauf-extra">
+          ${e.cost!=null?`<span class="tiny num">${eur(e.cost)}</span>`:""}
+          ${e.photos.length?`<span class="tiny faint" title="${e.photos.length} Aufnahmen">▣ ${e.photos.length}</span>`:""}
+          ${e.id?`<button type="button" class="btn icon" data-edit-hist="${e.id}" title="Eintrag bearbeiten">✎</button>`:""}
+        </span></li>`).join("")}
+    </ol></div>`;
+}
+
 function taskCard(s,expandable){
   const t=s.task, lvl=s.level==="none"?"":s.level;
   const dueTxt = s.level==="unknown" ? `<span class="pill info">Startwert fehlt</span>`
@@ -1167,7 +1280,8 @@ function taskCard(s,expandable){
   const plist = (t.parts||[]).map(x=>{
     const p=partById(x.p); if(!p) return "";
     const links=(p.links||[]).map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||"Shop")} ↗</a>`).join("");
-    return `<tr><td>${esc(p.name)}${p.oem?`<div class="tiny faint num">${esc(p.oem)}</div>`:""}</td>
+    return `<tr><td><button type="button" class="teil-sprung" data-edit-part="${p.id}"
+              title="Teil bearbeiten">${esc(p.name)}</button>${p.oem?`<div class="tiny faint num">${esc(p.oem)}</div>`:""}</td>
             <td class="r num">${x.q} ${p.unit==="Stück"?"×":esc(p.unit)}</td>
             <td class="r num">${p.price!=null?eur(p.price*x.q):"—"}</td>
             <td class="links">${links||'<span class="tiny faint">kein Link</span>'}</td></tr>`;
@@ -1178,6 +1292,7 @@ function taskCard(s,expandable){
       ${t.note?`<p class="tiny muted" style="margin:0 0 12px">${esc(t.note)}</p>`:""}
       ${anleitungStreifen(t.docs)}
       ${fotoStreifen(t.photos)}
+      ${verlaufBlock(t)}
       ${plist?`<div class="tbl-wrap" style="margin-bottom:12px"><table>
         <thead><tr><th>Benötigtes Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th></tr></thead>
         <tbody>${plist}</tbody></table></div>
