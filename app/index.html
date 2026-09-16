@@ -1728,6 +1728,244 @@ function anleitungStreifen(liste){
   return eintraege ? `<div class="dok-liste">${eintraege}</div>` : "";
 }
 
+
+/* ═══════════ Markenprofile ═════════════════════════════════════
+   Wichtig: "Den" Inspektionsplan einer Marke gibt es nicht. Innerhalb
+   eines Herstellers unterscheiden sich die Vorgaben nach Motor,
+   Baujahr und Serviceart — ein VW mit LongLife hat andere Intervalle
+   als derselbe Wagen mit Festintervall. Diese Profile bilden deshalb
+   die typische STRUKTUR einer Marke ab: welche Positionen anfallen
+   und in welcher Groessenordnung. Verbindlich bleibt das Serviceheft
+   des konkreten Fahrzeugs.                                        */
+
+const PROFIL_HINWEIS = "Vorschlagswert — gegen dein Serviceheft prüfen.";
+
+/* Gemeinsamer Sockel, den praktisch jedes Fahrzeug braucht.
+   Die Profile passen davon einzelne Intervalle an. */
+const SOCKEL = [
+  {k:"oel",     n:"Motoröl + Ölfilter",            c:"Motor",      km:15000, mo:12, t:["Motoröl","Ölfilter","Dichtring Ölablassschraube"]},
+  {k:"innen",   n:"Innenraumfilter",               c:"Komfort",    km:30000, mo:24, t:["Innenraumfilter"]},
+  {k:"luft",    n:"Luftfilter",                    c:"Motor",      km:60000, mo:48, t:["Luftfilter"]},
+  {k:"bremsfl", n:"Bremsflüssigkeit wechseln",     c:"Bremsen",    km:null,  mo:24, t:["Bremsflüssigkeit"]},
+  {k:"bremsen", n:"Bremsen prüfen",                c:"Bremsen",    km:15000, mo:12, t:[]},
+  {k:"reifen",  n:"Reifen prüfen",                 c:"Reifen",     km:null,  mo:3,  t:[]},
+  {k:"raeder",  n:"Räder tauschen",                c:"Reifen",     km:10000, mo:6,  t:[]},
+  {k:"batt",    n:"Starterbatterie prüfen",        c:"Elektrik",   km:null,  mo:12, t:[]},
+  {k:"wischer", n:"Wischerblätter",                c:"Komfort",    km:null,  mo:12, t:["Wischerblätter"]},
+  {k:"klima",   n:"Klimaanlage Service",           c:"Komfort",    km:null,  mo:24, t:[]},
+  {k:"fahrwerk",n:"Fahrwerk + Achsmanschetten prüfen", c:"Fahrwerk", km:30000, mo:24, t:[]},
+  {k:"unterb",  n:"Unterboden / Rostvorsorge",     c:"Karosserie", km:null,  mo:12, t:[]},
+];
+
+/* Zusatzpositionen, die je nach Antrieb dazukommen. */
+const ANTRIEB_EXTRA = {
+  diesel: [
+    {n:"Kraftstofffilter",       c:"Motor", km:60000,  mo:48, t:["Kraftstofffilter"], h:"Bei schlechter Kraftstoffqualität früher."},
+    {n:"Partikelfilter prüfen",  c:"Motor", km:60000,  mo:null, t:[], h:"Aschebeladung auslesen. Viel Kurzstrecke verkürzt die Lebensdauer."},
+    {n:"AdBlue nachfüllen",      c:"Motor", km:10000,  mo:null, t:["AdBlue"], h:"Verbrauchsabhängig — die Warnmeldung zählt."},
+  ],
+  benzin: [
+    {n:"Zündkerzen",             c:"Motor", km:60000,  mo:72, t:["Zündkerzen"], h:"Bei Turbomotoren oft 30.000 km."},
+  ],
+  hybrid: [
+    {n:"Hochvoltbatterie prüfen",c:"Elektrik", km:null, mo:24, t:[], h:"Arbeiten am HV-System nur mit Fachkunde."},
+    {n:"Inverter-Kühlmittel",    c:"Elektrik", km:150000, mo:120, t:["Kühlmittel"], h:"Eigener Kreislauf, nicht mit dem Motorkühlmittel verwechseln."},
+  ],
+};
+
+const MARKENPROFILE = [
+  {
+    id:"vw-longlife", gruppe:"VW-Konzern",
+    name:"VW-Konzern · LongLife-Service",
+    marken:["VW","Volkswagen","Audi","Škoda","Skoda","Seat","Cupra"],
+    hinweis:"Flexibles Intervall (PR-Nummer QI6): Ölwechsel bis 30.000 km oder 2 Jahre — "+
+            "aber nur mit freigegebenem LongLife-Öl. Wird anderes Öl eingefüllt, gilt das Festintervall.",
+    anpassung:{oel:[30000,24], innen:[30000,24], luft:[60000,48]},
+    extra:[
+      {n:"Zahnriemen + Spannrolle", c:"Motor", km:120000, mo:72, t:["Zahnriemensatz","Wasserpumpe"],
+       h:"Bei vielen TDI und TSI. Intervall schwankt je Motorcode erheblich — unbedingt im Serviceheft nachsehen, ein Riss kostet den Motor."},
+      {n:"Doppelkupplungsgetriebe (DSG/S-tronic)", c:"Antrieb", km:60000, mo:48, t:["DSG-Öl","DSG-Ölfilter"],
+       wenn:{gearbox:["dsg"]},
+       h:"Nasslaufendes DSG braucht den Wechsel zwingend, trockenes in der Regel nicht."},
+      {n:"Automatikgetriebeöl", c:"Antrieb", km:60000, mo:null, t:["ATF Automatikgetriebeöl","Getriebeölfilter"],
+       wenn:{gearbox:["automatik"]}, h:"Wandlerautomatik. Bei Anhängelast und Hitze früher."},
+      {n:"Haldex-Kupplung Öl + Filter", c:"Antrieb", km:60000, mo:36, t:["Haldex-Öl","Haldex-Filter"],
+       wenn:{drive:["haldex","4x4"]},
+       h:"Bei Allradmodellen (4motion, quattro mit Haldex)."},
+    ]
+  },
+  {
+    id:"vw-fest", gruppe:"VW-Konzern",
+    name:"VW-Konzern · Festintervall",
+    marken:["VW","Volkswagen","Audi","Škoda","Skoda","Seat","Cupra"],
+    hinweis:"Feste Intervalle (PR-Nummer QI1 bis QI4): Ölwechsel alle 15.000 km oder jährlich. "+
+            "Gilt auch für LongLife-Fahrzeuge, in die kein LongLife-Öl eingefüllt wurde.",
+    anpassung:{oel:[15000,12], innen:[30000,24]},
+    extra:[
+      {n:"Zahnriemen + Spannrolle", c:"Motor", km:120000, mo:72, t:["Zahnriemensatz","Wasserpumpe"],
+       h:"Intervall je Motorcode sehr unterschiedlich — im Serviceheft nachsehen."},
+      {n:"Doppelkupplungsgetriebe (DSG/S-tronic)", c:"Antrieb", km:60000, mo:48, t:["DSG-Öl","DSG-Ölfilter"],
+       wenn:{gearbox:["dsg"]}, h:"Nur bei nasslaufendem DSG."},
+      {n:"Automatikgetriebeöl", c:"Antrieb", km:60000, mo:null, t:["ATF Automatikgetriebeöl","Getriebeölfilter"],
+       wenn:{gearbox:["automatik"]}, h:"Wandlerautomatik."},
+      {n:"Haldex-Kupplung Öl + Filter", c:"Antrieb", km:60000, mo:36, t:["Haldex-Öl","Haldex-Filter"],
+       wenn:{drive:["haldex","4x4"]}, h:"Nur bei Allradmodellen."},
+    ]
+  },
+  {
+    id:"bmw", gruppe:"BMW",
+    name:"BMW · Mini — Condition Based Service",
+    marken:["BMW","Mini"],
+    hinweis:"CBS führt für jede Position einen eigenen Zähler, der aus Fahrprofil und Zeit gespeist wird. "+
+            "Die Werte hier sind Anhaltspunkte — maßgeblich ist die Anzeige im Fahrzeug.",
+    anpassung:{oel:[25000,24], innen:[30000,24], bremsfl:[null,24]},
+    extra:[
+      {n:"Mikrofilter / Innenraumfilter", c:"Komfort", km:30000, mo:24, t:["Innenraumfilter"], h:"Bei BMW als Mikrofilter geführt."},
+      {n:"Steuerkette prüfen", c:"Motor", km:100000, mo:null, t:[], h:"Auf Rasseln beim Kaltstart achten."},
+    ]
+  },
+  {
+    id:"mercedes", gruppe:"Mercedes-Benz",
+    name:"Mercedes-Benz · Service A und B",
+    marken:["Mercedes","Mercedes-Benz","MB"],
+    hinweis:"ASSYST wechselt zwischen Service A und B. A umfasst Öl und Sichtprüfung, "+
+            "B zusätzlich Innenraumfilter, Bremsflüssigkeit und erweiterte Prüfung — grob im Zweijahresrhythmus.",
+    anpassung:{oel:[25000,12], innen:[null,24], bremsfl:[null,24]},
+    extra:[
+      {n:"Service B — erweiterte Prüfung", c:"Sonstiges", km:null, mo:24, t:[],
+       h:"Bremssystem, Fahrwerk und Unterboden gründlich prüfen, zusätzlich zum Ölservice."},
+    ]
+  },
+  {
+    id:"ford", gruppe:"Ford",
+    name:"Ford",
+    marken:["Ford"],
+    hinweis:"Achtung bei EcoBoost- und EcoBlue-Motoren: Der Zahnriemen läuft im Ölbad. "+
+            "Ford gibt bis 240.000 km oder 10 Jahre an, in der Praxis treten Schäden deutlich früher auf.",
+    anpassung:{oel:[20000,12]},
+    extra:[
+      {n:"Nassriemen prüfen (Zahnriemen im Ölbad)", c:"Motor", km:60000, mo:48, t:[],
+       h:"Bei EcoBoost und EcoBlue. Werksangabe 240.000 km bzw. 10 Jahre gilt als zu optimistisch — "+
+         "Ölsieb und Riemen regelmäßig kontrollieren, Ölwechsel nie überziehen."},
+      {n:"Nassriemen wechseln", c:"Motor", km:150000, mo:96, t:["Zahnriemensatz im Ölbad"],
+       h:"Viele Werkstätten empfehlen deutlich vor der Werksvorgabe zu wechseln."},
+    ]
+  },
+  {
+    id:"stellantis", gruppe:"Stellantis",
+    name:"Opel · Peugeot · Citroën · Fiat",
+    marken:["Opel","Peugeot","Citroën","Citroen","Fiat","DS","Alfa Romeo","Vauxhall"],
+    hinweis:"Bei PureTech-Benzinern läuft der Zahnriemen im Ölbad — bekanntes Schadensbild, "+
+            "hier gilt dasselbe wie bei Ford: nicht auf die lange Werksvorgabe verlassen.",
+    anpassung:{oel:[20000,12], innen:[30000,24]},
+    extra:[
+      {n:"Nassriemen prüfen (PureTech)", c:"Motor", km:60000, mo:48, t:[], wenn:{fuel:["benzin"]},
+       h:"Nur bei PureTech-Benzinern. Ölsieb auf Riemenabrieb kontrollieren."},
+      {n:"Zahnriemen + Spannrolle", c:"Motor", km:100000, mo:72, t:["Zahnriemensatz","Wasserpumpe"],
+       h:"Bei Motoren mit trockenem Zahnriemen."},
+    ]
+  },
+  {
+    id:"toyota", gruppe:"Toyota",
+    name:"Toyota · Lexus",
+    marken:["Toyota","Lexus"],
+    hinweis:"Meist Steuerkette statt Zahnriemen. Wartung üblicherweise alle 15.000 km oder jährlich.",
+    anpassung:{oel:[15000,12], innen:[15000,12], luft:[30000,24]},
+    extra:[
+      {n:"Steuerkette prüfen", c:"Motor", km:100000, mo:null, t:[], h:"Auf Rasseln beim Kaltstart achten."},
+    ]
+  },
+  {
+    id:"asien", gruppe:"Weitere",
+    name:"Hyundai · Kia · Mazda · Suzuki · Honda",
+    marken:["Hyundai","Kia","Mazda","Suzuki","Honda","Mitsubishi","Subaru"],
+    hinweis:"Überwiegend feste Intervalle, meist 15.000 km oder jährlich. "+
+            "Einige Motoren haben Zahnriemen — im Serviceheft prüfen.",
+    anpassung:{oel:[15000,12], innen:[15000,12], luft:[30000,24]},
+    extra:[]
+  },
+  {
+    id:"renault", gruppe:"Weitere",
+    name:"Renault · Dacia · Nissan",
+    marken:["Renault","Dacia","Nissan"],
+    hinweis:"Diesel häufig mit längeren Ölintervallen als Benziner. Viele Motoren haben Zahnriemen.",
+    anpassung:{oel:[20000,12], innen:[30000,24]},
+    extra:[
+      {n:"Zahnriemen + Spannrolle", c:"Motor", km:120000, mo:72, t:["Zahnriemensatz","Wasserpumpe"],
+       h:"Intervall je Motor unterschiedlich — im Serviceheft nachsehen."},
+    ]
+  },
+  {
+    id:"volvo", gruppe:"Weitere",
+    name:"Volvo",
+    marken:["Volvo","Polestar"],
+    hinweis:"Allradmodelle haben eine Haldex-Kupplung mit eigenem Ölwechsel.",
+    anpassung:{oel:[20000,12], innen:[30000,24]},
+    extra:[
+      {n:"Haldex-Kupplung Öl + Filter", c:"Antrieb", km:60000, mo:36, t:["Haldex-Öl","Haldex-Filter"],
+       wenn:{drive:["haldex","4x4"]}, h:"Bei Allradmodellen."},
+    ]
+  },
+];
+
+/** Trifft eine Zusatzposition auf dieses Fahrzeug zu?
+ *  Ohne Bedingung gilt sie immer; fehlt die Angabe am Fahrzeug,
+ *  nehmen wir sie lieber mit auf, als sie stillschweigend wegzulassen. */
+function passtZuFahrzeug(e, merkmale){
+  if(!e.wenn) return true;
+  return Object.entries(e.wenn).every(([feld, erlaubt])=>{
+    const wert = merkmale[feld];
+    return !wert || erlaubt.includes(wert);
+  });
+}
+
+/** Positionsliste eines Profils zusammenbauen. */
+function profilPositionen(profil, merkmale){
+  const m = typeof merkmale === "string" ? {fuel:merkmale} : (merkmale||{});
+  const raus = [];
+  for(const b of SOCKEL){
+    const anp = profil.anpassung && profil.anpassung[b.k];
+    raus.push({n:b.n, c:b.c, km:anp?anp[0]:b.km, mo:anp?anp[1]:b.mo, t:b.t, h:""});
+  }
+  for(const e of (ANTRIEB_EXTRA[m.fuel] || []))  raus.push(e);
+  for(const e of (profil.extra || []))
+    if(passtZuFahrzeug(e, m)) raus.push(e);
+
+  // Doppelte Namen zusammenführen, später gewinnt
+  const map = new Map();
+  for(const e of raus) map.set(e.n, e);
+  return [...map.values()];
+}
+
+/** Aus einem Profil ein fertiges Fahrzeug bauen. */
+function fahrzeugAusProfil(profil, merkmale){
+  const v = seedVehicle({blank:true});
+  for(const e of profilPositionen(profil, merkmale)){
+    const teile = (e.t||[]).map(name=>{
+      let teil = v.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
+      if(!teil){
+        teil = {id:uid("p"), name, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[],
+                note:"Aus Markenprofil — Teilenummer beim ersten Kauf eintragen."};
+        v.parts.push(teil);
+      }
+      return {p:teil.id, q:1};
+    });
+    v.tasks.push({id:uid("t"), name:e.n, cat:e.c, km:e.km, mo:e.mo, parts:teile,
+                  note:(e.h?e.h+" ":"")+PROFIL_HINWEIS, active:true,
+                  lastKm:null, lastDate:null, photos:[], docs:[]});
+  }
+  return v;
+}
+
+/** Profil zur eingetippten Marke vorschlagen. */
+function profilZurMarke(marke){
+  const m = (marke||"").trim().toLowerCase();
+  if(!m) return null;
+  return MARKENPROFILE.find(p=>p.marken.some(x=>x.toLowerCase()===m))
+      || MARKENPROFILE.find(p=>p.marken.some(x=>m.includes(x.toLowerCase())))
+      || null;
+}
+
 /* ═══════════ Bausteinbibliothek ════════════════════════════════
    Einzelne Wartungspositionen zum Auswählen — bewusst KEINE
    fertigen Herstellerpläne. Die Intervalle sind belastbare
@@ -2428,14 +2666,21 @@ function vehicleDialog(id){
   if(!isNew && !v) return;
   const d = v || {name:"",brand:"",model:"",year:null,vin:"",plate:"",firstReg:today(),note:""};
 
+  const gruppen = [...new Set(MARKENPROFILE.map(p=>p.gruppe))];
   const tpl = isNew ? `
     <div class="field"><label>Wartungsplan</label>
       <select id="f-tpl">
-        <option value="diesel">Vorlage Diesel-Geländewagen — 23 Positionen</option>
-        ${DB.vehicles.map(o=>`<option value="copy:${o.id}">Plan von „${esc(o.name)}" übernehmen</option>`).join("")}
-        <option value="blank">Leer beginnen</option>
+        <optgroup label="Markenprofile">
+          ${gruppen.map(g=>MARKENPROFILE.filter(p=>p.gruppe===g)
+            .map(p=>`<option value="profil:${p.id}">${esc(p.name)}</option>`).join("")).join("")}
+        </optgroup>
+        <optgroup label="Sonstige">
+          <option value="diesel">Diesel-Geländewagen (Toyota Hilux 1GD-FTV)</option>
+          ${DB.vehicles.map(o=>`<option value="copy:${o.id}">Plan von „${esc(o.name)}" übernehmen</option>`).join("")}
+          <option value="blank">Leer beginnen</option>
+        </optgroup>
       </select>
-      <div class="hint">Übernommen werden Positionen und Teile — Historie und Kilometerstand bleiben leer.</div>
+      <div class="hint" id="tplHinweis"></div>
     </div>` : "";
 
   const dataBlock = isNew ? "" : `
@@ -2490,7 +2735,8 @@ function vehicleDialog(id){
     ${tpl}${dataBlock}`,
   ()=>{
     if(!val("f-name")){ toast("Bezeichnung fehlt",true); return false; }
-    const target = isNew ? buildVehicle(val("f-tpl")) : v;
+    const merkmale = {fuel:val("f-fuel"), gearbox:val("f-gearbox"), drive:val("f-drive")};
+    const target = isNew ? buildVehicle(val("f-tpl"), merkmale) : v;
     target.brand=val("f-brand"); target.name=val("f-name"); target.model=val("f-model");
     target.year=num(val("f-year")); target.plate=val("f-plate"); target.vin=val("f-vin");
     target.owner=val("f-owner"); target.fuel=val("f-fuel");
@@ -2507,7 +2753,42 @@ function vehicleDialog(id){
     }
   }, isNew?"Anlegen":"Speichern");
 
-  if(isNew) return;
+  if(isNew){
+    const auswahl = $("#f-tpl"), hinweis = $("#tplHinweis");
+    const zeigeHinweis = ()=>{
+      const wert = auswahl.value;
+      if(wert.startsWith("profil:")){
+        const p = MARKENPROFILE.find(x=>x.id===wert.slice(7));
+        const n = p ? profilPositionen(p, {fuel:val("f-fuel"), gearbox:val("f-gearbox"), drive:val("f-drive")}).length : 0;
+        hinweis.innerHTML = p
+          ? `<strong>${n} Positionen.</strong> ${esc(p.hinweis)}
+             <span style="display:block;margin-top:4px">Die Intervalle sind typische Größenordnungen,
+             keine Werksvorgabe — nach dem Anlegen gegen das Serviceheft prüfen.</span>`
+          : "";
+      } else if(wert.startsWith("copy:")){
+        hinweis.textContent = "Positionen und Teile werden übernommen, Historie und Kilometerstand bleiben leer.";
+      } else if(wert==="blank"){
+        hinweis.textContent = "Leerer Plan — Positionen später einzeln oder über die Bibliothek anlegen.";
+      } else {
+        hinweis.textContent = "23 Positionen für einen Diesel-Geländewagen, abgeleitet vom Toyota Hilux.";
+      }
+    };
+    auswahl.addEventListener("change", zeigeHinweis);
+    for(const id of ["f-fuel","f-gearbox","f-drive"])
+      $("#"+id).addEventListener("change", zeigeHinweis);
+
+    // Tippt jemand die Marke, das passende Profil vorschlagen
+    $("#f-brand").addEventListener("input", e=>{
+      const p = profilZurMarke(e.target.value);
+      if(p && !auswahl.dataset.handverlesen){
+        auswahl.value = "profil:" + p.id;
+        zeigeHinweis();
+      }
+    });
+    auswahl.addEventListener("change", ()=>{ auswahl.dataset.handverlesen = "1"; });
+    zeigeHinweis();
+    return;
+  }
 
   // Fotospeicher nachladen — zeigt auch verwaiste Dateien an
   if(mode==="server") (async()=>{
@@ -2560,8 +2841,12 @@ function vehicleDialog(id){
 }
 
 /** Neues Fahrzeug nach gewaehlter Vorlage aufbauen. */
-function buildVehicle(tpl){
+function buildVehicle(tpl, merkmale){
   if(tpl==="blank") return seedVehicle({blank:true});
+  if(tpl && tpl.startsWith("profil:")){
+    const profil = MARKENPROFILE.find(p=>p.id===tpl.slice(7));
+    if(profil) return fahrzeugAusProfil(profil, merkmale);
+  }
   if(tpl && tpl.startsWith("copy:")){
     const src = DB.vehicles.find(v=>v.id===tpl.slice(5));
     if(src){

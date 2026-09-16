@@ -179,6 +179,32 @@ Den Build-Status siehst du mit `gh run list` oder unter *Actions* im
 Repository. Reine Aenderungen an README, Konverter oder `docker-compose.yml`
 loesen bewusst keinen Build aus, da sie nicht im Image landen.
 
+## Markenprofile
+
+Beim Anlegen eines Fahrzeugs laesst sich ein Markenprofil waehlen: VW-Konzern
+(LongLife oder Festintervall), BMW/Mini, Mercedes-Benz, Ford, Stellantis
+(Opel, Peugeot, Citroën, Fiat), Toyota/Lexus, Hyundai/Kia/Mazda/Suzuki/Honda,
+Renault/Dacia/Nissan und Volvo. Tippt man die Marke ein, schlaegt die App das
+passende Profil selbst vor.
+
+Ein Profil erzeugt einen Plan aus einem gemeinsamen Sockel (Oel, Filter,
+Bremsen, Fahrwerk …) plus antriebs- und markenspezifischen Positionen. Es
+richtet sich dabei nach den Fahrzeugmerkmalen: DSG-Oelwechsel erscheint nur bei
+Doppelkupplungsgetriebe, Haldex nur bei Allrad, Zuendkerzen nur bei Benzinern.
+
+> **"Den" Inspektionsplan einer Marke gibt es nicht.** Innerhalb eines
+> Herstellers unterscheiden sich die Vorgaben nach Motor, Baujahr und
+> Serviceart — ein VW mit LongLife-Service hat andere Intervalle als derselbe
+> Wagen mit Festintervall, und Zahnriemenintervalle schwanken je Motorcode um
+> zehntausende Kilometer. Die Profile bilden die typische **Struktur** einer
+> Marke ab und tragen Groessenordnungen ein, die jede erzeugte Position als
+> Vorschlag kennzeichnet. Verbindlich ist das Serviceheft des Fahrzeugs.
+
+Zwei Punkte, die in den Profilen bewusst hervorgehoben sind, weil sie teuer
+werden koennen: der **Nassriemen** bei Ford EcoBoost/EcoBlue und Stellantis
+PureTech — die Werksangabe von bis zu 240.000 km gilt als zu optimistisch —
+sowie die Bindung des VW-LongLife-Intervalls an freigegebenes Longlife-Oel.
+
 ## Bausteinbibliothek
 
 Statt fertiger Herstellerplaene bietet die App **einzelne Wartungspositionen zum
