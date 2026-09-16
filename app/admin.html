@@ -3,19 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#16181d">
+<meta name="theme-color" content="#08090a">
 <link rel="icon" href="icon-192.png">
 <title>Verwaltung · Overlandvibe Carservice</title>
 <style>
+@font-face{font-family:'Geist';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/geist-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Geist';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/geist-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:400 500;font-display:swap;src:url(fonts/geist-mono-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Geist Mono';font-style:normal;font-weight:400 500;font-display:swap;src:url(fonts/geist-mono-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+
 :root{
-  --bg:#16181d; --surface:#1e2127; --surface-2:#262a32; --line:#343943;
-  --text:#e8eaed; --text-dim:#9aa1ad; --text-faint:#6b727e;
-  --accent:#4a9eff; --ok:#3ecf8e; --warn:#f5b642; --crit:#ff5f56; --info:#a78bfa;
+  --bg:#08090a; --surface:#16181b; --surface-2:#1e2125; --line:#23262a;
+  --line-hell:#2f3338;
+  --text:#f0f1f3; --text-dim:#9ea4aa; --text-faint:#686d73;
+  --accent:#c8ced4; --ok:#5ec98c; --warn:#e8b24a; --crit:#ff6b60; --info:#a78bfa;
+  --mat-flaeche: linear-gradient(180deg,#16181b,#0f1113);
+  --mat-erhaben: linear-gradient(160deg,#1d1f23 0%,#141619 45%,#0f1113 100%);
+  --mat-vertieft:linear-gradient(180deg,#0b0c0e,#141619);
+  --mat-silber:  linear-gradient(180deg,#eceef0,#b9bfc5);
+  --mat-knopf:   linear-gradient(180deg,#1e2125,#141619);
+  --kante:       inset 0 1px 0 rgba(255,255,255,.07);
+  --kante-stark: inset 0 1px 0 rgba(255,255,255,.13), inset 0 -1px 0 rgba(0,0,0,.6);
+  --schrift: Geist, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --schrift-zahl: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{
   margin:0;background:var(--bg);color:var(--text);
-  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font:15px/1.5 var(--schrift);
   padding-bottom:calc(30px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;
 }
 a{color:var(--accent);text-decoration:none}
@@ -23,7 +38,7 @@ button{font:inherit;cursor:pointer}
 input,select{font:inherit}
 
 header{
-  border-bottom:1px solid var(--line);padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
+  background:linear-gradient(180deg,#17191c,#0e1012);box-shadow:var(--kante);border-bottom:1px solid #000;padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
 }
 .marke{display:flex;align-items:center;gap:9px}
@@ -38,22 +53,23 @@ h2{font-size:15px;font-weight:650;margin:0 0 4px;letter-spacing:-.01em}
 .hinweis{color:var(--text-dim);font-size:13.5px;margin:0 0 18px}
 
 .btn{
-  background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+  background:var(--mat-knopf);border:1px solid var(--line-hell);color:var(--text-dim);
   padding:8px 14px;border-radius:8px;font-size:14px;font-weight:500;
 }
 .btn:hover{border-color:var(--text-faint)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:650}
-.btn.primary:hover{background:#63aeff}
+.btn.primary{background:var(--mat-silber);border:none;color:#15171a;font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.7), 0 1px 3px rgba(0,0,0,.5)}
+.btn.primary:hover{background:linear-gradient(180deg,#f6f7f8,#c6ccd2)}
 .btn.sm{padding:5px 10px;font-size:13px}
 .btn.danger:hover{border-color:var(--crit);color:var(--crit)}
 .btn:disabled{opacity:.55;cursor:default}
 
-.karte{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+.karte{background:var(--mat-flaeche);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:var(--kante)}
 .feld{margin-bottom:14px}
 .feld label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-weight:500}
 .feld input,.feld select{
-  width:100%;padding:10px 12px;background:var(--surface-2);
+  width:100%;padding:10px 12px;background:var(--mat-vertieft);
   border:1px solid var(--line);border-radius:8px;color:var(--text);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.4);
 }
 .feld input:focus,.feld select:focus{outline:none;border-color:var(--accent)}
 .feld .tipp{font-size:11.5px;color:var(--text-faint);margin-top:4px}
@@ -67,7 +83,7 @@ th{
 }
 td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-.tabelle{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+.tabelle{background:var(--mat-flaeche);border:1px solid var(--line);border-radius:12px;overflow-x:auto;box-shadow:var(--kante)}
 td.r,th.r{text-align:right}
 
 .pille{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
@@ -83,8 +99,9 @@ td.r,th.r{text-align:right}
 .meldung.gut{background:rgba(62,207,142,.1);border:1px solid rgba(62,207,142,.3);color:var(--ok)}
 
 dialog{
-  background:var(--surface);color:var(--text);border:1px solid var(--line);
-  border-radius:14px;padding:0;max-width:440px;width:calc(100% - 28px);
+  background:var(--mat-erhaben);color:var(--text);border:1px solid #2c3035;
+  border-radius:16px;padding:0;max-width:440px;width:calc(100% - 28px);
+  box-shadow:var(--kante-stark), 0 24px 60px rgba(0,0,0,.6);
 }
 dialog::backdrop{background:rgba(0,0,0,.65)}
 .dlg-kopf{padding:16px 18px;border-bottom:1px solid var(--line);font-weight:650}

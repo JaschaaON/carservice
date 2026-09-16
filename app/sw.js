@@ -1,7 +1,10 @@
 /* Hält die App offline verfügbar. Die Daten selbst laufen immer übers
    Netz — veraltete Kilometerstände wären schlimmer als eine Fehlermeldung. */
-const CACHE = "carservice-v4";
-const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE = "carservice-v5";
+const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png",
+  // Selbst gehostet, damit die App ohne Netz vollstaendig gesetzt bleibt
+  "./fonts/geist-latin.woff2", "./fonts/geist-latin-ext.woff2",
+  "./fonts/geist-mono-latin.woff2", "./fonts/geist-mono-latin-ext.woff2"];
 
 self.addEventListener("install", e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));

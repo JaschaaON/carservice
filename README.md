@@ -124,8 +124,8 @@ lohnt kein eigener Request, und so bleibt es auch ohne Netz sichtbar, ohne dass
 der Service Worker eine weitere Datei vorhalten muss. Quelle des Zeichens ist
 `overlandvibe/public/logo/mark-trail.svg` im Schwesterprojekt.
 
-Sein dunkler Kreis (`#111413`) liegt praktisch auf der Hintergrundfarbe der App
-(`#16181d`), wodurch es wie ein Abzeichen ohne harte Kante wirkt.
+Sein dunkler Kreis (`#111413`) liegt dicht an der Hintergrundfarbe der App
+(`#08090a`), wodurch es wie ein Abzeichen ohne harte Kante wirkt.
 
 Der Name auf dem Homescreen kommt aus `apple-mobile-web-app-title` — dieses
 Meta-Tag hat auf iOS **Vorrang vor dem Manifest**. Es steht auf „Carservice",
@@ -136,6 +136,39 @@ Installieren.
 Die **App-Icons sind noch das blaue Zahnrad**. Sie auf die Overlandvibe-Marke
 umzustellen hiesse, die drei PNG (192, 512 und 180 px) aus dem SVG neu zu
 erzeugen — bislang bewusst offen gelassen.
+
+## Gestaltung
+
+Silber auf Schwarz. Der Verlauf liegt nicht als Hintergrundbild hinter der
+Oberflaeche, sondern steckt **in den Flaechen selbst** — jede Karte, jeder Knopf
+traegt oben eine helle und unten eine dunkle Kante, wie gebuerstetes Metall im
+Streiflicht. Dadurch bleibt der Bildschirmhintergrund ruhig schwarz
+(`#08090a`), und trotzdem wirkt nichts flach.
+
+Die Materialien stehen als Variablen in `:root` und werden nur ueber diese
+benutzt — wer den Ton aendern will, aendert eine Zeile statt hundert Regeln:
+
+```
+--mat-flaeche    ruhige Flaeche (Karten, Listen)
+--mat-erhaben    herausgehobene Flaeche (Statuskarte)
+--mat-kopf       Kopfzeile
+--mat-vertieft   eingelassen (Eingabefelder, Kilometerfeld)
+--mat-silber     Silberverlauf fuer den wichtigsten Knopf je Ansicht
+--mat-knopf      normale Knoepfe
+--kante          heller Lichtsaum oben
+--kante-stark    Lichtsaum oben, Schattenkante unten
+```
+
+Geschrieben ist die App in **Geist**, Zahlen in **Geist Mono** mit
+Tabellenziffern — damit springen Kilometerstaende in Listen nicht, wenn sich
+eine Ziffer aendert. Beide Schriften liegen als variable woff2 unter
+`app/fonts/` (zusammen 81 KB, SIL OFL 1.1) und werden **selbst ausgeliefert**:
+hinter einem VPN ist ein Google-Fonts-Aufruf entweder langsam oder gar nicht
+moeglich, und der Service Worker kann nur vorhalten, was vom eigenen Server
+kommt.
+
+Die Farben fuer den Zustand bleiben die einzigen bunten Punkte: gruen in
+Ordnung, gelb demnaechst, rot ueberfaellig, violett noch nie erfasst.
 
 ## Kilometerstand
 
@@ -165,6 +198,7 @@ server.js        Mini-Server, keine Abhängigkeiten: liefert die App aus,
                  liest und schreibt data.json, sichert jede Vorversion
 app/index.html   die komplette App in einer Datei
 app/sw.js        Service Worker — App bleibt ohne Netz lesbar
+app/fonts/       Geist und Geist Mono, selbst gehostet (SIL OFL 1.1)
 data/data.json   sämtliche Daten, alle Fahrzeuge in einer Datei
 data/versions/   die letzten 40 Fassungen, automatisch
 data/photos/     Fotos als JPEG, je Bild eine Voll- und eine Vorschaufassung
