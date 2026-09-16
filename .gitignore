@@ -1,0 +1,11 @@
+# Fahrzeugdaten bleiben privat und gehoeren nie ins Repository.
+data/
+*.xlsx
+*.xls
+*.csv
+fahrzeuge-*.json
+
+.DS_Store
+__pycache__/
+*.pyc
+.claude/

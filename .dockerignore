@@ -1,0 +1,9 @@
+# Nur Server und App gehoeren ins Image
+data/
+*.xlsx
+*.py
+__pycache__/
+.claude/
+.DS_Store
+README.md
+docker-compose.yml

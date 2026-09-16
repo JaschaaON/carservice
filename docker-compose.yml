@@ -1,0 +1,44 @@
+# carservice — Fahrzeugwartung
+# Vorlage fuer Dockhand. Das Image baut GitHub Actions bei jedem Push;
+# Dockhand zieht es aus der Registry und kann Updates per Klick einspielen.
+# Ein lokaler Build auf dem Server ist damit nicht mehr noetig.
+
+services:
+  carservice:
+    image: ghcr.io/jaschaaon/carservice:latest
+    container_name: carservice
+    restart: unless-stopped
+
+    # Container laeuft ohne Root als UID 1000.
+    # Das Datenverzeichnis auf dem Host muss ihm gehoeren:
+    #   chown -R 1000:1000 <stack-verzeichnis>/data
+    user: "1000:1000"
+
+    ports:
+      # NUR an localhost binden. Der Server ist oeffentlich erreichbar —
+      # ohne die 127.0.0.1 hinge die Oberflaeche am NetBird-Login vorbei
+      # offen im Internet. Erreicht NetBird den Dienst darueber nicht,
+      # stattdessen an die VPN-Adresse des Hosts binden (100.64.x.x).
+      - "127.0.0.1:8099:8080"
+
+    volumes:
+      - ./data:/data
+
+    environment:
+      - TZ=Europe/Berlin
+
+    # Health-Check fuer Dockhand: prueft, ob die Daten lesbar UND
+    # schreibbar sind. Bei fehlenden Rechten liefert /api/health 503
+    # und der Container erscheint als "unhealthy".
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/api/health"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
