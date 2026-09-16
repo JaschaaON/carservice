@@ -11,7 +11,8 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 | **Übersicht** | Was ist überfällig, was kommt demnächst, wann ungefähr |
 | **Wartungsplan** | 23 Positionen mit Intervall nach km *und* Zeit, Teilebedarf, „erledigt"-Eintrag |
 | **Teilekatalog** | Teilenummern, Preise, Vorrat und **eigene Kauflinks** pro Teil |
-| **Historie** | Alle Services, importiert aus der Excel-Liste |
+| **Historie** | Alle Services mit Nachweisfotos |
+| **Fotos** | Belege an jedem Historieneintrag, Referenzbilder an jeder Wartungsposition |
 | **Umbauten** | Anbauteile mit Einbaudatum, Kosten, Bezugsquelle |
 | **Tour** | Was vor einer Reise fällig wird und welche Teile mitgehören |
 | **Kosten** | Summen pro Jahr, Kosten je Kilometer |
@@ -41,6 +42,7 @@ app/index.html   die komplette App in einer Datei
 app/sw.js        Service Worker — App bleibt ohne Netz lesbar
 data/data.json   sämtliche Daten, alle Fahrzeuge in einer Datei
 data/versions/   die letzten 40 Fassungen, automatisch
+data/photos/     Fotos als JPEG, je Bild eine Voll- und eine Vorschaufassung
 ```
 
 ## Auf dem Netcup-Server einrichten
@@ -138,6 +140,22 @@ auf dem Server.
 Den Build-Status siehst du mit `gh run list` oder unter *Actions* im
 Repository. Reine Aenderungen an README, Konverter oder `docker-compose.yml`
 loesen bewusst keinen Build aus, da sie nicht im Image landen.
+
+## Fotos
+
+Der Browser verkleinert jedes Bild vor dem Hochladen auf 1600 px und wandelt es
+in JPEG — aus einem 4-MB-Handyfoto werden rund 300 KB. Zusaetzlich entsteht ein
+Vorschaubild. Hochgeladen wird die Datei als reiner Body per `PUT`, damit der
+Server ohne multipart-Bibliothek auskommt.
+
+Serverseitig werden Bild-IDs streng geprueft (`f_` plus Hex, optional `_t`),
+die JPEG-Signatur kontrolliert und die Groesse begrenzt. Ausgeliefert wird mit
+`X-Content-Type-Options: nosniff`.
+
+Unter ⚙ steht der Speicherverbrauch; verwaiste Dateien — also Bilder ohne
+zugehoerigen Eintrag — lassen sich dort mit einem Klick entfernen.
+
+`data/photos/` gehoert in die Sicherung.
 
 ## Health-Check
 

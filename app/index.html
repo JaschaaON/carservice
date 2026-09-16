@@ -197,6 +197,52 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
 .toast.err{border-color:var(--crit);color:var(--crit)}
 
+/* ---------- Fotos ---------- */
+.fotos{display:flex;flex-wrap:wrap;gap:8px}
+.foto{position:relative;width:88px;height:88px}
+.fotos img{
+  width:88px;height:88px;object-fit:cover;border-radius:8px;
+  border:1px solid var(--line);background:var(--surface-2);cursor:zoom-in;display:block;
+}
+.fotos img:hover{border-color:var(--accent)}
+.fotos.mini{margin-top:8px}
+.fotos.mini img{width:54px;height:54px;border-radius:6px}
+.foto-x{
+  position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--text-dim);
+  font-size:12px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;
+}
+.foto-x:hover{border-color:var(--crit);color:var(--crit)}
+
+/* ---------- Lightbox ---------- */
+.lb{
+  position:fixed;inset:0;z-index:300;background:rgba(8,9,12,.94);
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+}
+.lb img{
+  max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;cursor:zoom-in;
+}
+.lb img.zoom{object-fit:cover;width:100%;height:100%;cursor:zoom-out}
+.lb-x,.lb-nav{
+  position:absolute;background:rgba(38,42,50,.85);border:1px solid var(--line);
+  color:var(--text);border-radius:50%;width:44px;height:44px;font-size:20px;line-height:1;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);
+}
+.lb-x{top:calc(14px + env(safe-area-inset-top));right:14px;font-size:16px}
+.lb-nav{top:50%;transform:translateY(-50%)}
+.lb-prev{left:14px} .lb-next{right:14px}
+.lb-x:hover,.lb-nav:hover{background:var(--surface-2);border-color:var(--text-faint)}
+.lb-z{
+  position:absolute;bottom:calc(16px + env(safe-area-inset-bottom));left:50%;
+  transform:translateX(-50%);font-size:12px;color:var(--text-dim);
+  background:rgba(38,42,50,.85);padding:4px 12px;border-radius:99px;
+}
+@media(max-width:560px){
+  .foto,.fotos img{width:76px;height:76px}
+  .lb-nav{width:38px;height:38px}
+}
+
 /* ---------- Schmale Bildschirme ----------
    Am Telefon zaehlt nur zweierlei: Kilometerstand eintragen und sehen,
    was ansteht. Alles Schmueckende im Kopf weicht dafuer. */
@@ -361,7 +407,7 @@ function seedVehicle(opts){
     P("p17","Fett NLGI 2 für Kardangelenke","Kartusche","",1),
     P("p18","AdBlue / DEF","Liter","")
   ];
-  const T = (id,name,cat,km,mo,parts,note)=>({id,name,cat,km:km||null,mo:mo||null,parts:parts||[],note:note||"",active:true,lastKm:null,lastDate:null});
+  const T = (id,name,cat,km,mo,parts,note)=>({id,name,cat,km:km||null,mo:mo||null,parts:parts||[],note:note||"",active:true,lastKm:null,lastDate:null,photos:[]});
   const tasks = [
     T("t1","Motoröl + Ölfilter","Motor",15000,12,[{p:"p1",q:7.5},{p:"p2",q:1},{p:"p3",q:1}],"Der wichtigste Service. "+PRUEF),
     T("t2","Innenraumfilter","Komfort",15000,12,[{p:"p4",q:1}]),
@@ -394,6 +440,7 @@ function seedVehicle(opts){
     built: o.built||"",                      // Herstellungsdatum laut Typenschild
     firstReg: o.firstReg||today(),
     km:0, kmDate: today(), note:"",
+    owner:"", fuel:"diesel", gearbox:"", drive:"",
     tasks: o.blank ? [] : tasks,
     parts: o.blank ? [] : parts,
     history: [], mods: []
@@ -403,21 +450,36 @@ function seedVehicle(opts){
 function seedData(){
   const v = seedVehicle({name:"Hilux Extra Cab", brand:"Toyota",
                          model:"2.8 D-4D, Automatik, 4x4", year:2023, firstReg:"2023-01-01"});
-  return {version:2, rev:0, activeId:v.id, vehicles:[v]};
+  return {version:3, rev:0, activeId:v.id, vehicles:[v]};
 }
 
 /* Version 1 kannte nur ein Fahrzeug und legte dessen Daten direkt in
    die Wurzel. Wird beim Laden automatisch umgeschrieben. */
 function migrate(db){
   if(!db) return null;
-  if(db.version >= 2 && Array.isArray(db.vehicles)) return db;
+  if(db.version >= 2 && Array.isArray(db.vehicles)) return migrate3(db);
   const old = db.vehicle || {};
   const v = Object.assign(
     {id:uid("v"), name:"Fahrzeug", brand:"", model:"", year:null, vin:"", plate:"",
      built:"", firstReg:today(), km:0, kmDate:today(), note:""},
     old,
     {tasks:db.tasks||[], parts:db.parts||[], history:db.history||[], mods:db.mods||[]});
-  return {version:2, rev:db.rev||0, activeId:v.id, vehicles:[v]};
+  return migrate3({version:2, rev:db.rev||0, activeId:v.id, vehicles:[v]});
+}
+
+/* Version 3 ergaenzt Fotolisten und die Fahrzeugmerkmale, nach denen
+   die Bausteinbibliothek spaeter filtert. Aendert nie Vorhandenes. */
+function migrate3(db){
+  for(const v of db.vehicles||[]){
+    if(v.owner   === undefined) v.owner   = "";
+    if(v.fuel    === undefined) v.fuel    = "";
+    if(v.gearbox === undefined) v.gearbox = "";
+    if(v.drive   === undefined) v.drive   = "";
+    for(const liste of [v.tasks||[], v.history||[]])
+      for(const e of liste) if(!Array.isArray(e.photos)) e.photos = [];
+  }
+  db.version = 3;
+  return db;
 }
 
 /* Alle Ansichten arbeiten auf CAR — dem gerade gewählten Fahrzeug. */
@@ -657,6 +719,7 @@ function taskCard(s,expandable){
 
   const body = expandable ? `<div class="task-body">
       ${t.note?`<p class="tiny muted" style="margin:0 0 12px">${esc(t.note)}</p>`:""}
+      ${fotoStreifen(t.photos)}
       ${plist?`<div class="tbl-wrap" style="margin-bottom:12px"><table>
         <thead><tr><th>Benötigtes Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th></tr></thead>
         <tbody>${plist}</tbody></table></div>
@@ -720,7 +783,7 @@ function renderHist(){
         <td class="r num">${nKm(e.km)}</td>
         <td>${names.length?names.join("<br>"):'<span class="faint">—</span>'}</td>
         <td class="r num">${e.cost!=null?eur(e.cost):"—"}</td>
-        <td class="tiny muted">${esc(e.note||"")}</td>
+        <td class="tiny muted">${esc(e.note||"")}${fotoStreifen(e.photos)}</td>
         <td class="r"><button class="btn icon" data-edit-hist="${e.id}">✎</button></td></tr>`;
     }).join("")}</tbody></table></div>`;
 }
@@ -844,6 +907,155 @@ function renderCost(){
        <td>${esc(r.label)}</td><td class="r num">${eur(r.cost)}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
+
+/* ═══════════ Fotos ═════════════════════════════════════════════
+   Handyfotos sind 3–5 MB gross. Hochgeladen wird deshalb nie das
+   Original, sondern eine auf 1600 px verkleinerte JPEG-Fassung plus
+   ein Vorschaubild. Das spart etwa 90 % Speicher und macht die
+   Galerie im Mobilfunknetz benutzbar.                            */
+
+const FOTO_MAX   = 1600, FOTO_Q   = 0.82;
+const THUMB_MAX  = 400,  THUMB_Q  = 0.7;
+
+const photoUrl = (id,thumb)=> "api/photos/" + id + (thumb?"_t":"");
+
+/** Bild laden und dabei die EXIF-Drehung beruecksichtigen —
+ *  sonst liegen Hochformataufnahmen vom iPhone quer. */
+async function ladeBild(file){
+  if(self.createImageBitmap){
+    try{ return await createImageBitmap(file,{imageOrientation:"from-image"}); }
+    catch(e){ /* aeltere Safari-Fassungen kennen die Option nicht */ }
+    try{ return await createImageBitmap(file); }catch(e){}
+  }
+  return await new Promise((ok,fehler)=>{           // Rueckfallweg
+    const img = new Image();
+    img.onload  = ()=>ok(img);
+    img.onerror = fehler;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function skaliere(bild, max, q){
+  const bw = bild.width || bild.naturalWidth, bh = bild.height || bild.naturalHeight;
+  const f = Math.min(1, max/Math.max(bw,bh));
+  const w = Math.round(bw*f), h = Math.round(bh*f);
+  const c = document.createElement("canvas"); c.width=w; c.height=h;
+  const ctx = c.getContext("2d");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bild,0,0,w,h);
+  return await new Promise(r=>c.toBlob(r,"image/jpeg",q));
+}
+
+async function ladeFotoHoch(file){
+  const bild  = await ladeBild(file);
+  const gross = await skaliere(bild, FOTO_MAX,  FOTO_Q);
+  const klein = await skaliere(bild, THUMB_MAX, THUMB_Q);
+  if(bild.close) bild.close();
+
+  const id = "f_" + (crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):Math.random().toString(16).slice(2)+Date.now().toString(16)).slice(0,12);
+  for(const [name,blob] of [[id,gross],[id+"_t",klein]]){
+    const r = await fetch("api/photos/"+name,{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:blob});
+    if(!r.ok) throw new Error("Upload fehlgeschlagen (HTTP "+r.status+")");
+  }
+  return id;
+}
+
+/** Fotobereich fuer einen Dialog. Haelt seine Liste selbst und gibt
+ *  sie ueber liesFotos(box) wieder heraus. */
+function fotoFeld(photos, hinweis){
+  if(mode==="local")
+    return `<div class="field"><label>Fotos</label>
+      <div class="tiny faint">Fotos brauchen den Server — im lokalen Dateimodus nicht verfügbar.</div></div>`;
+  return `<div class="field"><label>Fotos</label>
+    <div class="fotos" id="fotoBox" data-ids="${esc((photos||[]).join(","))}"></div>
+    <div class="row" style="margin-top:8px">
+      <button type="button" class="btn sm" id="fotoAdd">+ Foto</button>
+      <span class="tiny faint" id="fotoStatus">${hinweis||""}</span>
+    </div>
+    <input type="file" id="fotoInput" accept="image/*" capture="environment" multiple hidden></div>`;
+}
+
+function zeichneFotos(){
+  const box = $("#fotoBox"); if(!box) return;
+  const ids = (box.dataset.ids||"").split(",").filter(Boolean);
+  box.innerHTML = ids.map((id,i)=>`<div class="foto">
+      <img src="${photoUrl(id,true)}" alt="Foto ${i+1}" loading="lazy" data-lb="${esc(ids.join(","))}" data-lbi="${i}">
+      <button type="button" class="foto-x" data-foto-del="${id}" title="Foto entfernen">✕</button>
+    </div>`).join("") || `<div class="tiny faint">Noch keine Fotos.</div>`;
+}
+const liesFotos = ()=> {
+  const box = $("#fotoBox");
+  return box ? (box.dataset.ids||"").split(",").filter(Boolean) : null;
+};
+
+async function fotosWaehlen(files){
+  const box = $("#fotoBox"), status = $("#fotoStatus");
+  if(!box) return;
+  const ids = (box.dataset.ids||"").split(",").filter(Boolean);
+  let n = 0;
+  for(const f of files){
+    if(!f.type.startsWith("image/")) continue;
+    status.textContent = `lädt ${++n} von ${files.length} …`;
+    try{ ids.push(await ladeFotoHoch(f)); }
+    catch(e){ toast(e.message,true); }
+  }
+  box.dataset.ids = ids.join(",");
+  status.textContent = n ? `${n} Foto${n>1?"s":""} hinzugefügt` : "";
+  zeichneFotos();
+}
+
+/* ---- Lightbox ---- */
+function lightbox(ids, start){
+  let i = start|0;
+  const el = document.createElement("div");
+  el.className = "lb";
+  el.innerHTML = `<button class="lb-x" title="Schließen">✕</button>
+    <button class="lb-nav lb-prev" title="Zurück">‹</button>
+    <img src="${photoUrl(ids[i])}" alt="">
+    <button class="lb-nav lb-next" title="Weiter">›</button>
+    <div class="lb-z"></div>`;
+  document.body.appendChild(el);
+  document.body.style.overflow = "hidden";
+
+  const img = el.querySelector("img"), zaehler = el.querySelector(".lb-z");
+  const zeig = d=>{
+    i = (i + d + ids.length) % ids.length;
+    img.src = photoUrl(ids[i]); img.classList.remove("zoom");
+    zaehler.textContent = ids.length>1 ? `${i+1} / ${ids.length}` : "";
+  };
+  zeig(0);
+  el.querySelector(".lb-prev").hidden = el.querySelector(".lb-next").hidden = ids.length<2;
+
+  const zu = ()=>{ el.remove(); document.body.style.overflow=""; document.removeEventListener("keydown",taste); };
+  const taste = e=>{
+    if(e.key==="Escape") zu();
+    else if(e.key==="ArrowLeft")  zeig(-1);
+    else if(e.key==="ArrowRight") zeig(1);
+  };
+  document.addEventListener("keydown", taste);
+  el.querySelector(".lb-x").onclick    = zu;
+  el.querySelector(".lb-prev").onclick = ()=>zeig(-1);
+  el.querySelector(".lb-next").onclick = ()=>zeig(1);
+  el.onclick = e=>{ if(e.target===el) zu(); };
+  img.onclick = ()=>img.classList.toggle("zoom");
+
+  let x0=null;                                   // Wischen am Telefon
+  el.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; },{passive:true});
+  el.addEventListener("touchend",e=>{
+    if(x0===null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if(Math.abs(dx)>50) zeig(dx<0?1:-1);
+    x0=null;
+  },{passive:true});
+}
+
+/** Miniaturen fuer Listenansichten (Plan, Historie). */
+function fotoStreifen(ids){
+  if(!ids || !ids.length || mode==="local") return "";
+  return `<div class="fotos mini">${ids.map((id,i)=>
+    `<img src="${photoUrl(id,true)}" alt="" loading="lazy" data-lb="${esc(ids.join(","))}" data-lbi="${i}">`).join("")}</div>`;
+}
+
 /* ═══════════ Dialoge ═══════════ */
 let dlgSave = null;
 function openDlg(title, body, onSave, saveLabel){
@@ -853,7 +1065,12 @@ function openDlg(title, body, onSave, saveLabel){
     <button class="btn primary" value="ok">${saveLabel||"Speichern"}</button>`;
   dlgSave = onSave;
   $("#dlg").showModal();
+  zeichneFotos();
 }
+document.addEventListener("change", e=>{
+  if(e.target.id==="fotoInput" && e.target.files.length) fotosWaehlen([...e.target.files]);
+});
+
 $("#dlgForm").addEventListener("submit", e=>{
   if(e.submitter && e.submitter.value==="cancel"){ dlgSave=null; return; }
   if(dlgSave){ const keep = dlgSave(); dlgSave=null; if(keep===false){ e.preventDefault(); return; } }
@@ -899,7 +1116,8 @@ function taskDialog(id){
         <div class="hint">${last&&last.src==="historie"?"Wird bereits aus der Historie bestimmt.":"Startwert, solange keine Historie existiert."}</div></div>
       <div class="field"><label>am</label><input type="date" id="f-ldt" value="${t.lastDate||""}"></div>
     </div>
-    <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Drehmomente, Besonderheiten, Werkzeug…">${esc(t.note)}</textarea></div>`,
+    <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Drehmomente, Besonderheiten, Werkzeug…">${esc(t.note)}</textarea></div>
+    ${fotoFeld(t.photos, "Zum Nachschlagen — wo sitzt was, welches Werkzeug, welche Menge.")}`,
   ()=>{
     if(!val("f-name")){ toast("Bezeichnung fehlt",true); return false; }
     t.name=val("f-name"); t.cat=val("f-cat"); t.active=val("f-act")==="1";
@@ -908,6 +1126,7 @@ function taskDialog(id){
     t.lastKm=num(val("f-lkm")); t.lastDate=val("f-ldt")||null;
     t.parts=$$(".pt-chk").filter(c=>c.checked).map(c=>({p:c.dataset.p,
       q:num($$(".pt-q").find(q=>q.dataset.p===c.dataset.p).value)||1}));
+    const fotos = liesFotos(); if(fotos) t.photos = fotos;
     if(!id) CAR.tasks.push(t);
   });
 }
@@ -959,11 +1178,13 @@ function histDialog(id,preselect){
     <div class="field"><label>Zusätzliche Arbeit (freier Text)</label><input id="f-title" value="${esc(h.title||"")}" placeholder="z. B. Türschloss geölt"></div>
     <div class="field"><label>Kosten (€)</label><input type="number" step="0.01" id="f-cost" value="${h.cost??""}"></div>
     <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Auffälligkeiten, verbaute Marke, Restprofil…">${esc(h.note||"")}</textarea></div>
+    ${fotoFeld(h.photos, "Beleg der Durchführung — altes Teil, Zählerstand, Auffälligkeiten.")}
     ${id?`<button type="button" class="btn sm danger" id="delHist">Eintrag löschen</button>`:""}`,
   ()=>{
     h.date=val("f-date"); h.km=num(val("f-km"));
     h.taskIds=$$(".ht-chk").filter(c=>c.checked).map(c=>c.value);
     h.title=val("f-title"); h.cost=num(val("f-cost")); h.note=$("#f-note").value.trim();
+    const fotos = liesFotos(); if(fotos) h.photos = fotos;
     if(!id) CAR.history.push(h);
     if(h.km>(CAR.km||0)){ CAR.km=h.km; CAR.kmDate=h.date; $("#kmNow").value=h.km; }
   });
@@ -1029,6 +1250,7 @@ function vehicleDialog(id){
     <p class="tiny muted">Modus: <strong>${mode==="server"?"Server-Sync":"lokal im Browser"}</strong>.
       ${mode==="local"?"Denk an regelmäßige Sicherungen — lokale Browserdaten können verloren gehen.":""}
       Eine Sicherung enthält <em>alle</em> Fahrzeuge.</p>
+    <div class="tiny faint" id="lagerInfo" style="margin:-4px 0 10px">Fotospeicher wird ermittelt …</div>
     <div class="row">
       <button type="button" class="btn sm" id="expJson">JSON sichern</button>
       <button type="button" class="btn sm" id="impJson">JSON laden</button>
@@ -1077,6 +1299,24 @@ function vehicleDialog(id){
   }, isNew?"Anlegen":"Speichern");
 
   if(isNew) return;
+
+  // Fotospeicher nachladen — zeigt auch verwaiste Dateien an
+  if(mode==="server") (async()=>{
+    try{
+      const l = await (await fetch("api/storage")).json();
+      const mb = n=>(n/1048576).toLocaleString("de-DE",{maximumFractionDigits:1})+" MB";
+      const el = $("#lagerInfo"); if(!el) return;
+      el.innerHTML = `Fotospeicher: <strong>${l.dateien}</strong> Dateien, ${mb(l.bytes)}` +
+        (l.verwaist ? ` — davon <strong>${l.verwaist}</strong> verwaist (${mb(l.verwaistBytes)})
+           <button type="button" class="btn sm" id="lagerPutz" style="margin-left:6px">aufräumen</button>` : "");
+      const putz = $("#lagerPutz");
+      if(putz) putz.onclick = async()=>{
+        const r = await (await fetch("api/storage",{method:"DELETE"})).json();
+        toast(`${r.geloescht} verwaiste Dateien entfernt`);
+        el.textContent = "Fotospeicher aufgeräumt.";
+      };
+    }catch(e){}
+  })();
 
   $("#expJson").onclick=()=>{
     const b=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
@@ -1220,6 +1460,15 @@ document.addEventListener("click",e=>{
   const dt=t.closest("[data-del-task]");
   if(dt && confirm("Diese Wartungsposition wirklich löschen?")){
     CAR.tasks=CAR.tasks.filter(x=>x.id!==dt.dataset.delTask); save(); renderAll();
+  }
+  const lb = t.closest("[data-lb]");
+  if(lb){ lightbox((lb.dataset.lb||"").split(",").filter(Boolean), +lb.dataset.lbi||0); return; }
+  if(t.id==="fotoAdd"){ $("#fotoInput").click(); }
+  const fd = t.closest("[data-foto-del]");
+  if(fd){
+    const box=$("#fotoBox");
+    box.dataset.ids = (box.dataset.ids||"").split(",").filter(x=>x&&x!==fd.dataset.fotoDel).join(",");
+    zeichneFotos();
   }
   if(t.id==="addLink"){
     const box=$("#linkBox"); box.insertAdjacentHTML("beforeend",linkRows([{label:"",url:""}])); 

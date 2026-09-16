@@ -45,7 +45,8 @@ PARTS = [
 def task(id, name, cat, km=None, mo=None, parts=None, note="", active=True):
     return {"id": id, "name": name, "cat": cat, "km": km, "mo": mo,
             "parts": [{"p": p, "q": q} for p, q in (parts or [])],
-            "note": note, "active": active, "lastKm": None, "lastDate": None}
+            "note": note, "active": active, "lastKm": None, "lastDate": None,
+            "photos": []}
 
 TASKS = [
     task("t1", "Motoröl + Ölfilter", "Motor", 15000, 12,

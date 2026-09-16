@@ -89,12 +89,13 @@ def build():
             mods.append({"id": "m_" + date.replace('-', ''), "name": work.replace(' verbaut', ''),
                          "cat": "Aufbau", "brand": "", "date": date, "km": km,
                          "cost": None, "links": [{"label": "Quelle", "url": u} for u in found],
-                         "note": clean_note})
+                         "note": clean_note, "photos": []})
             continue
 
         tid = map_task(work)
         ev = events.setdefault(date, {"id": "h_" + date.replace('-', ''), "date": date, "km": km,
-                                      "taskIds": [], "title": [], "cost": None, "note": []})
+                                      "taskIds": [], "title": [], "cost": None, "note": [],
+                                      "photos": []})
         if km and not ev["km"]: ev["km"] = km
         if tid and tid not in ev["taskIds"]: ev["taskIds"].append(tid)
         if not tid: ev["title"].append(work)
@@ -137,10 +138,11 @@ vehicle = {
     "brand": "Toyota", "name": "Hilux Extra Cab",
     "model": "2.8 D-4D, Automatik, 4x4", "year": 2023,
     "vin": "", "plate": "", "built": "", "firstReg": "2023-01-01",
-    "km": cur_km, "kmDate": cur_date, "note": "",
+    "km": cur_km, "kmDate": cur_date, "note": "", "owner": "",
+    "fuel": "diesel", "gearbox": "automatik", "drive": "4x4",
     "tasks": tasks, "parts": parts, "history": hist, "mods": mods,
 }
-db = {"version": 2, "rev": 0, "activeId": vehicle["id"], "vehicles": [vehicle]}
+db = {"version": 3, "rev": 0, "activeId": vehicle["id"], "vehicles": [vehicle]}
 
 if os.path.exists(OUT) and "--force" not in sys.argv:
     sys.exit("%s existiert bereits. Mit --force ueberschreiben (loescht Aenderungen aus der App!)." % OUT)
