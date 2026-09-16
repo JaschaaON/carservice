@@ -72,6 +72,11 @@ data/
 Administrator-Konto an; vorhandene Daten aus dem Datenverzeichnis wandern dabei
 in dieses Konto. Danach ist dieser Weg dauerhaft geschlossen.
 
+In der App sitzt oben rechts ein **Benutzermenue** — der Knopf zeigt die
+Initialen des Angemeldeten. Darin: Fahrzeugdaten, Kontenverwaltung (nur fuer
+Admins) und **Abmelden**. Auf beiden Bildschirmgroessen an derselben Stelle;
+im lokalen Dateimodus ohne Server entfaellt der Abmelden-Punkt.
+
 **Verwaltung** unter `/admin`: Konten anlegen, umbenennen, Rolle aendern,
 Passwort zuruecksetzen, sperren, loeschen. Ueber *Ansehen* oeffnet ein Admin
 die App im Kontext eines fremden Kontos — mit deutlichem Hinweisbalken, und
@@ -278,6 +283,11 @@ data/
 **Ersteinrichtung:** Beim ersten Aufruf von `/admin` legst du dein
 Administrator-Konto an; vorhandene Daten aus dem Datenverzeichnis wandern dabei
 in dieses Konto. Danach ist dieser Weg dauerhaft geschlossen.
+
+In der App sitzt oben rechts ein **Benutzermenue** — der Knopf zeigt die
+Initialen des Angemeldeten. Darin: Fahrzeugdaten, Kontenverwaltung (nur fuer
+Admins) und **Abmelden**. Auf beiden Bildschirmgroessen an derselben Stelle;
+im lokalen Dateimodus ohne Server entfaellt der Abmelden-Punkt.
 
 **Verwaltung** unter `/admin`: Konten anlegen, umbenennen, Rolle aendern,
 Passwort zuruecksetzen, sperren, loeschen. Ueber *Ansehen* oeffnet ein Admin
