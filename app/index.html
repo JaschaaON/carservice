@@ -57,6 +57,25 @@ header{
 #carPick:focus{outline:none;border-color:var(--accent)}
 #carPick option{background:var(--surface);color:var(--text);font-weight:400}
 .hd-model{color:var(--text-faint);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Marke mittig in der Kopfzeile. Absolut positioniert, damit sie
+   tatsaechlich in der Mitte des Fensters sitzt und nicht in der Mitte
+   des verbleibenden Platzes — links steht ein langer Fahrzeugname,
+   rechts ein schmales Zahlenfeld. Sie liegt unter den Bedienelementen
+   und faengt keine Klicks ab, ausser auf sich selbst. */
+.hd-marke{
+  position:absolute;left:50%;transform:translateX(-50%);
+  display:none;align-items:center;gap:8px;
+  font-size:13px;color:var(--text-faint);text-decoration:none;
+  white-space:nowrap;pointer-events:auto;
+}
+.hd-marke b{color:var(--text-dim);font-weight:600;letter-spacing:.015em}
+.hd-marke:hover b{color:var(--accent)}
+.hd-marke .ov-mark{width:19px;height:19px}
+.hd-top{position:relative}
+/* Erst anzeigen, wenn wirklich Platz ist — sonst kollidiert sie mit
+   dem Fahrzeugnamen links und dem Kilometerfeld rechts. */
+@media(min-width:1000px){ .hd-marke{display:inline-flex} }
 .hd-km{margin-left:auto;display:flex;align-items:center;gap:8px}
 .hd-km input{
   width:105px;padding:7px 10px;text-align:right;font-variant-numeric:tabular-nums;
@@ -415,6 +434,76 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .bib-name{font-size:14px;font-weight:500}
 .bib-zeile[hidden],.bib-gruppe[hidden]{display:none}
 
+/* ---------- Historie als Zeitachse ---------- */
+.jahr-trenner{display:flex;align-items:center;gap:12px;margin:26px 0 12px}
+.jahr-trenner:first-child{margin-top:4px}
+.jahr-zahl{
+  font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--text-dim);
+  font-variant-numeric:tabular-nums;
+}
+.jahr-trenner .line{flex:1;height:1px;background:var(--line)}
+
+.h-karte{display:flex;gap:14px;align-items:stretch}
+.h-strang{position:relative;width:11px;flex:none;display:flex;justify-content:center}
+.h-strang::before{content:"";position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.h-karte:last-of-type .h-strang::before{bottom:auto;height:24px}
+.h-punkt{
+  width:9px;height:9px;border-radius:50%;background:var(--surface-2);
+  border:1.5px solid var(--line);margin-top:19px;z-index:1;
+}
+.h-karte:first-of-type .h-punkt{background:var(--accent);border-color:var(--accent)}
+
+.h-inhalt{
+  flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:14px 16px;margin-bottom:10px;
+}
+.h-kopf{display:flex;align-items:flex-start;gap:12px}
+.h-wann{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;flex:1;min-width:0}
+.h-datum{font-size:14.5px;font-weight:600;white-space:nowrap}
+.h-km{color:var(--text-dim);font-size:14px;white-space:nowrap}
+.h-rechts{display:flex;align-items:center;gap:8px;flex:none}
+.h-kosten{font-size:14px;font-weight:600;white-space:nowrap}
+
+.h-positionen{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.h-chip{
+  font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:99px;padding:3px 10px;color:var(--text);
+}
+.h-chip.frei{border-style:dashed;color:var(--text-dim)}
+
+.h-notiz{margin:10px 0 0;font-size:12.5px;color:var(--text-faint);line-height:1.5}
+.h-notiz.kurz{margin-bottom:0}
+details.h-notiz summary{
+  cursor:pointer;list-style:none;color:var(--text-faint);
+}
+details.h-notiz summary::-webkit-details-marker{display:none}
+details.h-notiz summary::after{
+  content:" mehr";color:var(--accent);font-weight:500;
+}
+details.h-notiz[open] summary{display:none}
+details.h-notiz p{margin:0}
+details.h-notiz[open] p::after{
+  content:" weniger";color:var(--accent);font-weight:500;cursor:pointer;
+}
+
+.h-summe{
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin:16px 0 0;padding-left:25px;
+}
+.h-summe strong{color:var(--text)}
+
+@media(max-width:560px){
+  /* Die erklärenden Zeilen über den Listen drängen am Telefon gegen
+     die Schaltflächen. Sie erklären nichts Unentbehrliches — im
+     Leerzustand steht dieselbe Erklärung noch einmal ausführlich. */
+  main > .view > .spread > .muted.tiny{display:none}
+  main > .view > .spread{justify-content:flex-end}
+  .h-karte{gap:10px}
+  .h-inhalt{padding:12px 13px}
+  .h-datum{font-size:14px}
+  .h-summe{padding-left:0}
+}
+
 /* ---------- Signatur in der Fußzeile ----------
    Das Zeichen stammt aus dem Schwesterprojekt overlandvibe.com und ist
    inline eingebettet: bei 400 Byte lohnt kein eigener Request, und so
@@ -638,6 +727,15 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
   <div class="hd-top">
     <select id="carPick" title="Fahrzeug wechseln"></select>
     <span class="hd-model" id="hdModel"></span>
+    <a class="hd-marke" href="https://overlandvibe.com" target="_blank" rel="noopener noreferrer">
+      <svg class="ov-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <circle cx="32" cy="32" r="32" fill="#111413"/>
+        <path d="M10 43 L21.5 25 L29 35 L37 22.5 L54 43 Z" fill="#F2EFE9"/>
+        <path d="M10 51 C17.5 47, 24 54, 32 50.5 C40 47, 46.5 54, 54 50"
+              fill="none" stroke="#E0872A" stroke-width="4.2" stroke-linecap="round"/>
+      </svg>
+      <span><b>overlandvibe</b> carservice</span>
+    </a>
     <div class="sync" id="syncBadge">…</div>
     <div class="hd-km">
       <label for="kmNow">km</label>
@@ -1464,26 +1562,90 @@ function renderDocs(){
       <span>Belegt ${mb(summe)}</span></div>`;
 }
 
-/* ═══════════ Historie ═══════════ */
+/* ═══════════ Historie ═══════════
+   Bewusst keine Tabelle: Die Eintraege sind ungleich lang — mal eine
+   Position ohne Notiz, mal fuenf Positionen mit langen Produkttexten
+   aus dem Excel-Import. In festen Spalten bricht dabei alles um, sogar
+   das Datum. Karten an einer Zeitachse tragen das besser. */
+
+const KURZ = 150;   // ab dieser Laenge wird die Notiz eingeklappt
+
 function renderHist(){
-  const h=[...CAR.history].sort((a,b)=>a.date<b.date?1:-1);
-  if(!h.length){ $("#histList").innerHTML=
-    `<div class="empty"><p>Noch keine Einträge.<br>Importiere deine Excel-Liste oder lege den ersten Eintrag an.</p>
-     <button class="btn primary" id="btnAddHist2">+ Erster Eintrag</button></div>`;
-    $("#btnAddHist2").onclick=()=>histDialog(); return; }
-  $("#histList").innerHTML = `<div class="tbl-wrap"><table>
-    <thead><tr><th>Datum</th><th class="r">km</th><th>Durchgeführt</th><th class="r">Kosten</th><th>Notiz</th><th></th></tr></thead>
-    <tbody>${h.map(e=>{
-      const names=(e.taskIds||[]).map(id=>{const t=CAR.tasks.find(x=>x.id===id);return t?esc(t.name):null;}).filter(Boolean);
-      if(e.title) names.unshift("<em>"+esc(e.title)+"</em>");
-      return `<tr>
-        <td class="num">${dDE(e.date)}</td>
-        <td class="r num">${nKm(e.km)}</td>
-        <td>${names.length?names.join("<br>"):'<span class="faint">—</span>'}</td>
-        <td class="r num">${e.cost!=null?eur(e.cost):"—"}</td>
-        <td class="tiny muted">${esc(e.note||"")}${fotoStreifen(e.photos)}</td>
-        <td class="r"><button class="btn icon" data-edit-hist="${e.id}">✎</button></td></tr>`;
-    }).join("")}</tbody></table></div>`;
+  const eintraege = [...CAR.history].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+
+  if(!eintraege.length){
+    $("#histList").innerHTML =
+      `<div class="empty"><p>Noch keine Einträge.<br>
+       Importiere deine Excel-Liste oder lege den ersten Eintrag an.</p>
+       <button class="btn primary" id="btnAddHist2">+ Erster Eintrag</button></div>`;
+    const b = $("#btnAddHist2"); if(b) b.onclick = ()=>histDialog();
+    return;
+  }
+
+  // Abstand zum jeweils vorigen Termin — zeigt den Rhythmus
+  const sortiert = [...eintraege].reverse();
+  const abstand = new Map();
+  for(let i=1;i<sortiert.length;i++){
+    const a = sortiert[i-1], b = sortiert[i];
+    if(a.km!=null && b.km!=null && b.km>a.km) abstand.set(b.id, b.km-a.km);
+  }
+
+  let html = "", jahrZuvor = null;
+  for(const e of eintraege){
+    const jahr = (e.date||"").slice(0,4);
+    if(jahr !== jahrZuvor){
+      const imJahr = eintraege.filter(x=>(x.date||"").slice(0,4)===jahr);
+      const kostenJahr = imJahr.reduce((a,x)=>a+(x.cost||0),0);
+      html += `<div class="jahr-trenner">
+        <span class="jahr-zahl">${esc(jahr)}</span><span class="line"></span>
+        <span class="tiny faint">${imJahr.length} Termin${imJahr.length>1?"e":""}${
+          kostenJahr?" · "+eur(kostenJahr):""}</span></div>`;
+      jahrZuvor = jahr;
+    }
+
+    const positionen = (e.taskIds||[])
+      .map(id=>CAR.tasks.find(t=>t.id===id)).filter(Boolean);
+    const notiz = (e.note||"").trim();
+    const lang  = notiz.length > KURZ;
+    const delta = abstand.get(e.id);
+
+    html += `<article class="h-karte">
+      <div class="h-strang"><span class="h-punkt"></span></div>
+      <div class="h-inhalt">
+        <div class="h-kopf">
+          <div class="h-wann">
+            <span class="h-datum">${dDE(e.date)}</span>
+            <span class="h-km num">${e.km!=null?nKm(e.km)+" km":""}</span>
+            ${delta?`<span class="tiny faint">+${nKm(delta)} km</span>`:""}
+          </div>
+          <div class="h-rechts">
+            ${e.cost!=null?`<span class="h-kosten num">${eur(e.cost)}</span>`:""}
+            <button class="btn icon" data-edit-hist="${e.id}" title="Eintrag bearbeiten">✎</button>
+          </div>
+        </div>
+
+        ${positionen.length||e.title ? `<div class="h-positionen">
+          ${positionen.map(t=>`<span class="h-chip">${esc(t.name)}</span>`).join("")}
+          ${e.title?`<span class="h-chip frei">${esc(e.title)}</span>`:""}
+        </div>` : ""}
+
+        ${notiz ? (lang
+          ? `<details class="h-notiz"><summary>${esc(notiz.slice(0,KURZ))}…</summary>
+             <p>${esc(notiz)}</p></details>`
+          : `<p class="h-notiz kurz">${esc(notiz)}</p>`) : ""}
+
+        ${fotoStreifen(e.photos)}
+      </div></article>`;
+  }
+
+  const gesamt = eintraege.reduce((a,e)=>a+(e.cost||0),0);
+  const kmSpanne = eintraege.filter(e=>e.km!=null);
+  html += `<div class="h-summe tiny muted">
+    <span>${eintraege.length} Termine${kmSpanne.length>1
+      ? ` über ${nKm(kmSpanne[0].km - kmSpanne[kmSpanne.length-1].km)} km` : ""}</span>
+    ${gesamt?`<span>Erfasste Kosten <strong>${eur(gesamt)}</strong></span>`:""}</div>`;
+
+  $("#histList").innerHTML = html;
 }
 
 /* ═══════════ Umbauten ═══════════ */

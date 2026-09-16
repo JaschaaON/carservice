@@ -13,7 +13,7 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 | **Übersicht** | Statusring, Zeitstrahl der nächsten zwölf Monate, Einkaufsliste |
 | **Wartungsplan** | Positionen mit Intervall nach km *und* Zeit, Teilebedarf, Verlauf, „erledigt"-Eintrag |
 | **Teilekatalog** | Teilenummern, Preise, Vorrat und **eigene Kauflinks** pro Teil |
-| **Historie** | Alle Services mit Nachweisfotos |
+| **Historie** | Zeitachse nach Jahren, mit Abstand zum Vortermin und Nachweisfotos |
 | **Fotos und Videos** | Belege an jedem Historieneintrag, Referenzmaterial an jeder Wartungsposition |
 | **Bibliothek** | 60 Wartungsbausteine zum Auswählen — Diesel, Benzin, Hybrid, DSG, Haldex, Zahnriemen … |
 | **Anleitungen** | Werkstattunterlagen als PDF, direkt an der Wartungsposition abrufbar |
@@ -55,6 +55,12 @@ Teilenamen in der Einkaufsliste und in der Teileliste einer Position sind
 verlinkt und oeffnen den Teiledialog — fuer Teilenummer, Preis und Kauflinks.
 
 ## Marke
+
+Auf breiten Bildschirmen (ab 1000 px) steht die Marke mittig in der Kopfzeile,
+absolut positioniert — sonst saesse sie in der Mitte des *verbleibenden* Platzes
+und damit sichtbar schief, weil links ein langer Fahrzeugname und rechts ein
+schmales Zahlenfeld stehen. Darunter wird sie ausgeblendet, dort traegt die
+Fussleiste das Zeichen.
 
 Die Fussleiste traegt das Zeichen von overlandvibe.com und den Schriftzug
 „overlandvibe carservice", verlinkt auf die Website. Das SVG ist **inline in
