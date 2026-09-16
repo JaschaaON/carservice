@@ -14,11 +14,38 @@ const DATA_FILE = path.join(DATA_DIR, "data.json");
 const VERSIONS  = path.join(DATA_DIR, "versions");
 const PHOTOS    = path.join(DATA_DIR, "photos");
 const KEEP      = 40;                       // so viele Versionen bleiben liegen
-const MAX_PHOTO = 8 * 1024 * 1024;          // 8 MB pro Bild
+const MAX_PHOTO = 8   * 1024 * 1024;        // 8 MB je Bild
+const MAX_VIDEO = 150 * 1024 * 1024;        // 150 MB je Video
 
-/* Bild-IDs kommen aus dem Browser und landen als Dateiname auf der
-   Platte — deshalb streng pruefen, sonst ist Pfad-Traversal moeglich. */
-const PHOTO_ID = /^f_[a-z0-9]{6,32}(_t)?$/;
+/* Medien-IDs kommen aus dem Browser und landen als Dateiname auf der
+   Platte — deshalb streng pruefen, sonst ist Pfad-Traversal moeglich.
+   f_ = Foto, v_ = Video, Endung _t = Vorschaubild (immer JPEG). */
+const MEDIA_ID = /^[fv]_[a-z0-9]{6,32}(_t)?$/;
+
+/* Dateityp aus den ersten Bytes bestimmen, statt dem Content-Type der
+   Anfrage zu glauben. */
+function erkenneTyp(buf){
+  if(buf.length > 3 && buf[0]===0xFF && buf[1]===0xD8 && buf[2]===0xFF)
+    return {ext:"jpg", mime:"image/jpeg"};
+  if(buf.length > 11 && buf.toString("ascii",4,8)==="ftyp"){
+    const marke = buf.toString("ascii",8,12);
+    return marke.startsWith("qt") ? {ext:"mov", mime:"video/quicktime"}
+                                  : {ext:"mp4", mime:"video/mp4"};
+  }
+  if(buf.length > 3 && buf[0]===0x1A && buf[1]===0x45 && buf[2]===0xDF && buf[3]===0xA3)
+    return {ext:"webm", mime:"video/webm"};
+  return null;
+}
+const EXTS = {jpg:"image/jpeg", mp4:"video/mp4", mov:"video/quicktime", webm:"video/webm"};
+
+/** Liefert den tatsaechlich abgelegten Dateinamen zu einer ID. */
+function findeDatei(id){
+  for(const ext of Object.keys(EXTS)){
+    const f = path.join(PHOTOS, id + "." + ext);
+    if(fs.existsSync(f)) return {pfad:f, mime:EXTS[ext]};
+  }
+  return null;
+}
 
 const MIME = {".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".json":"application/json; charset=utf-8", ".css":"text/css; charset=utf-8",
@@ -121,56 +148,88 @@ const server = http.createServer((req,res)=>{
      und der Server bleibt ohne Abhaengigkeiten.                     */
   if(p.startsWith("/api/photos/")){
     const id = p.slice("/api/photos/".length);
-    if(!PHOTO_ID.test(id)) return send(res, 400, JSON.stringify({error:"ungültige Bild-ID"}));
-    const file = path.join(PHOTOS, id + ".jpg");
+    if(!MEDIA_ID.test(id)) return send(res, 400, JSON.stringify({error:"ungültige Medien-ID"}));
+    const istVideo = id.startsWith("v_") && !id.endsWith("_t");
 
     if(req.method === "GET"){
-      fs.readFile(file, (err, buf)=>{
-        if(err) return send(res, 404, JSON.stringify({error:"Bild nicht gefunden"}));
-        res.writeHead(200, {
-          "Content-Type":"image/jpeg",
-          "Content-Length": buf.length,
-          // Bilder aendern sich nie — unter derselben ID liegt immer dasselbe.
-          "Cache-Control":"public, max-age=31536000, immutable",
-          "X-Content-Type-Options":"nosniff"
-        });
-        res.end(buf);
-      });
-      return;
+      const treffer = findeDatei(id);
+      if(!treffer) return send(res, 404, JSON.stringify({error:"nicht gefunden"}));
+      let stat; try{ stat = fs.statSync(treffer.pfad); }
+      catch(e){ return send(res, 404, JSON.stringify({error:"nicht gefunden"})); }
+
+      const kopf = {
+        "Content-Type": treffer.mime,
+        // Medien aendern sich nie — unter derselben ID liegt immer dasselbe.
+        "Cache-Control":"public, max-age=31536000, immutable",
+        "X-Content-Type-Options":"nosniff",
+        "Accept-Ranges":"bytes"
+      };
+
+      /* Videos brauchen Bereichsabfragen, sonst laesst Safari das
+         Abspielen und Vorspulen nicht zu. */
+      const range = req.headers.range;
+      if(range && /^bytes=\d*-\d*$/.test(range)){
+        const [a,b] = range.replace("bytes=","").split("-");
+        const start = a ? parseInt(a,10) : 0;
+        const end   = b ? parseInt(b,10) : stat.size - 1;
+        if(start >= stat.size || end >= stat.size || start > end){
+          res.writeHead(416, {"Content-Range":`bytes */${stat.size}`});
+          return res.end();
+        }
+        kopf["Content-Range"]   = `bytes ${start}-${end}/${stat.size}`;
+        kopf["Content-Length"]  = end - start + 1;
+        res.writeHead(206, kopf);
+        return fs.createReadStream(treffer.pfad,{start,end}).pipe(res);
+      }
+      kopf["Content-Length"] = stat.size;
+      res.writeHead(200, kopf);
+      return fs.createReadStream(treffer.pfad).pipe(res);
     }
 
     if(req.method === "PUT"){
       if(!canWrite()) return send(res, 507, JSON.stringify({error:"Datenverzeichnis nicht beschreibbar"}));
-      const chunks = []; let size = 0;
+      const grenze = istVideo ? MAX_VIDEO : MAX_PHOTO;
+      const chunks = []; let size = 0, zuGross = false;
       req.on("data", c=>{
         size += c.length;
-        if(size > MAX_PHOTO){ req.destroy(); return; }
+        if(size > grenze){ zuGross = true; req.destroy(); return; }
         chunks.push(c);
       });
       req.on("end", ()=>{
+        if(zuGross) return;
         const buf = Buffer.concat(chunks);
-        // JPEG-Signatur pruefen, statt dem Content-Type zu vertrauen
-        if(buf.length < 4 || buf[0] !== 0xFF || buf[1] !== 0xD8 || buf[2] !== 0xFF)
-          return send(res, 415, JSON.stringify({error:"kein JPEG"}));
+        const typ = erkenneTyp(buf);
+        if(!typ) return send(res, 415, JSON.stringify({error:"unbekanntes Dateiformat"}));
+        // Vorschaubilder und Fotos muessen JPEG sein, v_ muss Video sein
+        const willVideo = istVideo;
+        const istVideoDatei = typ.mime.startsWith("video/");
+        if(willVideo !== istVideoDatei)
+          return send(res, 415, JSON.stringify({error:"Dateityp passt nicht zur ID"}));
         try{
-          const tmp = file + ".tmp";
+          const ziel = path.join(PHOTOS, id + "." + typ.ext);
+          const tmp  = ziel + ".tmp";
           fs.writeFileSync(tmp, buf);
-          fs.renameSync(tmp, file);
+          fs.renameSync(tmp, ziel);
         }catch(e){
           console.error(e);
           return send(res, 500, JSON.stringify({error:"Schreibfehler"}));
         }
-        send(res, 200, JSON.stringify({ok:true, id, bytes:buf.length}));
+        send(res, 200, JSON.stringify({ok:true, id, bytes:buf.length, typ:typ.mime}));
       });
       req.on("aborted", ()=>{});
+      req.on("close", ()=>{
+        if(zuGross && !res.headersSent)
+          send(res, 413, JSON.stringify({error:`zu groß — höchstens ${Math.round(grenze/1048576)} MB`}));
+      });
       return;
     }
 
     if(req.method === "DELETE"){
       let weg = 0;
-      for(const f of [id + ".jpg", id + "_t.jpg"]){
-        try{ fs.unlinkSync(path.join(PHOTOS, f)); weg++; }catch(e){}
-      }
+      for(const basis of [id, id + "_t"])
+        for(const ext of Object.keys(EXTS)){
+          try{ fs.unlinkSync(path.join(PHOTOS, basis + "." + ext)); weg++; }catch(e){}
+        }
       return send(res, 200, JSON.stringify({ok:true, geloescht:weg}));
     }
     return send(res, 405, JSON.stringify({error:"Methode nicht erlaubt"}));
@@ -190,9 +249,9 @@ const server = http.createServer((req,res)=>{
     let bytes = 0, verwaistBytes = 0;
     const verwaist = [];
     let dateien = [];
-    try{ dateien = fs.readdirSync(PHOTOS).filter(f=>f.endsWith(".jpg")); }catch(e){}
+    try{ dateien = fs.readdirSync(PHOTOS).filter(f=>/\.(jpg|mp4|mov|webm)$/.test(f)); }catch(e){}
     for(const f of dateien){
-      const id = f.slice(0, -4);
+      const id = f.replace(/\.(jpg|mp4|mov|webm)$/, "");
       let gr = 0;
       try{ gr = fs.statSync(path.join(PHOTOS, f)).size; }catch(e){}
       bytes += gr;
@@ -202,7 +261,9 @@ const server = http.createServer((req,res)=>{
     if(req.method === "DELETE"){            // aufraeumen
       let weg = 0;
       for(const id of verwaist){
-        try{ fs.unlinkSync(path.join(PHOTOS, id + ".jpg")); weg++; }catch(e){}
+        for(const ext of Object.keys(EXTS)){
+          try{ fs.unlinkSync(path.join(PHOTOS, id + "." + ext)); weg++; break; }catch(e){}
+        }
       }
       return send(res, 200, JSON.stringify({ok:true, geloescht:weg, bytes:verwaistBytes}));
     }
@@ -225,7 +286,7 @@ const server = http.createServer((req,res)=>{
       fahrzeuge: db && Array.isArray(db.vehicles) ? db.vehicles.length : 0,
       revision:  db ? (db.rev||0) : null,
       versionen: (()=>{ try{ return fs.readdirSync(VERSIONS).filter(f=>f.endsWith(".json")).length; }catch(e){ return 0; } })(),
-      fotos:     (()=>{ try{ return fs.readdirSync(PHOTOS).filter(f=>f.endsWith(".jpg")).length; }catch(e){ return 0; } })(),
+      medien:    (()=>{ try{ return fs.readdirSync(PHOTOS).filter(f=>/\.(jpg|mp4|mov|webm)$/.test(f)).length; }catch(e){ return 0; } })(),
       laufzeit:  Math.round(process.uptime()) + "s"
     }));
   }

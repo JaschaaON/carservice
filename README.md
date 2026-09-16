@@ -12,7 +12,8 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 | **Wartungsplan** | 23 Positionen mit Intervall nach km *und* Zeit, Teilebedarf, „erledigt"-Eintrag |
 | **Teilekatalog** | Teilenummern, Preise, Vorrat und **eigene Kauflinks** pro Teil |
 | **Historie** | Alle Services mit Nachweisfotos |
-| **Fotos** | Belege an jedem Historieneintrag, Referenzbilder an jeder Wartungsposition |
+| **Fotos und Videos** | Belege an jedem Historieneintrag, Referenzmaterial an jeder Wartungsposition |
+| **Bibliothek** | 60 Wartungsbausteine zum Auswählen — Diesel, Benzin, Hybrid, DSG, Haldex, Zahnriemen … |
 | **Umbauten** | Anbauteile mit Einbaudatum, Kosten, Bezugsquelle |
 | **Tour** | Was vor einer Reise fällig wird und welche Teile mitgehören |
 | **Kosten** | Summen pro Jahr, Kosten je Kilometer |
@@ -141,7 +142,23 @@ Den Build-Status siehst du mit `gh run list` oder unter *Actions* im
 Repository. Reine Aenderungen an README, Konverter oder `docker-compose.yml`
 loesen bewusst keinen Build aus, da sie nicht im Image landen.
 
-## Fotos
+## Bausteinbibliothek
+
+Statt fertiger Herstellerplaene bietet die App **einzelne Wartungspositionen zum
+Auswaehlen** — im Wartungsplan ueber *Aus Bibliothek*. Gegliedert nach Technik
+statt nach Marke, denn ein DSG sitzt in VW, Audi, Škoda und Seat gleichermassen.
+
+Das ist Absicht: Belastbare Werksintervalle fuer jeden Hersteller liegen mir
+nicht vor, und ein falsch hinterlegter Zahnriemenwechsel kostet einen Motor.
+Die Bibliothek liefert deshalb **Vorschlagswerte aus der Praxis**, die beim
+Uebernehmen sichtbar als solche gekennzeichnet sind. Was gilt, steht im
+Serviceheft.
+
+Nach den Fahrzeugmerkmalen (Kraftstoff, Antrieb, Getriebe) sortiert die App
+passende Gruppen nach oben. Benoetigte Teile werden beim Uebernehmen automatisch
+im Katalog angelegt, sofern sie fehlen.
+
+## Fotos und Videos
 
 Der Browser verkleinert jedes Bild vor dem Hochladen auf 1600 px und wandelt es
 in JPEG — aus einem 4-MB-Handyfoto werden rund 300 KB. Zusaetzlich entsteht ein
@@ -154,6 +171,14 @@ die JPEG-Signatur kontrolliert und die Groesse begrenzt. Ausgeliefert wird mit
 
 Unter ⚙ steht der Speicherverbrauch; verwaiste Dateien — also Bilder ohne
 zugehoerigen Eintrag — lassen sich dort mit einem Klick entfernen.
+
+**Videos** bis 150 MB werden unveraendert uebernommen — verlustfreies
+Umkodieren im Browser waere ohne schwere Bibliothek nicht machbar. Ein
+Standbild aus der ersten Sekunde dient als Vorschau. Ausgeliefert wird mit
+Bereichsabfragen, sonst laesst Safari weder Abspielen noch Vorspulen zu.
+
+Auswaehlen lassen sich Dateien aus Galerie und Dateisystem oder direkt
+ueber die Kamera.
 
 `data/photos/` gehoert in die Sicherung.
 

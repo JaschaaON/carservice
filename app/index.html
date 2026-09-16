@@ -176,7 +176,10 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .field textarea{resize:vertical;min-height:62px;font-family:inherit}
 .field .hint{font-size:11.5px;color:var(--text-faint);margin-top:4px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+@media(max-width:560px){
+  .grid2{gap:9px}
+  .grid2 .hint{font-size:11px}
+}
 
 .chk{display:flex;align-items:center;gap:9px;padding:7px 0;cursor:pointer}
 .chk input{width:17px;height:17px;accent-color:var(--accent);flex:none;margin:0}
@@ -214,15 +217,78 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 }
 .foto-x:hover{border-color:var(--crit);color:var(--crit)}
 
+/* ---------- Teileauswahl ---------- */
+.teil-zeile{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+}
+.teil-name{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.teil-name span{display:block;overflow:hidden;text-overflow:ellipsis}
+.teil-zeile .pt-q{
+  width:70px;padding:5px 8px;text-align:right;background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;color:var(--text);
+}
+.teil-einheit{width:48px;flex:none}
+
+.picker{position:relative}
+.picker input{
+  width:100%;padding:9px 11px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:8px;color:var(--text);
+}
+.picker input:focus{outline:none;border-color:var(--accent)}
+.picker-liste{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:20;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);overflow:hidden;max-height:264px;overflow-y:auto;
+}
+.picker-eintrag{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  width:100%;text-align:left;padding:10px 12px;background:none;border:none;
+  color:var(--text);font-size:14px;border-bottom:1px solid var(--line);
+}
+.picker-eintrag:last-child{border-bottom:none}
+.picker-eintrag:hover{background:var(--surface-2)}
+.picker-eintrag.neu{color:var(--accent)}
+
+/* ---------- Bibliothek ---------- */
+.bib-zeile{
+  display:flex;align-items:flex-start;gap:10px;padding:9px 11px;margin-bottom:5px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;cursor:pointer;
+}
+.bib-zeile:hover{border-color:var(--text-faint)}
+.bib-zeile.schon{opacity:.45;cursor:default}
+.bib-zeile input{width:17px;height:17px;accent-color:var(--accent);flex:none;margin:2px 0 0}
+.bib-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bib-name{font-size:14px;font-weight:500}
+.bib-zeile[hidden],.bib-gruppe[hidden]{display:none}
+
+/* ---------- Video-Markierung ---------- */
+.foto-mini{position:relative;display:inline-block;line-height:0}
+.play{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:30px;height:30px;border-radius:50%;background:rgba(10,12,16,.62);
+  color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;backdrop-filter:blur(2px);padding-left:2px;
+}
+.play.sm{width:22px;height:22px;font-size:9px}
+
 /* ---------- Lightbox ---------- */
 .lb{
-  position:fixed;inset:0;z-index:300;background:rgba(8,9,12,.94);
+  position:fixed;inset:0;width:100vw;height:100dvh;max-width:100vw;max-height:100dvh;
+  margin:0;border:none;border-radius:0;background:rgba(8,9,12,.94);color:var(--text);
   display:flex;align-items:center;justify-content:center;
   padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
 }
-.lb img{
-  max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;cursor:zoom-in;
+.lb:not([open]){display:none}
+.lb::backdrop{background:rgba(8,9,12,.85)}
+.lb-buehne{
+  max-width:100%;max-height:100%;display:flex;align-items:center;justify-content:center;
 }
+.lb img,.lb video{
+  max-width:100%;max-height:calc(100vh - 90px);object-fit:contain;border-radius:6px;
+}
+.lb img{cursor:zoom-in}
+.lb video{background:#000;outline:none}
 .lb img.zoom{object-fit:cover;width:100%;height:100%;cursor:zoom-out}
 .lb-x,.lb-nav{
   position:absolute;background:rgba(38,42,50,.85);border:1px solid var(--line);
@@ -255,6 +321,10 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
   .hd-km{gap:5px}
   .hd-km input{width:92px;padding:7px 8px}
   .task-hd{flex-direction:column;align-items:flex-start;gap:3px}
+  .teil-zeile{gap:7px;padding:7px 9px}
+  .teil-zeile .pt-q{width:58px}
+  .teil-einheit{width:38px}
+  .dlg-bd{padding:14px}
   .task-due{text-align:left}
   main{padding:14px 12px 50px}
   .stat .v{font-size:19px}
@@ -297,6 +367,7 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
       <div class="muted tiny">Klick auf eine Position öffnet Details, Teile und „erledigt"-Eintrag.</div>
       <div class="row">
         <label class="chk tiny"><input type="checkbox" id="showInactive"> inaktive zeigen</label>
+        <button class="btn sm" id="btnBib">Aus Bibliothek</button>
         <button class="btn sm primary" id="btnAddTask">+ Position</button>
       </div>
     </div>
@@ -908,6 +979,110 @@ function renderCost(){
 }
 
 
+
+/* ═══════════ Bausteinbibliothek ════════════════════════════════
+   Einzelne Wartungspositionen zum Auswählen — bewusst KEINE
+   fertigen Herstellerpläne. Die Intervalle sind belastbare
+   Größenordnungen aus der Praxis, keine Werksvorgaben: was für
+   deinen Wagen gilt, steht im Serviceheft. Gegliedert ist nach
+   Technik statt nach Marke, denn ein DSG sitzt in VW, Audi, Škoda
+   und Seat gleichermaßen.                                        */
+
+const PRUEFEN = "Vorschlagswert — gegen dein Serviceheft prüfen.";
+
+const BIBLIOTHEK = [
+ {gruppe:"Motor — alle Antriebe", merkmal:null, eintraege:[
+  {n:"Motoröl + Ölfilter",        c:"Motor", km:15000, mo:12, t:["Motoröl","Ölfilter","Dichtring Ölablassschraube"], h:"Beim Longlife-Öl teils 30.000 km. "+PRUEFEN},
+  {n:"Luftfilter",                c:"Motor", km:30000, mo:24, t:["Luftfilter"], h:"Bei Staub und Piste deutlich früher."},
+  {n:"Innenraumfilter",           c:"Komfort", km:15000, mo:12, t:["Innenraumfilter"], h:"Aktivkohle filtert zusätzlich Gerüche."},
+  {n:"Keilrippenriemen prüfen",   c:"Motor", km:30000, mo:24, t:[], h:"Risse, Spannung, Rollen."},
+  {n:"Kühlmittel wechseln",       c:"Motor", km:150000, mo:120, t:["Kühlmittel"], h:"Erstbefüllung hält lange, danach kürzer. "+PRUEFEN},
+  {n:"Klimaanlage Service",       c:"Komfort", km:null, mo:24, t:[], h:"Kältemittel, Trockner, Desinfektion."},
+  {n:"Zahnriemen + Spannrolle",   c:"Motor", km:120000, mo:72, t:["Zahnriemensatz","Wasserpumpe"], h:"Nur bei Riemenantrieb. Reißt er, ist der Motor hin — Intervall unbedingt im Serviceheft nachsehen."},
+  {n:"Steuerkette prüfen",        c:"Motor", km:100000, mo:null, t:[], h:"Auf Rasseln beim Kaltstart achten, Längung auslesen."},
+ ]},
+ {gruppe:"Diesel", merkmal:"diesel", eintraege:[
+  {n:"Kraftstofffilter",          c:"Motor", km:30000, mo:24, t:["Kraftstofffilter"], h:"Nach Wechsel entlüften."},
+  {n:"Diesel-Vorfilter",          c:"Motor", km:30000, mo:24, t:["Diesel-Vorfilter"], h:"Nachrüstung — sinnvoll bei unsicherer Kraftstoffqualität."},
+  {n:"Wasserabscheider entleeren",c:"Motor", km:15000, mo:12, t:[], h:"Vor langen Touren zusätzlich prüfen."},
+  {n:"AdBlue nachfüllen",         c:"Motor", km:10000, mo:null, t:["AdBlue"], h:"Verbrauchsabhängig, die Warnmeldung zählt."},
+  {n:"Partikelfilter prüfen",     c:"Motor", km:60000, mo:null, t:[], h:"Aschebeladung auslesen. Viel Kurzstrecke verkürzt die Lebensdauer erheblich."},
+  {n:"Ventilspiel prüfen",        c:"Motor", km:150000, mo:null, t:[], h:"Nur bei Motoren ohne Hydrostößel. "+PRUEFEN},
+  {n:"Glühkerzen prüfen",         c:"Motor", km:100000, mo:null, t:["Glühkerzen"], h:"Bei schlechtem Kaltstart früher."},
+ ]},
+ {gruppe:"Benziner", merkmal:"benzin", eintraege:[
+  {n:"Zündkerzen",                c:"Motor", km:60000, mo:72, t:["Zündkerzen"], h:"Bei Turbo oft 30.000 km. "+PRUEFEN},
+  {n:"Zündspulen prüfen",         c:"Motor", km:100000, mo:null, t:[], h:"Bei Aussetzern oder Ruckeln."},
+  {n:"Einlassventile reinigen",   c:"Motor", km:100000, mo:null, t:[], h:"Bei Direkteinspritzern gegen Ölkohle."},
+ ]},
+ {gruppe:"Hybrid und Elektro", merkmal:"hybrid", eintraege:[
+  {n:"Hochvoltbatterie prüfen",   c:"Elektrik", km:null, mo:24, t:[], h:"Zellspannungen und Kapazität auslesen. Arbeiten am HV-System nur mit Fachkunde."},
+  {n:"Inverter-Kühlmittel",       c:"Elektrik", km:150000, mo:120, t:["Kühlmittel"], h:"Eigener Kreislauf, nicht mit dem Motorkühlmittel verwechseln."},
+  {n:"Reduktionsgetriebeöl",      c:"Antrieb", km:100000, mo:null, t:["Getriebeöl"], h:"Bei vielen E-Antrieben als Lebensdauerfüllung deklariert."},
+  {n:"Batteriekühlung Filter",    c:"Elektrik", km:null, mo:24, t:[], h:"Luftfilter der Batteriekühlung, sofern vorhanden."},
+ ]},
+ {gruppe:"Getriebe", merkmal:null, eintraege:[
+  {n:"Schaltgetriebeöl",          c:"Antrieb", km:100000, mo:null, t:["Getriebeöl"], h:"Oft als Lebensdauerfüllung angegeben — bei Zuglast trotzdem sinnvoll."},
+  {n:"Automatikgetriebeöl",       c:"Antrieb", km:60000, mo:null, t:["ATF Automatikgetriebeöl","Getriebeölfilter","Ölwannendichtung"], h:"Wandlerautomatik. Bei Anhängerbetrieb und Hitze früher."},
+  {n:"Doppelkupplungsgetriebe (DSG/S-tronic)", c:"Antrieb", km:60000, mo:48, t:["DSG-Öl","DSG-Ölfilter"], h:"Nasslaufendes DSG braucht den Wechsel zwingend; trockenes meist nicht. "+PRUEFEN},
+  {n:"CVT-Getriebeöl",            c:"Antrieb", km:60000, mo:null, t:["CVT-Öl"], h:"Nur die freigegebene Spezifikation verwenden, sonst rutscht der Schubgliederband-Antrieb."},
+  {n:"Kupplung prüfen",           c:"Antrieb", km:null, mo:12, t:[], h:"Druckpunkt und Leerweg."},
+ ]},
+ {gruppe:"Allrad und Achsen", merkmal:"4x4", eintraege:[
+  {n:"Verteilergetriebeöl",       c:"Antrieb", km:40000, mo:48, t:["Verteilergetriebeöl"], h:""},
+  {n:"Differentialöl vorne",      c:"Antrieb", km:40000, mo:48, t:["Differentialöl"], h:""},
+  {n:"Differentialöl hinten",     c:"Antrieb", km:40000, mo:48, t:["Differentialöl"], h:"Sperrdifferential braucht ggf. einen Zusatz."},
+  {n:"Haldex-Kupplung Öl + Filter", c:"Antrieb", km:60000, mo:36, t:["Haldex-Öl","Haldex-Filter"], h:"Bei VW, Audi, Škoda, Seat und Volvo mit Allrad."},
+  {n:"Kardanwelle abschmieren",   c:"Antrieb", km:10000, mo:6, t:["Mehrzweckfett"], h:"Nur bei Wellen mit Schmiernippeln. Nach Wasser und Staub früher."},
+  {n:"Antriebswellenmanschetten", c:"Fahrwerk", km:15000, mo:12, t:[], h:"Risse und austretendes Fett."},
+ ]},
+ {gruppe:"Bremsen", merkmal:null, eintraege:[
+  {n:"Bremsflüssigkeit wechseln", c:"Bremsen", km:null, mo:24, t:["Bremsflüssigkeit"], h:"Zieht Wasser. Werksangabe meist 2 bis 3 Jahre."},
+  {n:"Bremsbeläge vorne",         c:"Bremsen", km:40000, mo:null, t:["Bremsbeläge vorne"], h:"Verschleißabhängig — Stärke messen statt nach Kilometern gehen."},
+  {n:"Bremsbeläge hinten",        c:"Bremsen", km:60000, mo:null, t:["Bremsbeläge hinten"], h:""},
+  {n:"Bremsscheiben vorne",       c:"Bremsen", km:80000, mo:null, t:["Bremsscheiben vorne"], h:"Mindeststärke beachten."},
+  {n:"Bremsen prüfen",            c:"Bremsen", km:15000, mo:12, t:[], h:"Sichtprüfung Beläge, Scheiben, Leitungen."},
+  {n:"Feststellbremse justieren", c:"Bremsen", km:null, mo:12, t:[], h:""},
+ ]},
+ {gruppe:"Fahrwerk und Reifen", merkmal:null, eintraege:[
+  {n:"Räder tauschen",            c:"Reifen", km:10000, mo:6, t:[], h:"Gleicht ungleichmäßigen Verschleiß aus."},
+  {n:"Reifen prüfen",             c:"Reifen", km:null, mo:3, t:[], h:"Profiltiefe, Luftdruck, Alter am DOT-Code."},
+  {n:"Achsvermessung",            c:"Fahrwerk", km:60000, mo:null, t:[], h:"Nach Fahrwerksarbeiten oder einseitigem Verschleiß."},
+  {n:"Stoßdämpfer prüfen",        c:"Fahrwerk", km:40000, mo:24, t:[], h:"Ölaustritt, Nachfedern."},
+  {n:"Radlager prüfen",           c:"Fahrwerk", km:40000, mo:null, t:[], h:"Spiel und Laufgeräusch."},
+  {n:"Spurstangen und Buchsen",   c:"Fahrwerk", km:40000, mo:24, t:[], h:"Auf Spiel prüfen."},
+  {n:"Federn sichtprüfen",        c:"Fahrwerk", km:null, mo:12, t:[], h:"Brüche zeigen sich oft erst bei Belastung."},
+ ]},
+ {gruppe:"Elektrik", merkmal:null, eintraege:[
+  {n:"Starterbatterie prüfen",    c:"Elektrik", km:null, mo:12, t:["Starterbatterie"], h:"Ruhespannung und Pole."},
+  {n:"Zweitbatterie prüfen",      c:"Elektrik", km:null, mo:12, t:[], h:"Für Ausbau und Reisebetrieb."},
+  {n:"Beleuchtung prüfen",        c:"Elektrik", km:null, mo:6, t:["Leuchtmittel"], h:"Rundgang, auch Anhängersteckdose."},
+  {n:"Wischerblätter",            c:"Komfort", km:null, mo:12, t:["Wischerblätter"], h:""},
+  {n:"Anhängerkupplung prüfen",   c:"Elektrik", km:null, mo:12, t:[], h:"Mechanik, Stecker, Kugel fetten."},
+ ]},
+ {gruppe:"Karosserie und Pflege", merkmal:null, eintraege:[
+  {n:"Unterboden und Rostvorsorge", c:"Karosserie", km:null, mo:12, t:["Hohlraumwachs"], h:"Nach Salz oder Salzwasser gründlich spülen."},
+  {n:"Türdichtungen pflegen",     c:"Karosserie", km:null, mo:12, t:["Gummipflege"], h:"Verhindert Festfrieren und Risse."},
+  {n:"Wasserabläufe reinigen",    c:"Karosserie", km:null, mo:12, t:[], h:"Schiebedach, Windlauf, Türen — verstopft führt zu Wasser im Innenraum."},
+  {n:"Scheibenwaschanlage",       c:"Komfort", km:null, mo:6, t:["Scheibenreiniger"], h:"Im Winter Frostschutz."},
+  {n:"Klimaanlage desinfizieren", c:"Komfort", km:null, mo:12, t:[], h:"Gegen Geruch aus dem Verdampfer."},
+ ]},
+ {gruppe:"Reise und Expedition", merkmal:null, eintraege:[
+  {n:"Ersatzrad prüfen",          c:"Reifen", km:null, mo:6, t:[], h:"Luftdruck und Alter. Nützt wenig, wenn es platt unterm Wagen hängt."},
+  {n:"Bordwerkzeug kontrollieren",c:"Sonstiges", km:null, mo:12, t:[], h:"Wagenheber, Radkreuz, Abschleppöse."},
+  {n:"Dachträger nachziehen",     c:"Aufbau", km:10000, mo:6, t:[], h:"Nach Pistenfahrt immer."},
+  {n:"Schraubverbindungen Aufbau",c:"Aufbau", km:10000, mo:6, t:[], h:"Dachzelt, Schubladen, Anbauteile."},
+ ]},
+];
+
+/** Alle Bausteine flach, passende zuerst. */
+function bibliothekSortiert(){
+  const merkmale = [CAR.fuel, CAR.drive, CAR.gearbox].filter(Boolean);
+  const passt = g => !g.merkmal || merkmale.includes(g.merkmal);
+  return [...BIBLIOTHEK].sort((a,b)=> (passt(b)?1:0) - (passt(a)?1:0))
+    .map(g=>({...g, passend: passt(g)}));
+}
+
 /* ═══════════ Fotos ═════════════════════════════════════════════
    Handyfotos sind 3–5 MB gross. Hochgeladen wird deshalb nie das
    Original, sondern eine auf 1600 px verkleinerte JPEG-Fassung plus
@@ -916,8 +1091,10 @@ function renderCost(){
 
 const FOTO_MAX   = 1600, FOTO_Q   = 0.82;
 const THUMB_MAX  = 400,  THUMB_Q  = 0.7;
+const MAX_VIDEO  = 150 * 1024 * 1024;
 
 const photoUrl = (id,thumb)=> "api/photos/" + id + (thumb?"_t":"");
+const istVideo  = id => id.startsWith("v_");
 
 /** Bild laden und dabei die EXIF-Drehung beruecksichtigen —
  *  sonst liegen Hochformataufnahmen vom iPhone quer. */
@@ -946,13 +1123,59 @@ async function skaliere(bild, max, q){
   return await new Promise(r=>c.toBlob(r,"image/jpeg",q));
 }
 
+/** Standbild aus einem Video holen — ohne das reicht in der Uebersicht
+ *  nur ein schwarzes Rechteck. */
+async function videoStandbild(file){
+  const v = document.createElement("video");
+  v.muted = true; v.playsInline = true; v.preload = "metadata";
+  v.src = URL.createObjectURL(file);
+  try{
+    await new Promise((ok,fehler)=>{
+      v.onloadeddata = ok; v.onerror = ()=>fehler(new Error("Video nicht lesbar"));
+      setTimeout(()=>fehler(new Error("Video-Vorschau dauert zu lange")), 15000);
+    });
+    // Eine Sekunde hinein, sonst ist das Bild oft noch schwarz
+    if(v.duration > 1.2){
+      await new Promise(ok=>{ v.onseeked = ok; v.currentTime = 1; });
+    }
+    const c = document.createElement("canvas");
+    const f = Math.min(1, THUMB_MAX/Math.max(v.videoWidth, v.videoHeight));
+    c.width = Math.round(v.videoWidth*f); c.height = Math.round(v.videoHeight*f);
+    c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+    return {blob: await new Promise(r=>c.toBlob(r,"image/jpeg",THUMB_Q)), dauer: v.duration};
+  } finally { URL.revokeObjectURL(v.src); }
+}
+
+async function ladeVideoHoch(file, melde){
+  if(file.size > MAX_VIDEO)
+    throw new Error(`Video ist ${(file.size/1048576).toFixed(0)} MB groß — höchstens ${MAX_VIDEO/1048576} MB`);
+  const id = "v_" + neueId();
+  melde && melde("Vorschaubild wird erzeugt …");
+  let vorschau = null;
+  try{ vorschau = await videoStandbild(file); }catch(e){ /* zur Not ohne */ }
+
+  melde && melde(`Video wird übertragen (${(file.size/1048576).toFixed(1)} MB) …`);
+  const r = await fetch("api/photos/"+id,{method:"PUT",headers:{"Content-Type":file.type||"video/mp4"},body:file});
+  if(!r.ok){
+    let grund = "HTTP "+r.status;
+    try{ grund = (await r.json()).error || grund; }catch(e){}
+    throw new Error("Video abgelehnt: "+grund);
+  }
+  if(vorschau)
+    await fetch("api/photos/"+id+"_t",{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:vorschau.blob});
+  return id;
+}
+
+const neueId = ()=> (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,"")
+                                       : Math.random().toString(16).slice(2)+Date.now().toString(16)).slice(0,12);
+
 async function ladeFotoHoch(file){
   const bild  = await ladeBild(file);
   const gross = await skaliere(bild, FOTO_MAX,  FOTO_Q);
   const klein = await skaliere(bild, THUMB_MAX, THUMB_Q);
   if(bild.close) bild.close();
 
-  const id = "f_" + (crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):Math.random().toString(16).slice(2)+Date.now().toString(16)).slice(0,12);
+  const id = "f_" + neueId();
   for(const [name,blob] of [[id,gross],[id+"_t",klein]]){
     const r = await fetch("api/photos/"+name,{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:blob});
     if(!r.ok) throw new Error("Upload fehlgeschlagen (HTTP "+r.status+")");
@@ -966,22 +1189,26 @@ function fotoFeld(photos, hinweis){
   if(mode==="local")
     return `<div class="field"><label>Fotos</label>
       <div class="tiny faint">Fotos brauchen den Server — im lokalen Dateimodus nicht verfügbar.</div></div>`;
-  return `<div class="field"><label>Fotos</label>
+  return `<div class="field"><label>Fotos und Videos</label>
     <div class="fotos" id="fotoBox" data-ids="${esc((photos||[]).join(","))}"></div>
     <div class="row" style="margin-top:8px">
-      <button type="button" class="btn sm" id="fotoAdd">+ Foto</button>
+      <button type="button" class="btn sm" id="fotoAdd">＋ Aus Galerie oder Datei</button>
+      <button type="button" class="btn sm" id="fotoCam">Kamera</button>
       <span class="tiny faint" id="fotoStatus">${hinweis||""}</span>
     </div>
-    <input type="file" id="fotoInput" accept="image/*" capture="environment" multiple hidden></div>`;
+    <input type="file" id="fotoInput" accept="image/*,video/*" multiple hidden>
+    <input type="file" id="fotoCamInput" accept="image/*,video/*" capture="environment" hidden></div>`;
 }
 
 function zeichneFotos(){
   const box = $("#fotoBox"); if(!box) return;
   const ids = (box.dataset.ids||"").split(",").filter(Boolean);
   box.innerHTML = ids.map((id,i)=>`<div class="foto">
-      <img src="${photoUrl(id,true)}" alt="Foto ${i+1}" loading="lazy" data-lb="${esc(ids.join(","))}" data-lbi="${i}">
-      <button type="button" class="foto-x" data-foto-del="${id}" title="Foto entfernen">✕</button>
-    </div>`).join("") || `<div class="tiny faint">Noch keine Fotos.</div>`;
+      <img src="${photoUrl(id,true)}" alt="${istVideo(id)?"Video":"Foto"} ${i+1}" loading="lazy"
+           data-lb="${esc(ids.join(","))}" data-lbi="${i}">
+      ${istVideo(id)?`<span class="play" data-lb="${esc(ids.join(","))}" data-lbi="${i}">▶</span>`:""}
+      <button type="button" class="foto-x" data-foto-del="${id}" title="Entfernen">✕</button>
+    </div>`).join("") || `<div class="tiny faint">Noch nichts hinterlegt.</div>`;
 }
 const liesFotos = ()=> {
   const box = $("#fotoBox");
@@ -994,53 +1221,66 @@ async function fotosWaehlen(files){
   const ids = (box.dataset.ids||"").split(",").filter(Boolean);
   let n = 0;
   for(const f of files){
-    if(!f.type.startsWith("image/")) continue;
-    status.textContent = `lädt ${++n} von ${files.length} …`;
-    try{ ids.push(await ladeFotoHoch(f)); }
-    catch(e){ toast(e.message,true); }
+    const video = f.type.startsWith("video/");
+    if(!video && !f.type.startsWith("image/")) continue;
+    n++;
+    const melde = t => status.textContent = `${n} von ${files.length}: ${t}`;
+    melde(video ? "Video wird vorbereitet …" : "Bild wird verkleinert …");
+    try{ ids.push(video ? await ladeVideoHoch(f, melde) : await ladeFotoHoch(f)); }
+    catch(e){ toast(e.message, true); n--; }
   }
   box.dataset.ids = ids.join(",");
-  status.textContent = n ? `${n} Foto${n>1?"s":""} hinzugefügt` : "";
+  status.textContent = n ? `${n} hinzugefügt` : "";
   zeichneFotos();
 }
 
 /* ---- Lightbox ---- */
 function lightbox(ids, start){
   let i = start|0;
-  const el = document.createElement("div");
+  /* Muss selbst ein <dialog> sein: ein modaler Dialog liegt immer in
+     der obersten Ebene, dagegen kommt kein z-index an. */
+  const el = document.createElement("dialog");
   el.className = "lb";
   el.innerHTML = `<button class="lb-x" title="Schließen">✕</button>
     <button class="lb-nav lb-prev" title="Zurück">‹</button>
-    <img src="${photoUrl(ids[i])}" alt="">
+    <div class="lb-buehne"></div>
     <button class="lb-nav lb-next" title="Weiter">›</button>
     <div class="lb-z"></div>`;
   document.body.appendChild(el);
-  document.body.style.overflow = "hidden";
+  el.showModal();
 
-  const img = el.querySelector("img"), zaehler = el.querySelector(".lb-z");
+  const buehne = el.querySelector(".lb-buehne"), zaehler = el.querySelector(".lb-z");
   const zeig = d=>{
     i = (i + d + ids.length) % ids.length;
-    img.src = photoUrl(ids[i]); img.classList.remove("zoom");
+    const id = ids[i];
+    buehne.innerHTML = istVideo(id)
+      ? `<video src="${photoUrl(id)}" controls autoplay playsinline preload="metadata"></video>`
+      : `<img src="${photoUrl(id)}" alt="">`;
     zaehler.textContent = ids.length>1 ? `${i+1} / ${ids.length}` : "";
   };
   zeig(0);
   el.querySelector(".lb-prev").hidden = el.querySelector(".lb-next").hidden = ids.length<2;
 
-  const zu = ()=>{ el.remove(); document.body.style.overflow=""; document.removeEventListener("keydown",taste); };
-  const taste = e=>{
-    if(e.key==="Escape") zu();
-    else if(e.key==="ArrowLeft")  zeig(-1);
-    else if(e.key==="ArrowRight") zeig(1);
+  const zu = ()=>{
+    const v = el.querySelector("video"); if(v) v.pause();
+    if(el.open) el.close();
+    el.remove();
   };
-  document.addEventListener("keydown", taste);
+  el.addEventListener("close", ()=>{ el.remove(); });   // Escape schliesst von selbst
+  el.addEventListener("keydown", e=>{
+    if(e.key==="ArrowLeft")  { e.preventDefault(); zeig(-1); }
+    if(e.key==="ArrowRight") { e.preventDefault(); zeig(1);  }
+  });
   el.querySelector(".lb-x").onclick    = zu;
   el.querySelector(".lb-prev").onclick = ()=>zeig(-1);
   el.querySelector(".lb-next").onclick = ()=>zeig(1);
   el.onclick = e=>{ if(e.target===el) zu(); };
-  img.onclick = ()=>img.classList.toggle("zoom");
+  buehne.onclick = e=>{ if(e.target.tagName==="IMG") e.target.classList.toggle("zoom"); };
 
   let x0=null;                                   // Wischen am Telefon
-  el.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; },{passive:true});
+  el.addEventListener("touchstart",e=>{
+    x0 = e.target.tagName==="VIDEO" ? null : e.touches[0].clientX;
+  },{passive:true});
   el.addEventListener("touchend",e=>{
     if(x0===null) return;
     const dx = e.changedTouches[0].clientX - x0;
@@ -1053,7 +1293,10 @@ function lightbox(ids, start){
 function fotoStreifen(ids){
   if(!ids || !ids.length || mode==="local") return "";
   return `<div class="fotos mini">${ids.map((id,i)=>
-    `<img src="${photoUrl(id,true)}" alt="" loading="lazy" data-lb="${esc(ids.join(","))}" data-lbi="${i}">`).join("")}</div>`;
+    `<span class="foto-mini">
+       <img src="${photoUrl(id,true)}" alt="" loading="lazy" data-lb="${esc(ids.join(","))}" data-lbi="${i}">
+       ${istVideo(id)?`<span class="play sm" data-lb="${esc(ids.join(","))}" data-lbi="${i}">▶</span>`:""}
+     </span>`).join("")}</div>`;
 }
 
 /* ═══════════ Dialoge ═══════════ */
@@ -1066,9 +1309,27 @@ function openDlg(title, body, onSave, saveLabel){
   dlgSave = onSave;
   $("#dlg").showModal();
   zeichneFotos();
+  zeichneTeile();
 }
+/* Teileauswahl: suchen, hinzufügen, entfernen, neu anlegen */
+document.addEventListener("input", e=>{
+  if(e.target.id==="teileSuche") zeichneTreffer();
+  if(e.target.classList && e.target.classList.contains("pt-q")){
+    const zeile = e.target.closest("[data-teil]");
+    const eintrag = teileAuswahl.find(x=>x.p===zeile.dataset.teil);
+    if(eintrag) eintrag.q = num(e.target.value) || 1;
+  }
+});
+document.addEventListener("focusin", e=>{ if(e.target.id==="teileSuche") zeichneTreffer(); });
+document.addEventListener("click", e=>{
+  const p = $("#teileTreffer");
+  if(p && !e.target.closest(".picker")) p.hidden = true;
+});
+
 document.addEventListener("change", e=>{
-  if(e.target.id==="fotoInput" && e.target.files.length) fotosWaehlen([...e.target.files]);
+  if((e.target.id==="fotoInput"||e.target.id==="fotoCamInput") && e.target.files.length){
+    const f=[...e.target.files]; e.target.value=""; fotosWaehlen(f);
+  }
 });
 
 $("#dlgForm").addEventListener("submit", e=>{
@@ -1091,8 +1352,9 @@ function readLinks(){
 
 /* -- Wartungsposition -- */
 function taskDialog(id){
-  const t = id?CAR.tasks.find(x=>x.id===id):{id:uid("t"),name:"",cat:"Motor",km:null,mo:null,parts:[],note:"",active:true,lastKm:null,lastDate:null};
+  const t = id?CAR.tasks.find(x=>x.id===id):{id:uid("t"),name:"",cat:"Motor",km:null,mo:null,parts:[],note:"",active:true,lastKm:null,lastDate:null,photos:[]};
   const last = id?lastDone(t):null;
+  teileAuswahl = (t.parts||[]).map(x=>({p:x.p, q:x.q}));
   openDlg(id?"Position bearbeiten":"Neue Wartungsposition",`
     <div class="field"><label>Bezeichnung</label><input id="f-name" value="${esc(t.name)}" required></div>
     <div class="grid2">
@@ -1104,12 +1366,11 @@ function taskDialog(id){
       <div class="field"><label>Intervall Monate</label><input type="number" id="f-mo" inputmode="numeric" value="${t.mo??""}" placeholder="z. B. 12"><div class="hint">leer = rein kilometerabhängig</div></div>
     </div>
     <div class="field"><label>Benötigte Teile</label>
-      ${CAR.parts.map(p=>{const cur=(t.parts||[]).find(x=>x.p===p.id);
-        return `<div class="row" style="margin-bottom:4px">
-          <label class="chk" style="flex:1"><input type="checkbox" class="pt-chk" data-p="${p.id}" ${cur?"checked":""}>
-          <span>${esc(p.name)}</span></label>
-          <input class="pt-q" data-p="${p.id}" type="number" step="0.1" value="${cur?cur.q:1}" style="width:72px;padding:5px 8px;text-align:right;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;color:var(--text)">
-          <span class="tiny faint" style="width:52px">${esc(p.unit)}</span></div>`;}).join("")}
+      <div id="teileListe"></div>
+      <div class="picker">
+        <input type="text" id="teileSuche" placeholder="Teil suchen oder neu anlegen …" autocomplete="off">
+        <div class="picker-liste" id="teileTreffer" hidden></div>
+      </div>
     </div>
     <div class="grid2">
       <div class="field"><label>Zuletzt erledigt bei km</label><input type="number" id="f-lkm" value="${t.lastKm??""}" placeholder="optional">
@@ -1124,11 +1385,52 @@ function taskDialog(id){
     t.km=num(val("f-km")); t.mo=num(val("f-mo"));
     t.note=$("#f-note").value.trim();
     t.lastKm=num(val("f-lkm")); t.lastDate=val("f-ldt")||null;
-    t.parts=$$(".pt-chk").filter(c=>c.checked).map(c=>({p:c.dataset.p,
-      q:num($$(".pt-q").find(q=>q.dataset.p===c.dataset.p).value)||1}));
+    t.parts=$$("#teileListe [data-teil]").map(z=>({
+      p: z.dataset.teil,
+      q: num(z.querySelector(".pt-q").value) || 1
+    }));
     const fotos = liesFotos(); if(fotos) t.photos = fotos;
     if(!id) CAR.tasks.push(t);
   });
+}
+
+/* ---- Teileauswahl im Positionsdialog -------------------------
+   Statt aller Teile als Ankreuzliste: gewaehlte Teile oben, darunter
+   ein Suchfeld. Das bleibt uebersichtlich, auch wenn der Katalog
+   irgendwann fünfzig Einträge hat.                               */
+let teileAuswahl = [];
+
+function zeichneTeile(){
+  const box = $("#teileListe"); if(!box) return;
+  box.innerHTML = teileAuswahl.length ? teileAuswahl.map(x=>{
+    const p = partById(x.p); if(!p) return "";
+    return `<div class="teil-zeile" data-teil="${p.id}">
+      <div class="teil-name">${esc(p.name)}
+        ${p.oem?`<span class="tiny faint num">${esc(p.oem)}</span>`:""}</div>
+      <input class="pt-q" type="number" step="0.1" min="0" value="${x.q}" aria-label="Menge">
+      <span class="teil-einheit tiny faint">${esc(p.unit)}</span>
+      <button type="button" class="btn icon" data-teil-weg="${p.id}" title="Entfernen">✕</button>
+    </div>`;
+  }).join("") : `<div class="tiny faint" style="padding:6px 0">Noch keine Teile zugeordnet.</div>`;
+}
+
+function zeichneTreffer(){
+  const feld = $("#teileSuche"), liste = $("#teileTreffer");
+  if(!feld || !liste) return;
+  const q = feld.value.trim().toLowerCase();
+  const schon = new Set(teileAuswahl.map(x=>x.p));
+  const treffer = CAR.parts
+    .filter(p=>!schon.has(p.id))
+    .filter(p=>!q || (p.name+" "+p.oem).toLowerCase().includes(q))
+    .slice(0,8);
+
+  liste.innerHTML = treffer.map(p=>`<button type="button" class="picker-eintrag" data-teil-zu="${p.id}">
+      <span>${esc(p.name)}</span>
+      <span class="tiny faint">${esc(p.oem||p.unit)}</span></button>`).join("")
+    + (q ? `<button type="button" class="picker-eintrag neu" data-teil-neu="${esc(q)}">
+             ＋ „${esc(feld.value.trim())}" als neues Teil anlegen</button>` : "")
+    + (!treffer.length && !q ? `<div class="tiny faint" style="padding:10px 12px">Alle Teile bereits zugeordnet.</div>` : "");
+  liste.hidden = false;
 }
 
 /* -- Teil -- */
@@ -1224,6 +1526,72 @@ function modDialog(id){
     if(!confirm("Diesen Umbau wirklich löschen?")) return;
     CAR.mods=CAR.mods.filter(x=>x.id!==id); dlgSave=null; $("#dlg").close(); save(); renderAll();
   };
+}
+
+/* -- Aus der Bibliothek übernehmen ------------------------------
+   Mehrere Positionen auf einmal, damit ein neues Fahrzeug nicht
+   Baustein für Baustein zusammengeklickt werden muss.            */
+function bibliothekDialog(){
+  const vorhanden = new Set(CAR.tasks.map(t=>t.name.toLowerCase()));
+  const gruppen = bibliothekSortiert();
+
+  openDlg("Aus Bibliothek übernehmen", `
+    <p class="tiny muted" style="margin-top:0">
+      Wähle aus, was auf dein Fahrzeug zutrifft. Die Intervalle sind Vorschläge
+      aus der Praxis — <strong>nicht</strong> die Werksvorgabe deines Herstellers.
+      Nach dem Übernehmen jede Position gegen dein Serviceheft prüfen.</p>
+    <div class="field"><input type="text" id="bibSuche" placeholder="Suchen …" autocomplete="off"
+      style="width:100%;padding:9px 11px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;color:var(--text)"></div>
+    <div id="bibListe">${gruppen.map(g=>`
+      <div class="bib-gruppe" data-gruppe="${esc(g.gruppe)}">
+        <div class="sec-head" style="margin:16px 0 8px">
+          <h2>${esc(g.gruppe)}</h2><div class="line"></div>
+          ${g.passend&&g.merkmal?`<span class="pill info">passt zum Fahrzeug</span>`:""}
+        </div>
+        ${g.eintraege.map(e=>{
+          const schon = vorhanden.has(e.n.toLowerCase());
+          const iv = [e.km?nKm(e.km)+" km":null, e.mo?e.mo+" Mon.":null].filter(Boolean).join(" / ") || "nach Bedarf";
+          return `<label class="bib-zeile ${schon?"schon":""}" data-suche="${esc((e.n+" "+g.gruppe+" "+(e.h||"")).toLowerCase())}">
+            <input type="checkbox" class="bib-chk" value="${esc(e.n)}" data-gruppe="${esc(g.gruppe)}" ${schon?"disabled":""}>
+            <span class="bib-text">
+              <span class="bib-name">${esc(e.n)}${schon?` <span class="pill flat">bereits angelegt</span>`:""}</span>
+              <span class="tiny faint">${iv}${e.h?" · "+esc(e.h):""}</span>
+            </span></label>`;
+        }).join("")}
+      </div>`).join("")}</div>`,
+  ()=>{
+    const gewaehlt = $$(".bib-chk").filter(c=>c.checked);
+    if(!gewaehlt.length){ toast("Nichts ausgewählt",true); return false; }
+    let neueTeile = 0;
+    for(const c of gewaehlt){
+      const gruppe = BIBLIOTHEK.find(g=>g.gruppe===c.dataset.gruppe);
+      const e = gruppe && gruppe.eintraege.find(x=>x.n===c.value);
+      if(!e) continue;
+      // Benötigte Teile anlegen, sofern noch nicht im Katalog
+      const teile = (e.t||[]).map(name=>{
+        let teil = CAR.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
+        if(!teil){
+          teil = {id:uid("p"), name, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[],
+                  note:"Aus Bibliothek — Teilenummer beim ersten Kauf eintragen."};
+          CAR.parts.push(teil); neueTeile++;
+        }
+        return {p:teil.id, q:1};
+      });
+      CAR.tasks.push({id:uid("t"), name:e.n, cat:e.c, km:e.km, mo:e.mo, parts:teile,
+                      note:e.h||"", active:true, lastKm:null, lastDate:null, photos:[]});
+    }
+    toast(`${gewaehlt.length} Position${gewaehlt.length>1?"en":""} übernommen`+
+          (neueTeile?`, ${neueTeile} Teile angelegt`:""));
+  }, "Übernehmen");
+
+  $("#bibSuche").addEventListener("input", e=>{
+    const q = e.target.value.trim().toLowerCase();
+    $$("#bibListe .bib-zeile").forEach(z=> z.hidden = q && !z.dataset.suche.includes(q));
+    $$("#bibListe .bib-gruppe").forEach(g=>{
+      const sichtbar = [...g.querySelectorAll(".bib-zeile")].some(z=>!z.hidden);
+      g.hidden = !sichtbar;
+    });
+  });
 }
 
 /* -- Fahrzeug anlegen / bearbeiten ------------------------------
@@ -1463,7 +1831,33 @@ document.addEventListener("click",e=>{
   }
   const lb = t.closest("[data-lb]");
   if(lb){ lightbox((lb.dataset.lb||"").split(",").filter(Boolean), +lb.dataset.lbi||0); return; }
+  const zu = t.closest("[data-teil-zu]");
+  if(zu){
+    if(!teileAuswahl.some(x=>x.p===zu.dataset.teilZu)) teileAuswahl.push({p:zu.dataset.teilZu, q:1});
+    $("#teileSuche").value=""; $("#teileTreffer").hidden=true;
+    zeichneTeile(); $("#teileSuche").focus();
+    return;
+  }
+  const weg = t.closest("[data-teil-weg]");
+  if(weg){
+    teileAuswahl = teileAuswahl.filter(x=>x.p!==weg.dataset.teilWeg);
+    zeichneTeile();
+    return;
+  }
+  const neu = t.closest("[data-teil-neu]");
+  if(neu){
+    // Teil sofort anlegen, ohne den Dialog zu verlassen
+    const roh = $("#teileSuche").value.trim();
+    const teil = {id:uid("p"), name:roh, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[], note:""};
+    CAR.parts.push(teil);
+    teileAuswahl.push({p:teil.id, q:1});
+    $("#teileSuche").value=""; $("#teileTreffer").hidden=true;
+    zeichneTeile(); save();
+    toast(`„${roh}" angelegt — Nummer und Preis später im Teilekatalog`);
+    return;
+  }
   if(t.id==="fotoAdd"){ $("#fotoInput").click(); }
+  if(t.id==="fotoCam"){ $("#fotoCamInput").click(); }
   const fd = t.closest("[data-foto-del]");
   if(fd){
     const box=$("#fotoBox");
@@ -1477,6 +1871,7 @@ document.addEventListener("click",e=>{
 });
 
 $("#btnAddTask").onclick =()=>taskDialog();
+$("#btnBib").onclick     =()=>bibliothekDialog();
 $("#btnAddPart").onclick =()=>partDialog();
 $("#btnAddHist").onclick =()=>histDialog();
 $("#btnAddMod").onclick  =()=>modDialog();
