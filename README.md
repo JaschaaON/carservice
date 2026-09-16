@@ -54,6 +54,56 @@ Ueber das Stiftsymbol laesst sich jeder Eintrag direkt bearbeiten.
 Teilenamen in der Einkaufsliste und in der Teileliste einer Position sind
 verlinkt und oeffnen den Teiledialog — fuer Teilenummer, Preis und Kauflinks.
 
+## Benutzer und Anmeldung
+
+Mehrere Personen koennen eigene Konten haben — jedes mit eigenen Fahrzeugen,
+Teilen, Anleitungen und Historie, strikt getrennt. Gemeinsam sind nur die
+Markenprofile und die Bausteinbibliothek, die im Programmcode stecken.
+
+```
+data/
+├── auth/
+│   ├── secret            HMAC-Schluessel fuer Sitzungen, 0600
+│   └── users.json        Konten mit scrypt-Hash, 0600
+└── users/<id>/           je Konto data.json, photos/, docs/, versions/
+```
+
+**Ersteinrichtung:** Beim ersten Aufruf von `/admin` legst du dein
+Administrator-Konto an; vorhandene Daten aus dem Datenverzeichnis wandern dabei
+in dieses Konto. Danach ist dieser Weg dauerhaft geschlossen.
+
+**Verwaltung** unter `/admin`: Konten anlegen, umbenennen, Rolle aendern,
+Passwort zuruecksetzen, sperren, loeschen. Ueber *Ansehen* oeffnet ein Admin
+die App im Kontext eines fremden Kontos — mit deutlichem Hinweisbalken, und
+jeder solche Zugriff landet im Log. Der letzte Administrator laesst sich weder
+herabstufen noch sperren oder loeschen.
+
+### Wie der Schutz funktioniert
+
+Ohne Fremdbibliotheken, alles mit Node-Bordmitteln:
+
+* **Passwoerter** als `scrypt`-Hash mit eigenem Salt je Konto, verglichen mit
+  `timingSafeEqual`. Mindestlaenge zwoelf Zeichen.
+* **Sitzungen** im signierten Cookie (HMAC-SHA256) statt in einer Tabelle —
+  ueberlebt Neustarts. `HttpOnly`, `SameSite=Strict`, `Secure` sobald die
+  Anfrage ueber HTTPS kommt.
+* **Sofort aussperren**: Jedes Konto traegt eine `sessionVersion`. Passwort
+  aendern oder sperren zaehlt sie hoch, womit alle bestehenden Cookies verfallen.
+* **Durchprobieren**: ab fuenf Fehlversuchen ansteigende Sperre. Auch ohne
+  passendes Konto laeuft dieselbe Rechenarbeit, damit die Antwortdauer nicht
+  verraet, welche Anmeldenamen existieren.
+* **CSRF**: `SameSite=Strict` plus Pflicht auf `Content-Type: application/json`
+  bei schreibenden Aufrufen.
+
+> Betrieben wird weiterhin **hinter NetBird**. Die Anmeldung trennt Daten und
+> Zustaendigkeiten; das Netz haelt Fremde fern. Vor einem Gang ins offene
+> Internet waeren zusaetzlich noetig: dauerhaftes Zugriffsprotokoll,
+> persistenter Sperrzaehler, Zwei-Faktor-Anmeldung und eine unabhaengige
+> Durchsicht der Anmeldelogik.
+
+**Passwort vergessen** setzt der Admin zurueck — es gibt bewusst keinen
+Mailversand, das waere eigene Infrastruktur.
+
 ## Marke
 
 Auf breiten Bildschirmen (ab 1000 px) steht die Marke mittig in der Kopfzeile,
@@ -210,6 +260,56 @@ auf dem Server.
 Den Build-Status siehst du mit `gh run list` oder unter *Actions* im
 Repository. Reine Aenderungen an README, Konverter oder `docker-compose.yml`
 loesen bewusst keinen Build aus, da sie nicht im Image landen.
+
+## Benutzer und Anmeldung
+
+Mehrere Personen koennen eigene Konten haben — jedes mit eigenen Fahrzeugen,
+Teilen, Anleitungen und Historie, strikt getrennt. Gemeinsam sind nur die
+Markenprofile und die Bausteinbibliothek, die im Programmcode stecken.
+
+```
+data/
+├── auth/
+│   ├── secret            HMAC-Schluessel fuer Sitzungen, 0600
+│   └── users.json        Konten mit scrypt-Hash, 0600
+└── users/<id>/           je Konto data.json, photos/, docs/, versions/
+```
+
+**Ersteinrichtung:** Beim ersten Aufruf von `/admin` legst du dein
+Administrator-Konto an; vorhandene Daten aus dem Datenverzeichnis wandern dabei
+in dieses Konto. Danach ist dieser Weg dauerhaft geschlossen.
+
+**Verwaltung** unter `/admin`: Konten anlegen, umbenennen, Rolle aendern,
+Passwort zuruecksetzen, sperren, loeschen. Ueber *Ansehen* oeffnet ein Admin
+die App im Kontext eines fremden Kontos — mit deutlichem Hinweisbalken, und
+jeder solche Zugriff landet im Log. Der letzte Administrator laesst sich weder
+herabstufen noch sperren oder loeschen.
+
+### Wie der Schutz funktioniert
+
+Ohne Fremdbibliotheken, alles mit Node-Bordmitteln:
+
+* **Passwoerter** als `scrypt`-Hash mit eigenem Salt je Konto, verglichen mit
+  `timingSafeEqual`. Mindestlaenge zwoelf Zeichen.
+* **Sitzungen** im signierten Cookie (HMAC-SHA256) statt in einer Tabelle —
+  ueberlebt Neustarts. `HttpOnly`, `SameSite=Strict`, `Secure` sobald die
+  Anfrage ueber HTTPS kommt.
+* **Sofort aussperren**: Jedes Konto traegt eine `sessionVersion`. Passwort
+  aendern oder sperren zaehlt sie hoch, womit alle bestehenden Cookies verfallen.
+* **Durchprobieren**: ab fuenf Fehlversuchen ansteigende Sperre. Auch ohne
+  passendes Konto laeuft dieselbe Rechenarbeit, damit die Antwortdauer nicht
+  verraet, welche Anmeldenamen existieren.
+* **CSRF**: `SameSite=Strict` plus Pflicht auf `Content-Type: application/json`
+  bei schreibenden Aufrufen.
+
+> Betrieben wird weiterhin **hinter NetBird**. Die Anmeldung trennt Daten und
+> Zustaendigkeiten; das Netz haelt Fremde fern. Vor einem Gang ins offene
+> Internet waeren zusaetzlich noetig: dauerhaftes Zugriffsprotokoll,
+> persistenter Sperrzaehler, Zwei-Faktor-Anmeldung und eine unabhaengige
+> Durchsicht der Anmeldelogik.
+
+**Passwort vergessen** setzt der Admin zurueck — es gibt bewusst keinen
+Mailversand, das waere eigene Infrastruktur.
 
 ## Markenprofile
 

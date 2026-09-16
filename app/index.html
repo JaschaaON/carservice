@@ -93,6 +93,7 @@ header{
 .sync.err{color:var(--crit);border-color:rgba(255,95,86,.35)}
 
 nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav[hidden]{display:none}
 nav::-webkit-scrollbar{display:none}
 nav button{
   background:none;border:none;border-bottom:2px solid transparent;
@@ -568,6 +569,20 @@ details.h-notiz[open] p::after{
   .verlauf-extra{grid-area:extra}
 }
 
+/* ---------- Einblick in ein fremdes Konto ---------- */
+#fremdBalken{
+  display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;
+  background:rgba(167,139,250,.12);border-bottom:1px solid rgba(167,139,250,.3);
+  padding:9px 16px;font-size:13px;color:var(--text);
+}
+#fremdBalken[hidden]{display:none}
+#leerHinweis[hidden]{display:none}
+#fremdBalken a{color:var(--info)}
+.fremd-punkt{
+  width:8px;height:8px;border-radius:50%;background:var(--info);flex:none;
+  box-shadow:0 0 0 4px rgba(167,139,250,.18);
+}
+
 /* ---------- Hinweis auf veralteten Kilometerstand ---------- */
 #kmHinweis{padding:10px 16px 0;max-width:1080px;margin:0 auto}
 #kmHinweisBtn{
@@ -756,6 +771,12 @@ details.h-notiz[open] p::after{
   </nav>
 </header>
 
+<div id="fremdBalken" hidden>
+  <span class="fremd-punkt"></span>
+  <span id="fremdText"></span>
+  <a href="/admin">zurück zur Verwaltung</a>
+</div>
+
 <div id="kmHinweis" hidden>
   <button type="button" id="kmHinweisBtn">
     <span class="km-punkt"></span>
@@ -765,6 +786,8 @@ details.h-notiz[open] p::after{
 </div>
 
 <main>
+  <div id="leerHinweis" hidden></div>
+
   <!-- ══════════ FAHRZEUGE ══════════ -->
   <section class="view" id="view-fuhr">
     <div class="spread" style="margin-bottom:14px">
@@ -1000,7 +1023,7 @@ function migrate3(db){
 
 /* Alle Ansichten arbeiten auf CAR — dem gerade gewählten Fahrzeug. */
 function useCar(id){
-  CAR = DB.vehicles.find(v=>v.id===id) || DB.vehicles[0];
+  CAR = DB.vehicles.find(v=>v.id===id) || DB.vehicles[0] || null;
   if(CAR) DB.activeId = CAR.id;
   return CAR;
 }
@@ -1024,6 +1047,18 @@ let DB = null, CAR = null;
    Gehostet: GET/PUT auf ./api/data. Als Datei geöffnet oder wenn
    der Server nicht antwortet: localStorage + manueller Export. */
 const LOCAL_KEY = "carservice-v1";
+
+/* Sieht ein Admin fremde Daten an, steht die Konto-Kennung in der
+   Adresszeile und muss an jeden API-Aufruf weitergereicht werden. */
+const FREMD = new URL(location.href).searchParams.get("as") || "";
+const api = pfad => "api/" + pfad + (FREMD ? (pfad.includes("?") ? "&" : "?") + "as=" + encodeURIComponent(FREMD) : "");
+
+let NUTZER = null;   // angemeldeter Benutzer, aus /api/me
+
+/** Bei abgelaufener Sitzung zur Anmeldung, nicht in den Offline-Modus. */
+function abgemeldet(){
+  location.href = "/login?weiter=" + encodeURIComponent(location.pathname + location.search);
+}
 const isFile = location.protocol === "file:";
 let mode = isFile ? "local" : "server";
 let saveTimer = null, dirty = false;
@@ -1039,10 +1074,10 @@ function toast(msg,isErr){
 async function loadDB(){
   if(mode==="server"){
     try{
-      const r = await fetch("api/data",{cache:"no-store"});
+      const r = await fetch(api("data"),{cache:"no-store"});
+      if(r.status === 401) return abgemeldet();
       if(r.ok){
         DB = migrate(await r.json());
-        if(!DB.vehicles.length) DB.vehicles.push(seedVehicle({name:"Fahrzeug"}));
         useCar(DB.activeId); badge("ok","synchron"); return;
       }
       throw new Error("HTTP "+r.status);
@@ -1055,7 +1090,6 @@ async function loadDB(){
   if(raw){ try{ DB = JSON.parse(raw); }catch(e){ DB=null; } }
   if(!DB) DB = seedData();
   DB = migrate(DB);
-  if(!DB.vehicles.length) DB.vehicles.push(seedVehicle({name:"Fahrzeug"}));
   useCar(DB.activeId);
   badge(mode==="local"?"":"ok", mode==="local"?"lokal":"synchron");
 }
@@ -1074,10 +1108,11 @@ function save(){
 
 async function pushDB(){
   try{
-    const r = await fetch("api/data",{
+    const r = await fetch(api("data"),{
       method:"PUT", headers:{"Content-Type":"application/json","If-Match":String(DB.rev??0)},
       body: JSON.stringify(DB)
     });
+    if(r.status === 401) return abgemeldet();
     if(r.status===409){
       badge("err","Konflikt");
       toast("Auf einem anderen Gerät geändert — Seite neu laden",true);
@@ -1507,7 +1542,7 @@ async function ladeAnleitungen(dateien){
     toast(`Lade „${f.name}" …`);
     const id = "d_" + neueId();
     try{
-      const r = await fetch("api/docs/"+id,{method:"PUT",headers:{"Content-Type":"application/pdf"},body:f});
+      const r = await fetch(api("docs/"+id),{method:"PUT",headers:{"Content-Type":"application/pdf"},body:f});
       if(!r.ok){
         let grund="HTTP "+r.status; try{ grund=(await r.json()).error||grund; }catch(e){}
         throw new Error(grund);
@@ -1793,6 +1828,7 @@ function kmSchaetzung(){
 
 /** null = alles gut, "erst" = noch nie erfasst, "alt" = abgedriftet */
 function kmAbfrageGrund(){
+  if(!CAR) return null;
   if(!CAR.km) return "erst";
   const tage = kmAlterTage();
   if(tage == null) return null;
@@ -1868,6 +1904,7 @@ function kmDialog(grund){
 
 /** Beim Start prüfen — höchstens einmal am Tag je Fahrzeug. */
 function kmPruefen(){
+  if(!CAR) return;
   const grund = kmAbfrageGrund();
   if(!grund) return;
   if(grund === "alt" && heuteSchonGefragt()) return;
@@ -1881,7 +1918,7 @@ function kmPruefen(){
    allerdings unzuverlaessig, deshalb immer auch der Weg ins Vollbild,
    wo Safari PDFs sauber mit Zoom und Suche darstellt.             */
 
-const docUrl  = (id,seite)=> "api/docs/" + id + (seite>1?`#page=${seite}`:"");
+const docUrl  = (id,seite)=> api("docs/" + id) + (seite>1?`#page=${seite}`:"");
 const docById = id => (CAR.docs||[]).find(d=>d.id===id);
 /** Groesse lesbar: unter einem Megabyte in Kilobyte, sonst in MB. */
 const mb = n => n==null ? "—"
@@ -2282,7 +2319,7 @@ const FOTO_MAX   = 1600, FOTO_Q   = 0.82;
 const THUMB_MAX  = 400,  THUMB_Q  = 0.7;
 const MAX_VIDEO  = 150 * 1024 * 1024;
 
-const photoUrl = (id,thumb)=> "api/photos/" + id + (thumb?"_t":"");
+const photoUrl = (id,thumb)=> api("photos/" + id + (thumb?"_t":""));
 const istVideo  = id => id.startsWith("v_");
 
 /** Bild laden und dabei die EXIF-Drehung beruecksichtigen —
@@ -2344,14 +2381,14 @@ async function ladeVideoHoch(file, melde){
   try{ vorschau = await videoStandbild(file); }catch(e){ /* zur Not ohne */ }
 
   melde && melde(`Video wird übertragen (${(file.size/1048576).toFixed(1)} MB) …`);
-  const r = await fetch("api/photos/"+id,{method:"PUT",headers:{"Content-Type":file.type||"video/mp4"},body:file});
+  const r = await fetch(api("photos/"+id),{method:"PUT",headers:{"Content-Type":file.type||"video/mp4"},body:file});
   if(!r.ok){
     let grund = "HTTP "+r.status;
     try{ grund = (await r.json()).error || grund; }catch(e){}
     throw new Error("Video abgelehnt: "+grund);
   }
   if(vorschau)
-    await fetch("api/photos/"+id+"_t",{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:vorschau.blob});
+    await fetch(api("photos/"+id+"_t"),{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:vorschau.blob});
   return id;
 }
 
@@ -2366,7 +2403,7 @@ async function ladeFotoHoch(file){
 
   const id = "f_" + neueId();
   for(const [name,blob] of [[id,gross],[id+"_t",klein]]){
-    const r = await fetch("api/photos/"+name,{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:blob});
+    const r = await fetch(api("photos/"+name),{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:blob});
     if(!r.ok) throw new Error("Upload fehlgeschlagen (HTTP "+r.status+")");
   }
   return id;
@@ -2893,6 +2930,13 @@ function vehicleDialog(id){
     </div>` : "";
 
   const dataBlock = isNew ? "" : `
+    <div class="sec-head"><h2>Konto</h2><div class="line"></div></div>
+    <p class="tiny muted" id="kontoZeile">…</p>
+    <div class="row" style="margin-bottom:6px">
+      <button type="button" class="btn sm" id="abmeldenKnopf">Abmelden</button>
+      <a class="btn sm" id="verwaltungLink" href="/admin" hidden>Konten verwalten</a>
+    </div>
+
     <div class="sec-head"><h2>Daten</h2><div class="line"></div></div>
     <p class="tiny muted">Modus: <strong>${mode==="server"?"Server-Sync":"lokal im Browser"}</strong>.
       ${mode==="local"?"Denk an regelmäßige Sicherungen — lokale Browserdaten können verloren gehen.":""}
@@ -2957,6 +3001,9 @@ function vehicleDialog(id){
       if(km!=null){ target.km=Math.round(km); target.kmDate=today(); }
       DB.vehicles.push(target);
       useCar(target.id);
+      const lh = $("#leerHinweis"); if(lh) lh.hidden = true;
+      $$("#nav button").forEach((b,i)=>b.classList.toggle("active", b.dataset.view==="dash"));
+      $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-dash"));
       $("#kmNow").value = target.km||"";
       toast("Fahrzeug angelegt");
     }
@@ -2999,10 +3046,28 @@ function vehicleDialog(id){
     return;
   }
 
+  // Konto anzeigen
+  (()=>{
+    const zeile = $("#kontoZeile"); if(!zeile) return;
+    zeile.innerHTML = NUTZER
+      ? `Angemeldet als <strong>${esc(NUTZER.name)}</strong>${
+          NUTZER.rolle==="admin" ? " (Administrator)" : ""}` +
+        (NUTZER.betrachtet && NUTZER.betrachtet.fremd
+          ? ` — du siehst gerade die Daten von <strong>${esc(NUTZER.betrachtet.name)}</strong>.` : "")
+      : "Nicht angemeldet.";
+    const v = $("#verwaltungLink");
+    if(v && NUTZER && NUTZER.rolle === "admin") v.hidden = false;
+    const ab = $("#abmeldenKnopf");
+    if(ab) ab.onclick = async ()=>{
+      await fetch("api/logout", {method:"POST"});
+      location.href = "/login";
+    };
+  })();
+
   // Fotospeicher nachladen — zeigt auch verwaiste Dateien an
   if(mode==="server") (async()=>{
     try{
-      const l = await (await fetch("api/storage")).json();
+      const l = await (await fetch(api("storage"))).json();
       const mb = n=>(n/1048576).toLocaleString("de-DE",{maximumFractionDigits:1})+" MB";
       const el = $("#lagerInfo"); if(!el) return;
       el.innerHTML = `Fotospeicher: <strong>${l.dateien}</strong> Dateien, ${mb(l.bytes)}` +
@@ -3010,7 +3075,7 @@ function vehicleDialog(id){
            <button type="button" class="btn sm" id="lagerPutz" style="margin-left:6px">aufräumen</button>` : "");
       const putz = $("#lagerPutz");
       if(putz) putz.onclick = async()=>{
-        const r = await (await fetch("api/storage",{method:"DELETE"})).json();
+        const r = await (await fetch(api("storage"),{method:"DELETE"})).json();
         toast(`${r.geloescht} verwaiste Dateien entfernt`);
         el.textContent = "Fotospeicher aufgeräumt.";
       };
@@ -3187,6 +3252,32 @@ function renderFahrzeuge(){
       <span>Weiteres Fahrzeug anlegen</span></button></div>`;
 }
 
+/** Konto ohne Fahrzeug: auffordern statt ein leeres Fahrzeug erfinden.
+ *  Frueher legte die App hier stillschweigend eines an — beim Blick in
+ *  ein fremdes Konto erschien dadurch ein Fahrzeug, das es gar nicht
+ *  gab. */
+function zeigeLeer(){
+  const fremd = NUTZER && NUTZER.betrachtet && NUTZER.betrachtet.fremd;
+  $("#nav").hidden = true;
+  $$(".view").forEach(v=>v.classList.remove("active"));
+  $("#carPick").innerHTML = `<option>—</option>`;
+  $("#hdModel").textContent = "";
+  $("#kmNow").value = "";
+  $("#kmHinweis").hidden = true;
+  const box = $("#leerHinweis");
+  box.hidden = false;
+  box.innerHTML = fremd
+    ? `<div class="empty"><p><strong>${esc(NUTZER.betrachtet.name)}</strong> hat noch kein Fahrzeug angelegt.</p>
+       <a class="btn" href="/admin">Zurück zur Verwaltung</a></div>`
+    : `<div class="empty">
+         <p style="font-size:16px;color:var(--text)">Willkommen bei carservice.</p>
+         <p>Lege dein erstes Fahrzeug an — mit Marke, Motor und Getriebe schlägt
+            die App den passenden Wartungsplan vor.</p>
+         <button class="btn primary" id="leerKnopf">+ Fahrzeug anlegen</button></div>`;
+  const k = $("#leerKnopf");
+  if(k) k.onclick = ()=>vehicleDialog(null);
+}
+
 function renderCarPicker(){
   $("#carPick").innerHTML =
     DB.vehicles.map(v=>`<option value="${v.id}"${v.id===CAR.id?" selected":""}>${
@@ -3195,6 +3286,9 @@ function renderCarPicker(){
 }
 
 function renderAll(){
+  if(!CAR) return zeigeLeer();
+  $("#leerHinweis").hidden = true;
+  $("#nav").hidden = false;
   renderCarPicker();
   const grund = kmAbfrageGrund();
   const feld  = $("#kmNow"), tage = kmAlterTage();
@@ -3238,7 +3332,7 @@ document.addEventListener("click",e=>{
   if(dweg){
     const d = docById(dweg.dataset.dokWeg);
     if(d && confirm(`„${d.name}" löschen? Verknüpfungen zu Positionen gehen mit verloren.`)){
-      fetch("api/docs/"+d.id,{method:"DELETE"}).catch(()=>{});
+      fetch(api("docs/"+d.id),{method:"DELETE"}).catch(()=>{});
       CAR.docs = CAR.docs.filter(x=>x.id!==d.id);
       CAR.tasks.forEach(x=>{ x.docs=(x.docs||[]).filter(y=>y.d!==d.id); });
       save(); renderAll(); toast("Anleitung gelöscht");
@@ -3364,8 +3458,22 @@ $("#kmNow").onchange=()=>{
 };
 
 (async function init(){
+  if(mode === "server"){
+    try{
+      const r = await fetch(api("me"));
+      if(r.status === 401) return abgemeldet();
+      if(r.ok){
+        NUTZER = await r.json();
+        if(NUTZER.betrachtet && NUTZER.betrachtet.fremd){
+          $("#fremdText").innerHTML =
+            `Du siehst die Daten von <strong>${esc(NUTZER.betrachtet.name)}</strong>. Änderungen wirken in diesem Konto.`;
+          $("#fremdBalken").hidden = false;
+        }
+      }
+    }catch(e){}
+  }
   await loadDB();
-  $("#kmNow").value = CAR.km||"";
+  $("#kmNow").value = CAR ? (CAR.km || "") : "";
   renderAll();
   kmPruefen();
   if("serviceWorker" in navigator && !isFile)

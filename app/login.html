@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="icon-192.png">
+<title>Anmelden · Overlandvibe Carservice</title>
+<style>
+:root{
+  --bg:#16181d; --surface:#1e2127; --surface-2:#262a32; --line:#343943;
+  --text:#e8eaed; --text-dim:#9aa1ad; --text-faint:#6b727e;
+  --accent:#4a9eff; --crit:#ff5f56;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);color:var(--text);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:24px 16px calc(24px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+}
+.karte{width:100%;max-width:370px}
+.marke{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:26px}
+.marke svg{width:34px;height:34px}
+.marke b{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.marke span{color:var(--text-faint);font-size:17px}
+
+form{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px}
+h1{margin:0 0 4px;font-size:18px;font-weight:650;letter-spacing:-.01em}
+.unter{color:var(--text-dim);font-size:13.5px;margin:0 0 20px}
+label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-weight:500}
+input{
+  width:100%;padding:11px 12px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:9px;color:var(--text);font:inherit;
+  margin-bottom:14px;
+}
+input:focus{outline:none;border-color:var(--accent)}
+button{
+  width:100%;padding:12px;background:var(--accent);border:none;border-radius:9px;
+  color:#06121f;font:inherit;font-weight:650;cursor:pointer;margin-top:4px;
+}
+button:hover:not(:disabled){background:#63aeff}
+button:disabled{opacity:.6;cursor:default}
+.fehler{
+  background:rgba(255,95,86,.1);border:1px solid rgba(255,95,86,.3);
+  border-radius:9px;padding:10px 12px;font-size:13.5px;color:var(--crit);
+  margin-bottom:16px;display:none;
+}
+.fehler.an{display:block}
+.fuss{text-align:center;color:var(--text-faint);font-size:12px;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="karte">
+  <div class="marke">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="32" fill="#111413"/>
+      <path d="M10 43 L21.5 25 L29 35 L37 22.5 L54 43 Z" fill="#F2EFE9"/>
+      <path d="M10 51 C17.5 47, 24 54, 32 50.5 C40 47, 46.5 54, 54 50"
+            fill="none" stroke="#E0872A" stroke-width="4.2" stroke-linecap="round"/>
+    </svg>
+    <div><b>overlandvibe</b> <span>carservice</span></div>
+  </div>
+
+  <form id="formular" autocomplete="on">
+    <h1>Anmelden</h1>
+    <p class="unter">Fahrzeugwartung, Teile und Anleitungen.</p>
+    <div class="fehler" id="fehler" role="alert"></div>
+
+    <label for="login">Anmeldename</label>
+    <input id="login" name="username" autocomplete="username" autocapitalize="none"
+           autocorrect="off" spellcheck="false" required>
+
+    <label for="passwort">Passwort</label>
+    <input id="passwort" name="password" type="password" autocomplete="current-password" required>
+
+    <button type="submit" id="knopf">Anmelden</button>
+  </form>
+
+  <p class="fuss">Kein Zugang? Der Administrator legt Konten an.</p>
+</div>
+
+<script>
+"use strict";
+const formular = document.getElementById("formular");
+const fehler   = document.getElementById("fehler");
+const knopf    = document.getElementById("knopf");
+
+function zeigeFehler(text){
+  fehler.textContent = text;
+  fehler.classList.add("an");
+}
+
+formular.addEventListener("submit", async e=>{
+  e.preventDefault();
+  fehler.classList.remove("an");
+  knopf.disabled = true;
+  knopf.textContent = "Moment …";
+  try{
+    const antwort = await fetch("api/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        login:    document.getElementById("login").value,
+        passwort: document.getElementById("passwort").value
+      })
+    });
+    const daten = await antwort.json().catch(()=>({}));
+    if(!antwort.ok){
+      zeigeFehler(daten.error || "Anmeldung fehlgeschlagen");
+      document.getElementById("passwort").value = "";
+      return;
+    }
+    // Ziel aus ?weiter= übernehmen, aber nur eigene Pfade zulassen
+    const weiter = new URL(location.href).searchParams.get("weiter");
+    location.href = (weiter && weiter.startsWith("/") && !weiter.startsWith("//")) ? weiter : "/";
+  }catch(err){
+    zeigeFehler("Server nicht erreichbar");
+  }finally{
+    knopf.disabled = false;
+    knopf.textContent = "Anmelden";
+  }
+});
+
+document.getElementById("login").focus();
+</script>
+</body>
+</html>

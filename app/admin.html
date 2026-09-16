@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="icon-192.png">
+<title>Verwaltung · Overlandvibe Carservice</title>
+<style>
+:root{
+  --bg:#16181d; --surface:#1e2127; --surface-2:#262a32; --line:#343943;
+  --text:#e8eaed; --text-dim:#9aa1ad; --text-faint:#6b727e;
+  --accent:#4a9eff; --ok:#3ecf8e; --warn:#f5b642; --crit:#ff5f56; --info:#a78bfa;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding-bottom:calc(30px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent);text-decoration:none}
+button{font:inherit;cursor:pointer}
+input,select{font:inherit}
+
+header{
+  border-bottom:1px solid var(--line);padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.marke{display:flex;align-items:center;gap:9px}
+.marke svg{width:24px;height:24px}
+.marke b{font-weight:650;letter-spacing:-.01em}
+.marke span{color:var(--text-faint)}
+.titel{font-size:13px;color:var(--text-dim);border-left:1px solid var(--line);padding-left:12px}
+header .rechts{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px}
+
+main{max-width:960px;margin:0 auto;padding:24px 20px}
+h2{font-size:15px;font-weight:650;margin:0 0 4px;letter-spacing:-.01em}
+.hinweis{color:var(--text-dim);font-size:13.5px;margin:0 0 18px}
+
+.btn{
+  background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+  padding:8px 14px;border-radius:8px;font-size:14px;font-weight:500;
+}
+.btn:hover{border-color:var(--text-faint)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:650}
+.btn.primary:hover{background:#63aeff}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger:hover{border-color:var(--crit);color:var(--crit)}
+.btn:disabled{opacity:.55;cursor:default}
+
+.karte{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+.feld{margin-bottom:14px}
+.feld label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-weight:500}
+.feld input,.feld select{
+  width:100%;padding:10px 12px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:8px;color:var(--text);
+}
+.feld input:focus,.feld select:focus{outline:none;border-color:var(--accent)}
+.feld .tipp{font-size:11.5px;color:var(--text-faint);margin-top:4px}
+.zwei{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+@media(max-width:560px){.zwei{grid-template-columns:1fr}}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text-faint);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);
+}
+td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.tabelle{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+td.r,th.r{text-align:right}
+
+.pille{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.pille.admin{background:rgba(167,139,250,.15);color:var(--info)}
+.pille.user{background:var(--surface-2);color:var(--text-faint)}
+.pille.aus{background:rgba(255,95,86,.14);color:var(--crit)}
+.tiny{font-size:12px}
+.faint{color:var(--text-faint)}
+
+.meldung{border-radius:9px;padding:11px 14px;font-size:13.5px;margin-bottom:16px;display:none}
+.meldung.an{display:block}
+.meldung.fehler{background:rgba(255,95,86,.1);border:1px solid rgba(255,95,86,.3);color:var(--crit)}
+.meldung.gut{background:rgba(62,207,142,.1);border:1px solid rgba(62,207,142,.3);color:var(--ok)}
+
+dialog{
+  background:var(--surface);color:var(--text);border:1px solid var(--line);
+  border-radius:14px;padding:0;max-width:440px;width:calc(100% - 28px);
+}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+.dlg-kopf{padding:16px 18px;border-bottom:1px solid var(--line);font-weight:650}
+.dlg-leib{padding:18px}
+.dlg-fuss{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+.laden{text-align:center;padding:40px;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <a class="marke" href="/">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="32" fill="#111413"/>
+      <path d="M10 43 L21.5 25 L29 35 L37 22.5 L54 43 Z" fill="#F2EFE9"/>
+      <path d="M10 51 C17.5 47, 24 54, 32 50.5 C40 47, 46.5 54, 54 50"
+            fill="none" stroke="#E0872A" stroke-width="4.2" stroke-linecap="round"/>
+    </svg>
+    <div><b>overlandvibe</b> <span>carservice</span></div>
+  </a>
+  <span class="titel">Verwaltung</span>
+  <div class="rechts" id="kopfRechts"></div>
+</header>
+
+<main id="inhalt"><div class="laden">Wird geladen …</div></main>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm">
+  <div class="dlg-kopf" id="dlgKopf"></div>
+  <div class="dlg-leib" id="dlgLeib"></div>
+  <div class="dlg-fuss" id="dlgFuss"></div>
+</form></dialog>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const inhalt = $("#inhalt");
+let konten = [], ich = null;
+
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mb  = n => n==null ? "—" : n < 1048576 ? Math.round(n/1024).toLocaleString("de-DE")+" KB"
+                                             : (n/1048576).toLocaleString("de-DE",{maximumFractionDigits:1})+" MB";
+const datum = s => s ? new Date(s).toLocaleDateString("de-DE",{day:"2-digit",month:"short",year:"numeric"}) : "nie";
+
+function meldung(text, art){
+  const el = $("#meldung");
+  if(!el) return;
+  el.textContent = text;
+  el.className = "meldung an " + (art || "gut");
+  if(art !== "fehler") setTimeout(()=>el.classList.remove("an"), 4000);
+}
+
+/** Passwortvorschlag — vermeidet verwechselbare Zeichen. */
+function passwortVorschlag(){
+  const zeichen = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const werte = crypto.getRandomValues(new Uint32Array(16));
+  return [...werte].map(w => zeichen[w % zeichen.length]).join("");
+}
+
+/* ══════ Ersteinrichtung ══════ */
+function zeigeEinrichtung(){
+  inhalt.innerHTML = `
+    <div class="karte" style="max-width:520px;margin:20px auto">
+      <h2>Ersteinrichtung</h2>
+      <p class="hinweis">Es gibt noch kein Konto. Lege jetzt dein Administrator-Konto an —
+        deine vorhandenen Daten (Fahrzeuge, Anleitungen, Historie) werden dabei übernommen.
+        Danach ist dieser Weg dauerhaft geschlossen.</p>
+      <div class="meldung" id="meldung"></div>
+      <form id="setupForm">
+        <div class="zwei">
+          <div class="feld"><label for="s-name">Dein Name</label>
+            <input id="s-name" required placeholder="Jascha"></div>
+          <div class="feld"><label for="s-login">Anmeldename</label>
+            <input id="s-login" required autocapitalize="none" spellcheck="false" placeholder="jascha">
+            <div class="tipp">3–32 Zeichen: a–z, 0–9, Punkt, Strich</div></div>
+        </div>
+        <div class="feld"><label for="s-pw">Passwort</label>
+          <input id="s-pw" type="text" required minlength="12">
+          <div class="tipp">Mindestens 12 Zeichen. Notiere es dir — es lässt sich nicht wiederherstellen.</div></div>
+        <button type="button" class="btn sm" id="s-wuerfel">Passwort vorschlagen</button>
+        <div style="margin-top:18px"><button type="submit" class="btn primary" id="s-knopf">Konto anlegen und starten</button></div>
+      </form>
+    </div>`;
+
+  $("#s-wuerfel").onclick = ()=>{ $("#s-pw").value = passwortVorschlag(); $("#s-pw").select(); };
+  $("#s-login").addEventListener("input", e=>{
+    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g,"");
+  });
+  $("#setupForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const knopf = $("#s-knopf");
+    knopf.disabled = true; knopf.textContent = "Wird eingerichtet …";
+    try{
+      const antwort = await fetch("api/admin/setup",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({name:$("#s-name").value, login:$("#s-login").value, passwort:$("#s-pw").value})
+      });
+      const daten = await antwort.json().catch(()=>({}));
+      if(!antwort.ok){ meldung(daten.error || "Einrichtung fehlgeschlagen","fehler"); return; }
+      const ue = daten.uebernommen;
+      inhalt.innerHTML = `<div class="karte" style="max-width:520px;margin:20px auto">
+        <h2>Fertig eingerichtet</h2>
+        <p class="hinweis">${ue
+          ? `Übernommen: <strong>${ue.fahrzeuge}</strong> Fahrzeug(e),
+             <strong>${ue.anleitungen}</strong> Anleitungen, <strong>${ue.termine}</strong> Termine.`
+          : "Es waren keine vorhandenen Daten zu übernehmen."}</p>
+        <a class="btn primary" href="/" style="display:inline-block;text-decoration:none">Zur App</a>
+        <button class="btn" onclick="location.reload()">Weitere Konten anlegen</button>
+      </div>`;
+    }catch(err){ meldung("Server nicht erreichbar","fehler"); }
+    finally{ knopf.disabled = false; knopf.textContent = "Konto anlegen und starten"; }
+  });
+}
+
+/* ══════ Kontenverwaltung ══════ */
+function zeichneListe(){
+  const zeilen = konten.map(b=>`<tr>
+    <td>
+      <div style="font-weight:600">${esc(b.name)}</div>
+      <div class="tiny faint">${esc(b.login)}</div>
+    </td>
+    <td><span class="pille ${b.rolle}">${b.rolle === "admin" ? "Administrator" : "Benutzer"}</span>
+        ${b.aktiv ? "" : `<span class="pille aus" style="margin-left:5px">gesperrt</span>`}</td>
+    <td class="r tiny">${b.fahrzeuge}</td>
+    <td class="r tiny faint">${mb(b.bytes)}</td>
+    <td class="tiny faint">${datum(b.letzterZugriff)}</td>
+    <td class="r" style="white-space:nowrap">
+      <a class="btn sm" href="/?as=${b.id}" title="Daten dieses Kontos ansehen">Ansehen</a>
+      <button class="btn sm" data-bearbeiten="${b.id}">Bearbeiten</button>
+    </td></tr>`).join("");
+
+  inhalt.innerHTML = `
+    <div class="meldung" id="meldung"></div>
+    <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="flex:1;min-width:200px">
+        <h2>Konten</h2>
+        <p class="hinweis" style="margin:0">Jedes Konto hat eigene Fahrzeuge, Teile und Anleitungen —
+          voneinander getrennt. Gemeinsam sind nur die eingebauten Markenprofile.</p>
+      </div>
+      <button class="btn primary" id="neuKnopf">+ Konto anlegen</button>
+    </div>
+    <div class="tabelle"><table>
+      <thead><tr><th>Name</th><th>Rolle</th><th class="r">Fahrzeuge</th>
+        <th class="r">Speicher</th><th>Zuletzt aktiv</th><th></th></tr></thead>
+      <tbody>${zeilen}</tbody></table></div>
+    <p class="tiny faint" style="margin-top:14px">
+      ${konten.length} Konto${konten.length === 1 ? "" : "s"} ·
+      Löschen entfernt Fahrzeuge, Fotos und Anleitungen des Kontos unwiderruflich.</p>`;
+
+  $("#neuKnopf").onclick = () => kontoDialog(null);
+  inhalt.querySelectorAll("[data-bearbeiten]").forEach(b=>{
+    b.onclick = () => kontoDialog(konten.find(k => k.id === b.dataset.bearbeiten));
+  });
+}
+
+function kontoDialog(konto){
+  const neu = !konto;
+  $("#dlgKopf").textContent = neu ? "Neues Konto" : "Konto bearbeiten";
+  $("#dlgLeib").innerHTML = `
+    <div class="meldung" id="dlgMeldung"></div>
+    <div class="zwei">
+      <div class="feld"><label for="k-name">Name</label>
+        <input id="k-name" value="${esc(konto?.name || "")}" required></div>
+      <div class="feld"><label for="k-login">Anmeldename</label>
+        <input id="k-login" value="${esc(konto?.login || "")}" ${neu ? "required" : "disabled"}
+               autocapitalize="none" spellcheck="false">
+        ${neu ? `<div class="tipp">a–z, 0–9, Punkt, Strich</div>`
+              : `<div class="tipp">lässt sich nicht ändern</div>`}</div>
+    </div>
+    <div class="feld"><label for="k-rolle">Rolle</label>
+      <select id="k-rolle">
+        <option value="user"  ${konto?.rolle === "user"  ? "selected" : ""}>Benutzer</option>
+        <option value="admin" ${konto?.rolle === "admin" ? "selected" : ""}>Administrator</option>
+      </select>
+      <div class="tipp">Administratoren verwalten Konten und sehen fremde Daten ein.</div></div>
+    <div class="feld"><label for="k-pw">${neu ? "Passwort" : "Neues Passwort"}</label>
+      <input id="k-pw" type="text" ${neu ? "required" : ""} minlength="12"
+             placeholder="${neu ? "" : "leer lassen = unverändert"}">
+      <div class="tipp">Mindestens 12 Zeichen.
+        <button type="button" class="btn sm" id="k-wuerfel" style="margin-left:6px">vorschlagen</button></div></div>
+    ${neu ? "" : `
+      <label style="display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer">
+        <input type="checkbox" id="k-aktiv" ${konto.aktiv ? "checked" : ""}
+               style="width:17px;height:17px;accent-color:var(--accent)">
+        <span>Zugang aktiv <span class="tiny faint">— Deaktivieren meldet sofort alle Geräte ab</span></span>
+      </label>`}`;
+
+  $("#dlgFuss").innerHTML = `
+    ${neu ? "" : `<button type="button" class="btn danger" id="k-loeschen" style="margin-right:auto">Löschen</button>`}
+    <button class="btn" value="abbruch" formnovalidate>Abbrechen</button>
+    <button class="btn primary" value="ok">${neu ? "Anlegen" : "Speichern"}</button>`;
+
+  $("#k-wuerfel").onclick = ()=>{ $("#k-pw").value = passwortVorschlag(); $("#k-pw").select(); };
+  if(neu) $("#k-login").addEventListener("input", e=>{
+    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g,"");
+  });
+
+  const loeschen = $("#k-loeschen");
+  if(loeschen) loeschen.onclick = async ()=>{
+    if(!confirm(`Konto „${konto.name}" mit allen Fahrzeugen, Fotos und Anleitungen `+
+                `endgültig löschen? Das lässt sich nicht rückgängig machen.`)) return;
+    const antwort = await fetch(`api/admin/users/${konto.id}`, {method:"DELETE"});
+    const daten = await antwort.json().catch(()=>({}));
+    if(!antwort.ok){ $("#dlgMeldung").textContent = daten.error; $("#dlgMeldung").className = "meldung an fehler"; return; }
+    $("#dlg").close(); await laden(); meldung(`Konto „${konto.name}" gelöscht`);
+  };
+
+  $("#dlgForm").onsubmit = async e=>{
+    if(e.submitter && e.submitter.value === "abbruch") return;
+    e.preventDefault();
+    const körper = {name:$("#k-name").value, rolle:$("#k-rolle").value};
+    if($("#k-pw").value) körper.passwort = $("#k-pw").value;
+    if(neu) körper.login = $("#k-login").value;
+    else    körper.aktiv = $("#k-aktiv").checked;
+
+    const antwort = await fetch(neu ? "api/admin/users" : `api/admin/users/${konto.id}`, {
+      method: neu ? "POST" : "PATCH",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(körper)
+    });
+    const daten = await antwort.json().catch(()=>({}));
+    if(!antwort.ok){
+      $("#dlgMeldung").textContent = daten.error || "Fehlgeschlagen";
+      $("#dlgMeldung").className = "meldung an fehler";
+      return;
+    }
+    $("#dlg").close();
+    await laden();
+    meldung(neu ? `Konto „${körper.name}" angelegt — Passwort jetzt weitergeben` : "Gespeichert");
+  };
+
+  $("#dlg").showModal();
+  $("#k-name").focus();
+}
+
+/* ══════ Start ══════ */
+async function laden(){
+  const antwort = await fetch("api/admin/users");
+  if(antwort.status === 401){ location.href = "/login?weiter=/admin"; return; }
+  if(antwort.status === 403){
+    inhalt.innerHTML = `<div class="karte"><h2>Kein Zugriff</h2>
+      <p class="hinweis">Dieser Bereich ist Administratoren vorbehalten.</p>
+      <a class="btn" href="/">Zur App</a></div>`;
+    return;
+  }
+  konten = await antwort.json();
+  zeichneListe();
+}
+
+(async function start(){
+  const noetig = await (await fetch("api/setup-noetig")).json().catch(()=>({noetig:false}));
+  if(noetig.noetig){ zeigeEinrichtung(); return; }
+
+  try{
+    const antwort = await fetch("api/me");
+    if(antwort.status === 401){ location.href = "/login?weiter=/admin"; return; }
+    ich = await antwort.json();
+    $("#kopfRechts").innerHTML =
+      `<span class="faint">${esc(ich.name)}</span>
+       <a href="/">Zur App</a>
+       <button class="btn sm" id="abmelden">Abmelden</button>`;
+    $("#abmelden").onclick = async ()=>{
+      await fetch("api/logout", {method:"POST"});
+      location.href = "/login";
+    };
+  }catch(e){}
+  await laden();
+})();
+</script>
+</body>
+</html>

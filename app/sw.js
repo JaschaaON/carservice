@@ -1,6 +1,6 @@
 /* Hält die App offline verfügbar. Die Daten selbst laufen immer übers
    Netz — veraltete Kilometerstände wären schlimmer als eine Fehlermeldung. */
-const CACHE = "carservice-v3";
+const CACHE = "carservice-v4";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e=>{
@@ -23,7 +23,10 @@ self.addEventListener("fetch", e=>{
       })));
     return;
   }
-  if(url.pathname.startsWith("/api/")) return;          // Daten nie aus dem Cache
+  // Alles Sitzungsabhängige nie aus dem Cache — sonst sieht ein
+  // Abgemeldeter die Oberfläche eines anderen Kontos.
+  if(url.pathname.startsWith("/api/")) return;
+  if(["/login","/admin","/login.html","/admin.html"].includes(url.pathname)) return;
   if(e.request.method !== "GET") return;
   e.respondWith(
     fetch(e.request)
