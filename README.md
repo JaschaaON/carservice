@@ -8,7 +8,8 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 
 | Bereich | Zweck |
 |---|---|
-| **Übersicht** | Was ist überfällig, was kommt demnächst, wann ungefähr |
+| **Fuhrpark** | Alle Fahrzeuge mit Ampelstatus, Halter und nächster Fälligkeit |
+| **Übersicht** | Statusring, Zeitstrahl der nächsten zwölf Monate, Einkaufsliste |
 | **Wartungsplan** | 23 Positionen mit Intervall nach km *und* Zeit, Teilebedarf, „erledigt"-Eintrag |
 | **Teilekatalog** | Teilenummern, Preise, Vorrat und **eigene Kauflinks** pro Teil |
 | **Historie** | Alle Services mit Nachweisfotos |
@@ -17,6 +18,12 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 | **Umbauten** | Anbauteile mit Einbaudatum, Kosten, Bezugsquelle |
 | **Tour** | Was vor einer Reise fällig wird und welche Teile mitgehören |
 | **Kosten** | Summen pro Jahr, Kosten je Kilometer |
+
+Die **Übersicht** zeigt als Erstes einen Ring mit der Restreichweite bis zum
+naechsten Service, darunter einen Zeitstrahl der kommenden zwoelf Monate und die
+**Einkaufsliste**: alle Teile fuer Faelliges, zusammengefasst und mit den eigenen
+Kauflinks. Gezeichnet wird das als Inline-SVG, ohne Diagrammbibliothek von einem
+CDN — sonst zerbraeche die Offline-Faehigkeit.
 
 Oben links steht das **Fahrzeug-Auswahlfeld**. Jedes Fahrzeug hat einen eigenen
 Wartungsplan, einen eigenen Teilekatalog, eine eigene Historie und eigene Umbauten —

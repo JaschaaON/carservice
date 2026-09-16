@@ -123,6 +123,82 @@ main{padding:18px 16px 60px;max-width:1080px;margin:0 auto}
 .stat .v{font-size:22px;font-weight:650;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat.crit .v{color:var(--crit)} .stat.warn .v{color:var(--warn)} .stat.ok .v{color:var(--ok)}
 
+/* ---------- Fuhrpark ---------- */
+.fz-gitter{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.fz-karte{
+  display:block;width:100%;text-align:left;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--line);
+  border-radius:12px;padding:15px 17px;color:var(--text);
+}
+.fz-karte:hover{border-color:var(--text-faint);transform:translateY(-1px)}
+.fz-karte.crit{border-left-color:var(--crit)}
+.fz-karte.warn{border-left-color:var(--warn)}
+.fz-karte.ok{border-left-color:var(--ok)}
+.fz-karte.aktiv{background:var(--surface-2)}
+.fz-kopf{display:flex;align-items:center;gap:10px}
+.fz-titel{font-size:16px;font-weight:650;flex:1;letter-spacing:-.01em}
+.fz-ampel{width:9px;height:9px;border-radius:50%;flex:none;background:var(--text-faint)}
+.fz-ampel.ok{background:var(--ok)} .fz-ampel.warn{background:var(--warn)}
+.fz-ampel.crit{background:var(--crit)}
+.fz-sub{margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fz-zahlen{display:flex;flex-wrap:wrap;gap:13px;margin:12px 0 10px;
+  padding-top:11px;border-top:1px solid var(--line);font-size:12.5px;color:var(--text-dim)}
+.fz-zahlen b{color:var(--text);font-weight:650;margin-right:3px}
+.fz-zahlen .warnfarbe b{color:var(--crit)}
+.fz-fuss{color:var(--text-dim)}
+.fz-karte.neu{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  border-style:dashed;border-left-style:dashed;color:var(--text-faint);min-height:132px;
+}
+.fz-karte.neu:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ---------- Statusring ---------- */
+.ring-karte{
+  grid-column:1/-1;display:flex;align-items:center;gap:22px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;
+}
+.ring{width:128px;height:128px;flex:none}
+.ring-gross{font-size:26px;font-weight:700;fill:var(--text)}
+.ring-klein{font-size:11px;fill:var(--text-faint);letter-spacing:.03em}
+.ring-text{min-width:0;flex:1}
+.ring-name{font-size:19px;font-weight:650;letter-spacing:-.01em;margin:2px 0 3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ring-zahlen{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;
+  padding-top:13px;border-top:1px solid var(--line);font-size:13px;color:var(--text-dim)}
+.ring-zahlen b{color:var(--text);font-weight:650;font-size:15px;margin-right:3px}
+.ring-zahlen .warnfarbe b{color:var(--crit)}
+
+/* ---------- Zeitstrahl ---------- */
+.strahl-wrap{
+  display:flex;gap:10px;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:14px 16px;margin-bottom:14px;
+}
+.strahl{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.strahl::-webkit-scrollbar{display:none}
+.strahl-monat-sp,.strahl-jetzt{
+  flex:1;min-width:34px;display:flex;flex-direction:column;align-items:center;gap:5px;
+}
+.strahl-jetzt{flex:none;padding-right:10px;border-right:1px solid var(--line);margin-right:4px}
+.strahl-balken{
+  width:100%;height:62px;display:flex;align-items:flex-end;justify-content:center;
+  background:linear-gradient(var(--surface-2),transparent);border-radius:5px;
+}
+.strahl-balken i{display:block;width:100%;border-radius:4px;background:var(--surface-2);transition:height .4s}
+.strahl-balken i.ok{background:var(--ok)} .strahl-balken i.warn{background:var(--warn)}
+.strahl-balken i.crit{background:var(--crit)}
+.strahl-zahl{font-size:12px;font-weight:650;height:14px;color:var(--text-dim)}
+.strahl-monat{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+
+@media(max-width:560px){
+  .ring-karte{flex-direction:column;align-items:flex-start;gap:14px;padding:16px}
+  .ring{width:104px;height:104px;align-self:center}
+  .ring-text{width:100%}
+  .ring-zahlen{gap:12px}
+  .strahl-monat-sp{min-width:30px}
+  .strahl-balken{height:50px}
+  .fz-gitter{grid-template-columns:1fr}
+}
+
 /* ---------- Wartungspositionen ---------- */
 .task{
   background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);
@@ -176,6 +252,8 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .field textarea{resize:vertical;min-height:62px;font-family:inherit}
 .field .hint{font-size:11.5px;color:var(--text-faint);margin-top:4px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:560px){.grid3{grid-template-columns:1fr 1fr;gap:9px}}
 @media(max-width:560px){
   .grid2{gap:9px}
   .grid2 .hint{font-size:11px}
@@ -241,13 +319,21 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
   background:var(--surface);border:1px solid var(--line);border-radius:10px;
   box-shadow:0 10px 30px rgba(0,0,0,.45);overflow:hidden;max-height:264px;overflow-y:auto;
 }
+.picker-reihe{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
+.picker-reihe:hover{background:var(--surface-2)}
 .picker-eintrag{
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   width:100%;text-align:left;padding:10px 12px;background:none;border:none;
   color:var(--text);font-size:14px;border-bottom:1px solid var(--line);
 }
+.picker-reihe .picker-eintrag{border-bottom:none}
 .picker-eintrag:last-child{border-bottom:none}
 .picker-eintrag:hover{background:var(--surface-2)}
+.picker-weg{
+  flex:none;width:40px;background:none;border:none;color:var(--text-faint);
+  font-size:13px;opacity:.5;
+}
+.picker-weg:hover{opacity:1;color:var(--crit);background:rgba(255,95,86,.08)}
 .picker-eintrag.neu{color:var(--accent)}
 
 /* ---------- Bibliothek ---------- */
@@ -344,6 +430,7 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
     <button class="btn icon" id="btnSettings" title="Einstellungen">⚙</button>
   </div>
   <nav id="nav">
+    <button data-view="fuhr">Fuhrpark</button>
     <button data-view="dash" class="active">Übersicht</button>
     <button data-view="plan">Wartungsplan</button>
     <button data-view="parts">Teilekatalog</button>
@@ -355,6 +442,15 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 </header>
 
 <main>
+  <!-- ══════════ FUHRPARK ══════════ -->
+  <section class="view" id="view-fuhr">
+    <div class="spread" style="margin-bottom:14px">
+      <div class="muted tiny">Alle Fahrzeuge auf einen Blick. Klick wechselt das aktive Fahrzeug.</div>
+      <button class="btn sm primary" id="btnAddCar">+ Fahrzeug</button>
+    </div>
+    <div id="fuhrparkListe"></div>
+  </section>
+
   <!-- ══════════ ÜBERSICHT ══════════ -->
   <section class="view active" id="view-dash">
     <div class="stats" id="dashStats"></div>
@@ -715,41 +811,165 @@ function allStatus(includeInactive){
 const partById = id=>CAR.parts.find(p=>p.id===id);
 
 /* ═══════════ Übersicht ═══════════ */
+
+/** Ring, der zeigt wie viel vom Intervall verbraucht ist.
+ *  Inline-SVG statt Diagrammbibliothek — die Seite muss offline
+ *  funktionieren, und ein Ring ist etwas Geometrie, keine Bibliothek. */
+function statusRing(s){
+  const r = 52, u = 2*Math.PI*r;
+  const anteil = s ? Math.max(0, Math.min(1, s.pct/100)) : 0;
+  const farbe = s ? (s.level==="crit"?"var(--crit)":s.level==="warn"?"var(--warn)":"var(--ok)") : "var(--line)";
+
+  const mitte = !s ? `<tspan class="ring-gross">—</tspan>`
+    : s.rem<=0 ? `<tspan class="ring-gross" style="fill:var(--crit)">fällig</tspan>`
+    : s.lead==="km" ? `<tspan class="ring-gross">${nKm(s.remKm)}</tspan>`
+    : `<tspan class="ring-gross">${s.remDays}</tspan>`;
+  const einheit = !s ? "" : s.rem<=0 ? "" : s.lead==="km" ? "km übrig" : "Tage übrig";
+
+  return `<svg class="ring" viewBox="0 0 128 128" role="img"
+      aria-label="${s?esc(s.task.name)+": "+Math.round(anteil*100)+" Prozent des Intervalls verbraucht":"keine Daten"}">
+    <circle cx="64" cy="64" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="11"/>
+    <circle cx="64" cy="64" r="${r}" fill="none" stroke="${farbe}" stroke-width="11"
+      stroke-linecap="round" stroke-dasharray="${u}" stroke-dashoffset="${u*(1-anteil)}"
+      transform="rotate(-90 64 64)" style="transition:stroke-dashoffset .6s ease"/>
+    <text x="64" y="60" text-anchor="middle">${mitte}</text>
+    <text x="64" y="80" text-anchor="middle" class="ring-klein">${einheit}</text>
+  </svg>`;
+}
+
+/** Zeitstrahl der kommenden zwölf Monate. */
+function zeitstrahl(liste){
+  const heute = new Date();
+  const monate = [];
+  for(let i=0;i<12;i++){
+    const d = new Date(heute.getFullYear(), heute.getMonth()+i, 1);
+    monate.push({d, kurz:d.toLocaleDateString("de-DE",{month:"short"}),
+                 jahr:d.getFullYear(), schluessel:d.toISOString().slice(0,7), eintraege:[]});
+  }
+  let ueberfaellig = 0;
+  for(const s of liste){
+    if(s.rem<=0){ ueberfaellig++; continue; }
+    const wann = s.forecast; if(!wann) continue;
+    const m = monate.find(x=>x.schluessel===wann.slice(0,7));
+    if(m) m.eintraege.push(s);
+  }
+  const max = Math.max(1, ...monate.map(m=>m.eintraege.length));
+
+  return `<div class="strahl-wrap">
+    ${ueberfaellig?`<div class="strahl-jetzt">
+      <div class="strahl-balken"><i class="crit" style="height:100%"></i></div>
+      <div class="strahl-zahl">${ueberfaellig}</div>
+      <div class="strahl-monat">jetzt</div></div>`:""}
+    <div class="strahl">
+      ${monate.map(m=>{
+        const n = m.eintraege.length;
+        const stufe = n===0?"":n>=3?"crit":n===2?"warn":"ok";
+        const titel = n ? m.eintraege.map(s=>s.task.name).join("\n") : "nichts fällig";
+        return `<div class="strahl-monat-sp" title="${esc(titel)}">
+          <div class="strahl-balken"><i class="${stufe}" style="height:${n?Math.max(14,n/max*100):0}%"></i></div>
+          <div class="strahl-zahl">${n||""}</div>
+          <div class="strahl-monat">${m.kurz.replace(".","")}${m.d.getMonth()===0?`<span class="tiny faint"> ${String(m.jahr).slice(2)}</span>`:""}</div>
+        </div>`;
+      }).join("")}
+    </div></div>`;
+}
+
+/** Was demnächst gebraucht wird — zum Bestellen vor dem Service. */
+function einkaufsliste(liste){
+  const bedarf = new Map();
+  for(const s of liste){
+    for(const ref of (s.task.parts||[])){
+      const p = partById(ref.p); if(!p) continue;
+      const e = bedarf.get(p.id) || {p, menge:0, wofuer:[]};
+      e.menge += ref.q;
+      e.wofuer.push(s.task.name);
+      bedarf.set(p.id, e);
+    }
+  }
+  if(!bedarf.size) return "";
+  const posten = [...bedarf.values()];
+  const summe = posten.reduce((a,e)=>a + (e.p.price!=null ? e.p.price*e.menge : 0), 0);
+  const ohnePreis = posten.filter(e=>e.p.price==null).length;
+
+  return `<div class="sec-head"><h2>Einkaufsliste</h2><div class="line"></div>
+      <span class="pill flat">${posten.length} Positionen</span></div>
+    <p class="tiny muted" style="margin:-4px 0 12px">
+      Alles für das, was überfällig ist oder demnächst ansteht — rechtzeitig bestellen.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th><th>Wofür</th></tr></thead>
+      <tbody>${posten.map(e=>`<tr>
+        <td><strong>${esc(e.p.name)}</strong>
+          ${e.p.oem?`<div class="tiny faint num">${esc(e.p.oem)}</div>`:""}
+          ${e.p.qty>0?`<div class="tiny" style="color:var(--ok)">${e.p.qty} ${esc(e.p.unit)} im Regal</div>`:""}</td>
+        <td class="r num">${Math.round(e.menge*100)/100} ${e.p.unit==="Stück"?"×":esc(e.p.unit)}</td>
+        <td class="r num">${e.p.price!=null?eur(e.p.price*e.menge):"—"}</td>
+        <td class="links">${(e.p.links||[]).map(l=>
+          `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||"Shop")} ↗</a>`).join("")
+          || `<button class="btn sm" data-edit-part="${e.p.id}" style="white-space:nowrap">+ Link</button>`}</td>
+        <td class="tiny faint">${esc([...new Set(e.wofuer)].join(", "))}</td></tr>`).join("")}
+      </tbody></table></div>
+    <div class="spread tiny muted" style="margin-top:8px">
+      <span>${ohnePreis?`Bei ${ohnePreis} Teil${ohnePreis>1?"en":""} fehlt noch der Preis.`:""}</span>
+      <span>Materialkosten ca. <strong style="color:var(--text);font-size:14px">${eur(summe)}</strong></span>
+    </div>`;
+}
+
 function renderDash(){
   const st = allStatus(false);
-  const crit = st.filter(s=>s.level==="crit"), warn = st.filter(s=>s.level==="warn");
+  const echt = st.filter(s=>s.level!=="none" && s.level!=="unknown");
+  const crit = echt.filter(s=>s.level==="crit"), warn = echt.filter(s=>s.level==="warn");
+  const unbekannt = st.filter(s=>s.level==="unknown");
   const kpd = kmPerDay();
-  const next = st.find(s=>s.level!=="none" && s.level!=="unknown");
+  const naechste = crit[0] || echt[0] || null;
 
-  $("#dashStats").innerHTML = [
-    ["Kilometerstand", nKm(CAR.km)+" km", ""],
-    ["Überfällig", crit.length, crit.length?"crit":"ok"],
-    ["Bald fällig", warn.length, warn.length?"warn":"ok"],
-    ["Fahrleistung", Math.round(kpd)+" km/Tag", ""],
-    ["Nächster Service", next? (next.rem<=0?"jetzt":nKm(next.rem)+" km") : "—", next&&next.level==="crit"?"crit":""]
-  ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  $("#dashStats").innerHTML = `
+    <div class="ring-karte">
+      ${statusRing(naechste)}
+      <div class="ring-text">
+        <div class="tiny faint">${naechste ? (naechste.rem<=0?"Überfällig":"Als Nächstes") : "Keine Fälligkeit"}</div>
+        <div class="ring-name">${naechste?esc(naechste.task.name):"—"}</div>
+        ${naechste&&naechste.forecast&&naechste.rem>0
+          ? `<div class="tiny muted">voraussichtlich ${dDE(naechste.forecast)}</div>` : ""}
+        ${naechste&&naechste.rem<=0
+          ? `<div class="tiny" style="color:var(--crit)">${naechste.lead==="km"
+              ? nKm(-naechste.remKm)+" km überfällig" : Math.abs(naechste.remDays)+" Tage überfällig"}</div>` : ""}
+        <div class="ring-zahlen">
+          <span><b class="num">${nKm(CAR.km)}</b> km</span>
+          <span><b class="num">${Math.round(kpd)}</b> km/Tag</span>
+          <span class="${crit.length?"warnfarbe":""}"><b>${crit.length}</b> überfällig</span>
+          <span><b>${warn.length}</b> bald</span>
+        </div>
+      </div>
+    </div>`;
 
-  const unknown = st.filter(s=>s.level==="unknown");
-  const groups = [
+  const gruppen = [
     ["Überfällig", crit, "crit"],
     ["Demnächst fällig", warn, "warn"],
-    ["Als Nächstes in Reichweite", st.filter(s=>s.level==="ok").slice(0,5), "ok"],
-    ["Noch nie erfasst", unknown, "info"]
+    ["Als Nächstes in Reichweite", echt.filter(s=>s.level==="ok").slice(0,4), "ok"],
+    ["Noch nie erfasst", unbekannt, "info"]
   ];
   let h = "";
+
+  if(echt.length)
+    h += `<div class="sec-head"><h2>Die nächsten zwölf Monate</h2><div class="line"></div></div>
+          ${zeitstrahl(echt)}`;
+
+  h += einkaufsliste([...crit, ...warn]);
+
   if(!crit.length && !warn.length)
-    h += `<div class="card" style="border-color:rgba(62,207,142,.3)">
+    h += `<div class="card" style="border-color:rgba(62,207,142,.3);margin-top:14px">
             <div class="row"><span style="font-size:20px">✓</span>
             <div><strong>Alles im grünen Bereich.</strong>
             <div class="tiny faint">Keine Position ist überfällig oder in Kürze fällig.</div></div></div></div>`;
-  for(const [title,list,lvl] of groups){
-    if(!list.length) continue;
-    h += `<div class="sec-head"><h2>${title}</h2><div class="line"></div>
-          <span class="pill ${lvl}">${list.length}</span></div>`;
+
+  for(const [titel,liste,lvl] of gruppen){
+    if(!liste.length) continue;
+    h += `<div class="sec-head"><h2>${titel}</h2><div class="line"></div>
+          <span class="pill ${lvl}">${liste.length}</span></div>`;
     if(lvl==="info") h += `<p class="tiny muted" style="margin:-4px 0 12px">
       Für diese Positionen fehlt der Startwert. Trage im Wartungsplan ein, wann sie
       zuletzt gemacht wurden — oder hake sie beim nächsten Mal einfach ab.</p>`;
-    h += list.map(s=>taskCard(s,false)).join("");
+    h += liste.map(s=>taskCard(s,false)).join("");
   }
   $("#dashDue").innerHTML = h;
 }
@@ -1424,9 +1644,13 @@ function zeichneTreffer(){
     .filter(p=>!q || (p.name+" "+p.oem).toLowerCase().includes(q))
     .slice(0,8);
 
-  liste.innerHTML = treffer.map(p=>`<button type="button" class="picker-eintrag" data-teil-zu="${p.id}">
-      <span>${esc(p.name)}</span>
-      <span class="tiny faint">${esc(p.oem||p.unit)}</span></button>`).join("")
+  liste.innerHTML = treffer.map(p=>`<div class="picker-reihe">
+      <button type="button" class="picker-eintrag" data-teil-zu="${p.id}">
+        <span>${esc(p.name)}</span>
+        <span class="tiny faint">${esc(p.oem||p.unit)}</span></button>
+      <button type="button" class="picker-weg" data-teil-loeschen="${p.id}"
+              title="Teil endgültig aus dem Katalog löschen">🗑</button>
+    </div>`).join("")
     + (q ? `<button type="button" class="picker-eintrag neu" data-teil-neu="${esc(q)}">
              ＋ „${esc(feld.value.trim())}" als neues Teil anlegen</button>` : "")
     + (!treffer.length && !q ? `<div class="tiny faint" style="padding:10px 12px">Alle Teile bereits zugeordnet.</div>` : "");
@@ -1453,7 +1677,8 @@ function partDialog(id){
       <div id="linkBox">${linkRows(p.links)}</div>
       <button type="button" class="btn sm" id="addLink">+ Link hinzufügen</button>
       <div class="hint">Mehrere möglich — etwa Originalteil und günstigere Alternative.</div></div>
-    <div class="field"><label>Notiz</label><textarea id="f-note">${esc(p.note)}</textarea></div>`,
+    <div class="field"><label>Notiz</label><textarea id="f-note">${esc(p.note)}</textarea></div>
+    ${id?`<button type="button" class="btn sm danger" id="delPart">Teil löschen</button>`:""}`,
   ()=>{
     if(!val("f-name")){ toast("Bezeichnung fehlt",true); return false; }
     p.name=val("f-name"); p.oem=val("f-oem"); p.unit=val("f-unit")||"Stück";
@@ -1461,6 +1686,21 @@ function partDialog(id){
     p.spare=$("#f-spare").checked; p.note=$("#f-note").value.trim(); p.links=readLinks();
     if(!id) CAR.parts.push(p);
   });
+
+  if(!id) return;
+  $("#delPart").onclick=()=>{
+    const benutztIn = CAR.tasks.filter(x=>(x.parts||[]).some(y=>y.p===p.id));
+    const warnung = benutztIn.length
+      ? `\n\nWird in ${benutztIn.length} Position${benutztIn.length>1?"en":""} verwendet `+
+        `(${benutztIn.slice(0,3).map(x=>x.name).join(", ")}${benutztIn.length>3?" …":""}) `+
+        `und dort mit entfernt.`
+      : "";
+    if(!confirm(`„${p.name}" endgültig löschen?${warnung}`)) return;
+    CAR.parts = CAR.parts.filter(x=>x.id!==p.id);
+    CAR.tasks.forEach(x=>{ x.parts = (x.parts||[]).filter(y=>y.p!==p.id); });
+    dlgSave=null; $("#dlg").close(); save(); renderAll();
+    toast(`„${p.name}" gelöscht`);
+  };
 }
 
 /* -- Historieneintrag -- */
@@ -1638,9 +1878,23 @@ function vehicleDialog(id){
     </div>
     <div class="grid2">
       <div class="field"><label>Kennzeichen</label><input id="f-plate" value="${esc(d.plate)}"></div>
-      <div class="field"><label>Fahrgestellnummer (FIN)</label><input id="f-vin" value="${esc(d.vin)}" placeholder="17 Zeichen">
-        <div class="hint">Hilfreich beim Teilekauf.</div></div>
+      <div class="field"><label>Halter</label><input id="f-owner" value="${esc(d.owner||"")}" placeholder="leer = dein Fahrzeug">
+        <div class="hint">Bei Fahrzeugen von Familie oder Freunden.</div></div>
     </div>
+    <div class="field"><label>Fahrgestellnummer (FIN)</label><input id="f-vin" value="${esc(d.vin)}" placeholder="17 Zeichen">
+      <div class="hint">Hilfreich beim Teilekauf.</div></div>
+    <div class="grid3">
+      <div class="field"><label>Kraftstoff</label><select id="f-fuel">
+        ${[["","—"],["diesel","Diesel"],["benzin","Benzin"],["hybrid","Hybrid / Elektro"]]
+          .map(([v,t])=>`<option value="${v}" ${(d.fuel||"")===v?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div class="field"><label>Getriebe</label><select id="f-gearbox">
+        ${[["","—"],["schalt","Schaltgetriebe"],["automatik","Automatik"],["dsg","Doppelkupplung"],["cvt","CVT"]]
+          .map(([v,t])=>`<option value="${v}" ${(d.gearbox||"")===v?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div class="field"><label>Antrieb</label><select id="f-drive">
+        ${[["","—"],["2wd","Zweirad"],["4x4","Allrad zuschaltbar"],["haldex","Allrad (Haldex)"]]
+          .map(([v,t])=>`<option value="${v}" ${(d.drive||"")===v?"selected":""}>${t}</option>`).join("")}</select></div>
+    </div>
+    <div class="hint" style="margin:-8px 0 14px">Steuert, welche Bausteine die Bibliothek zuerst anbietet.</div>
     <div class="grid2">
       <div class="field"><label>Herstellungsdatum</label><input type="month" id="f-built" value="${esc(d.built||"")}">
         <div class="hint">Monat und Jahr laut Typenschild — wichtig, weil Teile oft nach Baudatum unterschieden werden.</div></div>
@@ -1654,6 +1908,8 @@ function vehicleDialog(id){
     const target = isNew ? buildVehicle(val("f-tpl")) : v;
     target.brand=val("f-brand"); target.name=val("f-name"); target.model=val("f-model");
     target.year=num(val("f-year")); target.plate=val("f-plate"); target.vin=val("f-vin");
+    target.owner=val("f-owner"); target.fuel=val("f-fuel");
+    target.gearbox=val("f-gearbox"); target.drive=val("f-drive");
     target.built=val("f-built"); target.firstReg=val("f-reg");
     target.note=$("#f-note").value.trim();
     if(isNew){
@@ -1796,6 +2052,55 @@ function parseDate(s){
 }
 
 /* ═══════════ Verdrahtung ═══════════ */
+/* ═══════════ Fuhrpark ═══════════
+   Bei Fahrzeugen von Familie und Freunden wird das Auswahlfeld allein
+   unübersichtlich — hier steht der Zustand aller nebeneinander. */
+function fahrzeugStatus(v){
+  const merk = CAR;
+  CAR = v;                                  // Rechnungen laufen auf CAR
+  try{
+    const st = allStatus(false).filter(s=>s.level!=="none" && s.level!=="unknown");
+    const crit = st.filter(s=>s.level==="crit"), warn = st.filter(s=>s.level==="warn");
+    return {crit:crit.length, warn:warn.length, naechste:crit[0]||st[0]||null,
+            offen:allStatus(false).filter(s=>s.level==="unknown").length,
+            positionen:v.tasks.length, kpd:kmPerDay()};
+  } finally { CAR = merk; }
+}
+
+function renderFuhrpark(){
+  const karten = DB.vehicles.map(v=>{
+    const z = fahrzeugStatus(v);
+    const stufe = z.crit ? "crit" : z.warn ? "warn" : "ok";
+    const titel = [v.brand, v.name].filter(Boolean).join(" ") || "Fahrzeug";
+    const rest = !z.naechste ? "keine Fälligkeit berechenbar"
+      : z.naechste.rem<=0
+        ? `<span style="color:var(--crit)">${esc(z.naechste.task.name)} überfällig</span>`
+        : `${esc(z.naechste.task.name)} in ${z.naechste.lead==="km"
+            ? nKm(z.naechste.remKm)+" km" : z.naechste.remDays+" Tagen"}`;
+
+    return `<button class="fz-karte ${stufe} ${v.id===CAR.id?"aktiv":""}" data-fahrzeug="${v.id}">
+      <div class="fz-kopf">
+        <div class="fz-titel">${esc(titel)}
+          ${v.id===CAR.id?`<span class="pill info">aktiv</span>`:""}</div>
+        <div class="fz-ampel ${stufe}"></div>
+      </div>
+      <div class="fz-sub tiny faint">${esc([v.model, v.plate, v.owner&&"Halter: "+v.owner].filter(Boolean).join(" · ")) || "—"}</div>
+      <div class="fz-zahlen">
+        <span><b class="num">${nKm(v.km)}</b> km</span>
+        <span class="${z.crit?"warnfarbe":""}"><b>${z.crit}</b> überfällig</span>
+        <span><b>${z.warn}</b> bald</span>
+        ${z.offen?`<span class="faint"><b>${z.offen}</b> ohne Startwert</span>`:""}
+      </div>
+      <div class="fz-fuss tiny">${rest}</div>
+    </button>`;
+  }).join("");
+
+  $("#fuhrparkListe").innerHTML = `<div class="fz-gitter">${karten}
+    <button class="fz-karte neu" id="fzNeu">
+      <span style="font-size:22px;line-height:1">＋</span>
+      <span>Weiteres Fahrzeug anlegen</span></button></div>`;
+}
+
 function renderCarPicker(){
   $("#carPick").innerHTML =
     DB.vehicles.map(v=>`<option value="${v.id}"${v.id===CAR.id?" selected":""}>${
@@ -1805,6 +2110,7 @@ function renderCarPicker(){
 
 function renderAll(){
   renderCarPicker();
+  renderFuhrpark();
   $("#hdModel").textContent = [CAR.model, CAR.plate].filter(Boolean).join(" · ");
   document.title = ([CAR.brand,CAR.name].filter(Boolean).join(" ")||"Fahrzeug") + " — Wartung";
   renderDash(); renderPlan(); renderParts(); renderHist(); renderMods(); renderTrip(); renderCost();
@@ -1831,6 +2137,20 @@ document.addEventListener("click",e=>{
   }
   const lb = t.closest("[data-lb]");
   if(lb){ lightbox((lb.dataset.lb||"").split(",").filter(Boolean), +lb.dataset.lbi||0); return; }
+  if(t.closest("#fzNeu")){ vehicleDialog(null); return; }
+  const fz = t.closest("[data-fahrzeug]");
+  if(fz){
+    if(fz.dataset.fahrzeug !== CAR.id){
+      useCar(fz.dataset.fahrzeug);
+      $("#kmNow").value = CAR.km||"";
+      $("#tripKm").value=""; $("#tripDays").value="";
+      save(); renderAll();
+    }
+    $$("#nav button").forEach(b=>b.classList.toggle("active", b.dataset.view==="dash"));
+    $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-dash"));
+    window.scrollTo(0,0);
+    return;
+  }
   const zu = t.closest("[data-teil-zu]");
   if(zu){
     if(!teileAuswahl.some(x=>x.p===zu.dataset.teilZu)) teileAuswahl.push({p:zu.dataset.teilZu, q:1});
@@ -1842,6 +2162,26 @@ document.addEventListener("click",e=>{
   if(weg){
     teileAuswahl = teileAuswahl.filter(x=>x.p!==weg.dataset.teilWeg);
     zeichneTeile();
+    return;
+  }
+  const raus = t.closest("[data-teil-loeschen]");
+  if(raus){
+    const teil = partById(raus.dataset.teilLoeschen);
+    if(teil){
+      const benutztIn = CAR.tasks.filter(x=>(x.parts||[]).some(y=>y.p===teil.id));
+      const warnung = benutztIn.length
+        ? `\n\nWird in ${benutztIn.length} Position${benutztIn.length>1?"en":""} verwendet `+
+          `(${benutztIn.slice(0,3).map(x=>x.name).join(", ")}${benutztIn.length>3?" …":""}) `+
+          `und dort mit entfernt.`
+        : "";
+      if(confirm(`„${teil.name}" endgültig aus dem Teilekatalog löschen?${warnung}`)){
+        CAR.parts = CAR.parts.filter(p=>p.id!==teil.id);
+        CAR.tasks.forEach(x=>{ x.parts = (x.parts||[]).filter(y=>y.p!==teil.id); });
+        teileAuswahl = teileAuswahl.filter(x=>x.p!==teil.id);
+        save(); zeichneTeile(); zeichneTreffer(); renderParts();
+        toast(`„${teil.name}" gelöscht`);
+      }
+    }
     return;
   }
   const neu = t.closest("[data-teil-neu]");
@@ -1870,6 +2210,7 @@ document.addEventListener("click",e=>{
   const rm=t.closest("[data-rm-link]"); if(rm) rm.closest(".row").remove();
 });
 
+$("#btnAddCar").onclick =()=>vehicleDialog(null);
 $("#btnAddTask").onclick =()=>taskDialog();
 $("#btnBib").onclick     =()=>bibliothekDialog();
 $("#btnAddPart").onclick =()=>partDialog();
