@@ -5,6 +5,13 @@ data/
 *.csv
 fahrzeuge-*.json
 
+# Werkstattunterlagen sind urheberrechtlich geschuetzt und duerfen
+# nicht in ein oeffentliches Repository.
+*.pdf
+Toyota Anleitungen/
+Anleitungen/
+docs-import/
+
 .DS_Store
 __pycache__/
 *.pyc

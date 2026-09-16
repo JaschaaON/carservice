@@ -13,14 +13,17 @@ const PUBLIC    = path.resolve(process.env.PUBLIC_DIR|| path.join(__dirname, "pu
 const DATA_FILE = path.join(DATA_DIR, "data.json");
 const VERSIONS  = path.join(DATA_DIR, "versions");
 const PHOTOS    = path.join(DATA_DIR, "photos");
+const DOCS      = path.join(DATA_DIR, "docs");
 const KEEP      = 40;                       // so viele Versionen bleiben liegen
 const MAX_PHOTO = 8   * 1024 * 1024;        // 8 MB je Bild
 const MAX_VIDEO = 150 * 1024 * 1024;        // 150 MB je Video
+const MAX_DOC   = 60  * 1024 * 1024;        // 60 MB je Anleitung
 
 /* Medien-IDs kommen aus dem Browser und landen als Dateiname auf der
    Platte — deshalb streng pruefen, sonst ist Pfad-Traversal moeglich.
    f_ = Foto, v_ = Video, Endung _t = Vorschaubild (immer JPEG). */
 const MEDIA_ID = /^[fv]_[a-z0-9]{6,32}(_t)?$/;
+const DOC_ID   = /^d_[a-z0-9]{6,32}$/;
 
 /* Dateityp aus den ersten Bytes bestimmen, statt dem Content-Type der
    Anfrage zu glauben. */
@@ -53,6 +56,7 @@ const MIME = {".html":"text/html; charset=utf-8", ".js":"text/javascript; charse
 
 fs.mkdirSync(VERSIONS, {recursive:true});
 fs.mkdirSync(PHOTOS,  {recursive:true});
+fs.mkdirSync(DOCS,    {recursive:true});
 
 /* Schreibrechte pruefen. Das ist der haeufigste Betriebsfehler:
    Der Container laeuft, aber das gemountete Verzeichnis gehoert
@@ -235,6 +239,84 @@ const server = http.createServer((req,res)=>{
     return send(res, 405, JSON.stringify({error:"Methode nicht erlaubt"}));
   }
 
+  /* ---- Anleitungen (PDF) ----
+     Getrennt von den Fotos, weil es Dokumente sind und nicht Medien:
+     eigenes Verzeichnis, eigenes Groessenlimit, andere Auslieferung. */
+  if(p.startsWith("/api/docs/")){
+    const id = p.slice("/api/docs/".length);
+    if(!DOC_ID.test(id)) return send(res, 400, JSON.stringify({error:"ungültige Dokument-ID"}));
+    const datei = path.join(DOCS, id + ".pdf");
+
+    if(req.method === "GET"){
+      let stat; try{ stat = fs.statSync(datei); }
+      catch(e){ return send(res, 404, JSON.stringify({error:"nicht gefunden"})); }
+      const kopf = {
+        "Content-Type":"application/pdf",
+        // inline, damit der Browser es anzeigt statt herunterzuladen
+        "Content-Disposition":"inline",
+        "Cache-Control":"public, max-age=31536000, immutable",
+        "X-Content-Type-Options":"nosniff",
+        "Accept-Ranges":"bytes"
+      };
+      /* Bereichsabfragen: PDF-Betrachter laden gern nur einzelne
+         Seiten nach, statt ein 10-MB-Dokument am Stueck zu ziehen. */
+      const range = req.headers.range;
+      if(range && /^bytes=\d*-\d*$/.test(range)){
+        const [a,b] = range.replace("bytes=","").split("-");
+        const start = a ? parseInt(a,10) : 0;
+        const end   = b ? parseInt(b,10) : stat.size - 1;
+        if(start >= stat.size || end >= stat.size || start > end){
+          res.writeHead(416, {"Content-Range":`bytes */${stat.size}`});
+          return res.end();
+        }
+        kopf["Content-Range"]  = `bytes ${start}-${end}/${stat.size}`;
+        kopf["Content-Length"] = end - start + 1;
+        res.writeHead(206, kopf);
+        return fs.createReadStream(datei,{start,end}).pipe(res);
+      }
+      kopf["Content-Length"] = stat.size;
+      res.writeHead(200, kopf);
+      return fs.createReadStream(datei).pipe(res);
+    }
+
+    if(req.method === "PUT"){
+      if(!canWrite()) return send(res, 507, JSON.stringify({error:"Datenverzeichnis nicht beschreibbar"}));
+      const brocken = []; let groesse = 0, zuGross = false;
+      req.on("data", c=>{
+        groesse += c.length;
+        if(groesse > MAX_DOC){ zuGross = true; req.destroy(); return; }
+        brocken.push(c);
+      });
+      req.on("end", ()=>{
+        if(zuGross) return;
+        const buf = Buffer.concat(brocken);
+        // PDF-Signatur pruefen statt dem Content-Type zu glauben
+        if(buf.length < 5 || buf.toString("ascii",0,5) !== "%PDF-")
+          return send(res, 415, JSON.stringify({error:"kein PDF"}));
+        try{
+          const tmp = datei + ".tmp";
+          fs.writeFileSync(tmp, buf);
+          fs.renameSync(tmp, datei);
+        }catch(e){
+          console.error(e);
+          return send(res, 500, JSON.stringify({error:"Schreibfehler"}));
+        }
+        send(res, 200, JSON.stringify({ok:true, id, bytes:buf.length}));
+      });
+      req.on("close", ()=>{
+        if(zuGross && !res.headersSent)
+          send(res, 413, JSON.stringify({error:`zu groß — höchstens ${MAX_DOC/1048576} MB`}));
+      });
+      return;
+    }
+
+    if(req.method === "DELETE"){
+      try{ fs.unlinkSync(datei); }catch(e){}
+      return send(res, 200, JSON.stringify({ok:true}));
+    }
+    return send(res, 405, JSON.stringify({error:"Methode nicht erlaubt"}));
+  }
+
   /* ---- Speicherverbrauch und verwaiste Bilder ----
      Verwaist heisst: die Datei liegt auf der Platte, wird aber von
      keinem Fahrzeug mehr referenziert. */
@@ -267,9 +349,17 @@ const server = http.createServer((req,res)=>{
       }
       return send(res, 200, JSON.stringify({ok:true, geloescht:weg, bytes:verwaistBytes}));
     }
+    let docDateien = [], docBytes = 0;
+    try{
+      docDateien = fs.readdirSync(DOCS).filter(f=>f.endsWith(".pdf"));
+      for(const f of docDateien){
+        try{ docBytes += fs.statSync(path.join(DOCS,f)).size; }catch(e){}
+      }
+    }catch(e){}
     return send(res, 200, JSON.stringify({
       dateien: dateien.length, bytes,
-      verwaist: verwaist.length, verwaistBytes
+      verwaist: verwaist.length, verwaistBytes,
+      anleitungen: docDateien.length, anleitungenBytes: docBytes
     }));
   }
 
@@ -286,7 +376,8 @@ const server = http.createServer((req,res)=>{
       fahrzeuge: db && Array.isArray(db.vehicles) ? db.vehicles.length : 0,
       revision:  db ? (db.rev||0) : null,
       versionen: (()=>{ try{ return fs.readdirSync(VERSIONS).filter(f=>f.endsWith(".json")).length; }catch(e){ return 0; } })(),
-      medien:    (()=>{ try{ return fs.readdirSync(PHOTOS).filter(f=>/\.(jpg|mp4|mov|webm)$/.test(f)).length; }catch(e){ return 0; } })(),
+      medien:      (()=>{ try{ return fs.readdirSync(PHOTOS).filter(f=>/\.(jpg|mp4|mov|webm)$/.test(f)).length; }catch(e){ return 0; } })(),
+      anleitungen: (()=>{ try{ return fs.readdirSync(DOCS).filter(f=>f.endsWith(".pdf")).length; }catch(e){ return 0; } })(),
       laufzeit:  Math.round(process.uptime()) + "s"
     }));
   }

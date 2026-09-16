@@ -15,6 +15,7 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 | **Historie** | Alle Services mit Nachweisfotos |
 | **Fotos und Videos** | Belege an jedem Historieneintrag, Referenzmaterial an jeder Wartungsposition |
 | **Bibliothek** | 60 Wartungsbausteine zum Auswählen — Diesel, Benzin, Hybrid, DSG, Haldex, Zahnriemen … |
+| **Anleitungen** | Werkstattunterlagen als PDF, direkt an der Wartungsposition abrufbar |
 | **Umbauten** | Anbauteile mit Einbaudatum, Kosten, Bezugsquelle |
 | **Tour** | Was vor einer Reise fällig wird und welche Teile mitgehören |
 | **Kosten** | Summen pro Jahr, Kosten je Kilometer |
@@ -164,6 +165,36 @@ Serviceheft.
 Nach den Fahrzeugmerkmalen (Kraftstoff, Antrieb, Getriebe) sortiert die App
 passende Gruppen nach oben. Benoetigte Teile werden beim Uebernehmen automatisch
 im Katalog angelegt, sofern sie fehlen.
+
+## Anleitungen
+
+Werkstattunterlagen liegen als PDF unter `data/docs/`, je Fahrzeug getrennt, und
+lassen sich einzelnen Wartungspositionen zuordnen — inklusive Startseite, damit
+ein dickes Nachschlagewerk direkt an der richtigen Stelle aufgeht. In der Position
+erscheinen sie als anklickbare Schaltflaechen.
+
+Angezeigt wird mit den Bordmitteln des Browsers; eine PDF-Bibliothek einzubetten
+haette die App um rund ein Megabyte wachsen lassen. Auf iPhone und iPad ist das
+Einbetten unzuverlaessig, deshalb gibt es immer auch den Weg ins Vollbild, wo
+Safari PDFs sauber mit Zoom und Suche darstellt.
+
+Ausgeliefert wird mit Bereichsabfragen, damit Betrachter einzelne Seiten
+nachladen koennen statt ein 10-MB-Dokument am Stueck zu ziehen. Beim Hochladen
+prueft der Server die PDF-Signatur, nicht den mitgeschickten Dateityp.
+
+**Vorhandene Unterlagen einlesen:**
+
+```bash
+python3 import_docs.py "Toyota Anleitungen"
+```
+
+Das Skript kopiert die PDFs, ermittelt Seitenzahlen und schlaegt anhand der
+Dateinamen Zuordnungen zu den Wartungspositionen vor (Tabelle `REGELN`).
+Einzelne PDFs lassen sich jederzeit ueber die App nachtragen.
+
+> **Werkstattunterlagen sind urheberrechtlich geschuetzt** und gehoeren nicht in
+> ein oeffentliches Repository. `.gitignore` schliesst `*.pdf` und die
+> Anleitungsordner deshalb grundsaetzlich aus.
 
 ## Fotos und Videos
 
