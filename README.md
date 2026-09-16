@@ -37,6 +37,22 @@ Diesel-Geländewagen, einer **Kopie des Plans eines vorhandenen Fahrzeugs**
 Fahrzeugdaten änderst du über das Zahnrad rechts oben; dort liegen auch Sichern,
 Laden und Löschen.
 
+## Kilometerstand
+
+Ein veralteter Kilometerstand macht jede Faelligkeitsangabe falsch — bei
+95 km/Tag ist er nach einer Woche schon 670 km daneben. Statt bei jedem Start
+zu fragen, rechnet die App die Abweichung aus der tatsaechlichen Fahrleistung
+aus und meldet sich erst, wenn sie ins Gewicht faellt: ab etwa 400 geschaetzten
+Kilometern oder spaetestens nach 30 Tagen.
+
+Der Dialog kommt dann mit einem **vorausgefuellten Schaetzwert**, den man meist
+nur bestaetigen muss, dazu Schnellwahl (+100/+250/+500). Wer ueberspringt, wird
+am selben Tag nicht erneut gefragt; stattdessen bleibt oben ein Hinweisstreifen
+stehen, und das Feld in der Kopfzeile ist markiert. Beim allerersten Start
+erscheint der Dialog ohne Schaetzung, weil es noch keine Datenbasis gibt.
+
+## Faelligkeit
+
 Eine Position gilt als fällig, sobald **entweder** die Kilometer **oder** die Zeit abgelaufen ist.
 Um beides vergleichbar zu machen, rechnet die App die Restzeit über die tatsächliche
 Fahrleistung (aus der Historie ermittelt) in Rest-Kilometer um. Daher die Prognose

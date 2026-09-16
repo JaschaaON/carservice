@@ -409,6 +409,42 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .bib-name{font-size:14px;font-weight:500}
 .bib-zeile[hidden],.bib-gruppe[hidden]{display:none}
 
+/* ---------- Hinweis auf veralteten Kilometerstand ---------- */
+#kmHinweis{padding:10px 16px 0;max-width:1080px;margin:0 auto}
+#kmHinweisBtn{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:rgba(245,182,66,.09);border:1px solid rgba(245,182,66,.28);
+  border-radius:10px;padding:10px 14px;color:var(--warn);font-size:13.5px;
+}
+#kmHinweisBtn:hover{background:rgba(245,182,66,.14)}
+#kmHinweisText{flex:1;color:var(--text)}
+.km-punkt{
+  width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none;
+  box-shadow:0 0 0 4px rgba(245,182,66,.16);
+}
+.km-pfeil{font-size:17px;opacity:.7}
+.hd-km input.veraltet{
+  border-color:rgba(245,182,66,.5);
+  box-shadow:inset 0 0 0 1px rgba(245,182,66,.18);
+}
+
+/* ---------- Kilometerstand-Abfrage ---------- */
+.km-text{font-size:14.5px;line-height:1.55;color:var(--text-dim);margin:0 0 18px}
+.km-text strong{color:var(--text)}
+.km-feld{
+  display:flex;align-items:baseline;justify-content:center;gap:10px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:16px;
+}
+.km-feld input{
+  width:min(260px,62vw);background:none;border:none;color:var(--text);
+  font-size:34px;font-weight:680;text-align:right;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;padding:0;
+}
+.km-feld input:focus{outline:none}
+.km-feld span{font-size:15px;color:var(--text-faint)}
+.km-schnell{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.km-schnell:empty{display:none}
+
 /* ---------- Anleitungen ---------- */
 .dok-liste{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
 .dok-chip{
@@ -545,6 +581,14 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
     <button data-view="cost">Kosten</button>
   </nav>
 </header>
+
+<div id="kmHinweis" hidden>
+  <button type="button" id="kmHinweisBtn">
+    <span class="km-punkt"></span>
+    <span id="kmHinweisText">Kilometerstand eintragen</span>
+    <span class="km-pfeil">›</span>
+  </button>
+</div>
 
 <main>
   <!-- ══════════ FUHRPARK ══════════ -->
@@ -1406,6 +1450,111 @@ function renderCost(){
 }
 
 
+
+/* ═══════════ Kilometerstand aktuell halten ═════════════════════
+   Ein veralteter Stand macht jede Faelligkeitsangabe falsch. Bei
+   95 km/Tag ist er nach einer Woche schon 670 km daneben. Statt bei
+   jedem Start zu fragen, rechnen wir die Abweichung aus und melden
+   uns erst, wenn sie ins Gewicht faellt.                          */
+
+const KM_DRIFT = 400;        // ab so vielen geschätzten Kilometern nachfragen
+const KM_TAGE  = 30;         // oder spätestens nach so vielen Tagen
+
+function kmAlterTage(){
+  if(!CAR.kmDate) return null;
+  const t = daysBetween(CAR.kmDate, today());
+  return t >= 0 ? t : null;
+}
+
+/** Geschätzter heutiger Stand aus letztem Eintrag und Fahrleistung. */
+function kmSchaetzung(){
+  const tage = kmAlterTage();
+  if(tage == null || !CAR.km) return null;
+  return Math.round((CAR.km + tage * kmPerDay()) / 10) * 10;
+}
+
+/** null = alles gut, "erst" = noch nie erfasst, "alt" = abgedriftet */
+function kmAbfrageGrund(){
+  if(!CAR.km) return "erst";
+  const tage = kmAlterTage();
+  if(tage == null) return null;
+  if(tage >= KM_TAGE) return "alt";
+  return tage * kmPerDay() >= KM_DRIFT ? "alt" : null;
+}
+
+const kmMerker = ()=> "km-gefragt-" + CAR.id;
+function heuteSchonGefragt(){
+  try{ return localStorage.getItem(kmMerker()) === today(); }catch(e){ return false; }
+}
+function merkeGefragt(){
+  try{ localStorage.setItem(kmMerker(), today()); }catch(e){}
+}
+
+function kmDialog(grund){
+  const tage  = kmAlterTage();
+  const tipp  = kmSchaetzung();
+  const erst  = grund === "erst";
+
+  const kopf = erst
+    ? `<p class="km-text">Damit die App ausrechnen kann, was ansteht, braucht sie
+         einmal den aktuellen Kilometerstand.</p>`
+    : `<p class="km-text">Der letzte Eintrag ist <strong>${tage} Tage</strong> alt
+         (${nKm(CAR.km)} km am ${dDE(CAR.kmDate)}). Bei rund ${Math.round(kmPerDay())} km
+         pro Tag dürften inzwischen etwa <strong>${nKm(tipp - CAR.km)} km</strong>
+         dazugekommen sein — solange der Stand nicht stimmt, sind auch die
+         Fälligkeiten daneben.</p>`;
+
+  openDlg(erst ? "Kilometerstand eintragen" : "Stimmt der Kilometerstand noch?", `
+    ${kopf}
+    <div class="km-feld">
+      <input type="number" id="f-kmneu" inputmode="numeric" min="0" step="1"
+             value="${erst ? "" : tipp}" placeholder="z. B. ${erst ? "77196" : tipp}"
+             autocomplete="off">
+      <span>km</span>
+    </div>
+    ${erst ? "" : `<div class="tiny faint" style="text-align:center;margin-top:8px">
+      Geschätzter Wert — bitte am Tacho prüfen und gegebenenfalls korrigieren.</div>`}
+    <div class="km-schnell">
+      ${erst ? "" : [0, 100, 250, 500].map(d=>
+        `<button type="button" class="btn sm" data-km-plus="${d}">${d?"+"+d:"unverändert"}</button>`).join("")}
+    </div>`,
+  ()=>{
+    const v = num(val("f-kmneu"));
+    if(v == null || v < 0){ toast("Bitte eine Zahl eintragen",true); return false; }
+    if(v < (CAR.km||0)){
+      if(!confirm(`${nKm(v)} km liegt unter dem bisherigen Stand von ${nKm(CAR.km)} km. Trotzdem übernehmen?`))
+        return false;
+    }
+    CAR.km = Math.round(v); CAR.kmDate = today();
+    $("#kmNow").value = CAR.km;
+    merkeGefragt();
+    toast("Kilometerstand aktualisiert");
+  }, "Übernehmen");
+
+  // Überspringen statt Abbrechen — und für heute Ruhe geben
+  const fuss = $("#dlgFoot");
+  fuss.innerHTML = `<button type="button" class="btn" id="kmSpaeter">Überspringen</button>
+    <button class="btn primary" value="ok">Übernehmen</button>`;
+  $("#kmSpaeter").onclick = ()=>{
+    merkeGefragt(); dlgSave = null; $("#dlg").close();
+    toast("Übersprungen — der Hinweis bleibt oben stehen");
+    renderAll();
+  };
+
+  $("#dlgBody").addEventListener("click", e=>{
+    const b = e.target.closest("[data-km-plus]");
+    if(b) $("#f-kmneu").value = (CAR.km||0) + (+b.dataset.kmPlus||0);
+  });
+  setTimeout(()=>{ const f=$("#f-kmneu"); if(f){ f.focus(); f.select(); } }, 60);
+}
+
+/** Beim Start prüfen — höchstens einmal am Tag je Fahrzeug. */
+function kmPruefen(){
+  const grund = kmAbfrageGrund();
+  if(!grund) return;
+  if(grund === "alt" && heuteSchonGefragt()) return;
+  kmDialog(grund);
+}
 
 /* ═══════════ Anleitungen ═══════════════════════════════════════
    Werkstattunterlagen als PDF, je Fahrzeug. Angezeigt wird mit den
@@ -2435,6 +2584,17 @@ function renderCarPicker(){
 
 function renderAll(){
   renderCarPicker();
+  const grund = kmAbfrageGrund();
+  const feld  = $("#kmNow"), tage = kmAlterTage();
+  feld.classList.toggle("veraltet", !!grund);
+  feld.title = grund === "erst" ? "Noch kein Kilometerstand erfasst — bitte eintragen"
+    : grund ? `Stand ist ${tage} Tage alt — Fälligkeiten sind womöglich ungenau`
+    : `Zuletzt aktualisiert am ${dDE(CAR.kmDate)}`;
+  $("#kmHinweis").hidden = !grund;
+  if(grund)
+    $("#kmHinweisText").textContent = grund === "erst"
+      ? "Kilometerstand noch nicht erfasst — jetzt eintragen"
+      : `Kilometerstand ist ${tage} Tage alt — Fälligkeiten sind womöglich ungenau`;
   renderFuhrpark();
   $("#hdModel").textContent = [CAR.model, CAR.plate].filter(Boolean).join(" · ");
   document.title = ([CAR.brand,CAR.name].filter(Boolean).join(" ")||"Fahrzeug") + " — Wartung";
@@ -2561,6 +2721,7 @@ document.addEventListener("click",e=>{
   const rm=t.closest("[data-rm-link]"); if(rm) rm.closest(".row").remove();
 });
 
+$("#kmHinweisBtn").onclick = ()=>kmDialog(kmAbfrageGrund()||"alt");
 $("#btnAddCar").onclick =()=>vehicleDialog(null);
 $("#btnAddTask").onclick =()=>taskDialog();
 $("#btnBib").onclick     =()=>bibliothekDialog();
@@ -2580,6 +2741,7 @@ $("#carPick").onchange=e=>{
   $("#kmNow").value = CAR.km||"";
   $("#tripKm").value=""; $("#tripDays").value="";     // Tourplanung gehoert zum Fahrzeug
   save(); renderAll(); window.scrollTo(0,0);
+  kmPruefen();
 };
 
 $("#kmNow").onchange=()=>{
@@ -2591,6 +2753,7 @@ $("#kmNow").onchange=()=>{
   await loadDB();
   $("#kmNow").value = CAR.km||"";
   renderAll();
+  kmPruefen();
   if("serviceWorker" in navigator && !isFile)
     navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
