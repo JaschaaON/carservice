@@ -441,6 +441,16 @@ const server = http.createServer((req,res)=>{
   }
 
   if(p === "/api/me"){
+    /* Sitzung mitlaufen lassen. Eine App auf dem Startbildschirm, die alle
+       30 Tage grundlos zum Anmeldeformular springt, fuehlt sich nicht wie
+       eine App an. Diesen Aufruf macht die App bei jedem Start ohnehin —
+       ist weniger als die Haelfte der Laufzeit uebrig, bekommt das Cookie
+       eine neue Frist. Geprueft wird weiterhin bei jeder Anfrage, und
+       sessionVersion sperrt nach wie vor sofort. */
+    const daten = leseCookie(cookieAusKopf(req));
+    if(daten && daten.exp - Date.now() < SESSION_TAGE*864e5/2)
+      setzeCookie(res, req, baueCookie(ich), SESSION_TAGE);
+
     return send(res, 200, JSON.stringify({
       id:ich.id, name:ich.name, login:ich.login, rolle:ich.rolle,
       betrachtet: betrachtetesKonto(req, ich)
@@ -833,7 +843,10 @@ const server = http.createServer((req,res)=>{
     return send(res, 403, "verboten", "text/plain");
   fs.readFile(file, (err, buf)=>{
     if(err) return send(res, 404, "nicht gefunden", "text/plain");
-    const type = MIME[path.extname(file).toLowerCase()] || "application/octet-stream";
+    // Das Manifest heisst .json, gehoert aber als application/manifest+json
+    // ausgeliefert — sonst meckert Chrome beim Installieren.
+    const type = datei === "/manifest.json" ? "application/manifest+json"
+               : MIME[path.extname(file).toLowerCase()] || "application/octet-stream";
     res.writeHead(200, {"Content-Type":type, "Cache-Control": p==="/"||p.endsWith(".html") ? "no-cache" : "max-age=3600"});
     res.end(buf);
   });

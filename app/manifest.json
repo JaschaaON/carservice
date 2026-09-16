@@ -1,9 +1,11 @@
 {
+  "id": "/",
   "name": "Overlandvibe Carservice",
   "short_name": "Carservice",
   "description": "Wartungsplan, Teilekatalog und Historie für mehrere Fahrzeuge — ein Projekt von overlandvibe.com",
-  "start_url": ".",
-  "scope": ".",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#08090a",
@@ -20,6 +22,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

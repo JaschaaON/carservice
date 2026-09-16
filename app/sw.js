@@ -1,7 +1,9 @@
 /* Hält die App offline verfügbar. Die Daten selbst laufen immer übers
    Netz — veraltete Kilometerstände wären schlimmer als eine Fehlermeldung. */
-const CACHE = "carservice-v5";
-const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png",
+const CACHE = "carservice-v6";
+const SHELL = ["./", "./index.html", "./manifest.json",
+  "./icon.svg", "./icon-192.png", "./icon-512.png",
+  "./icon-maskable-512.png", "./apple-touch-icon.png",
   // Selbst gehostet, damit die App ohne Netz vollstaendig gesetzt bleibt
   "./fonts/geist-latin.woff2", "./fonts/geist-latin-ext.woff2",
   "./fonts/geist-mono-latin.woff2", "./fonts/geist-mono-latin-ext.woff2"];
@@ -33,7 +35,18 @@ self.addEventListener("fetch", e=>{
   if(e.request.method !== "GET") return;
   e.respondWith(
     fetch(e.request)
-      .then(r=>{ const copy=r.clone(); caches.open(CACHE).then(c=>c.put(e.request,copy)); return r; })
+      .then(r=>{
+        /* Nur ablegen, was taugt. Ohne diese Pruefung landet die
+           Anmeldeseite unter "/" im Cache, sobald die Sitzung einmal
+           abgelaufen ist — und beim naechsten Start sieht man ein
+           Formular, das nicht zur Adresse passt. Dasselbe gilt fuer
+           Fehlerseiten. */
+        if(r.ok && !r.redirected){
+          const copy = r.clone();
+          caches.open(CACHE).then(c=>c.put(e.request, copy));
+        }
+        return r;
+      })
       .catch(()=>caches.match(e.request).then(r=>r||caches.match("./index.html")))
   );
 });

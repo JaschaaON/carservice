@@ -199,6 +199,7 @@ server.js        Mini-Server, keine Abhängigkeiten: liefert die App aus,
 app/index.html   die komplette App in einer Datei
 app/sw.js        Service Worker — App bleibt ohne Netz lesbar
 app/fonts/       Geist und Geist Mono, selbst gehostet (SIL OFL 1.1)
+app/icon.svg     Quelle der App-Symbole, erzeugt von symbole.py
 data/data.json   sämtliche Daten, alle Fahrzeuge in einer Datei
 data/versions/   die letzten 40 Fassungen, automatisch
 data/photos/     Fotos als JPEG, je Bild eine Voll- und eine Vorschaufassung
@@ -287,8 +288,66 @@ Lesezeichen statt wie eine App.
 
 ### 7. Auf dem iPhone
 
-`service.example.com` in Safari oeffnen (NetBird aktiv), dann Teilen →
-**Zum Home-Bildschirm**.
+Siehe [Auf den Startbildschirm](#auf-den-startbildschirm).
+
+## Auf den Startbildschirm
+
+Carservice ist eine PWA — sie laesst sich wie eine App auf den Startbildschirm
+legen und startet dann im Vollbild, ohne Adressleiste.
+
+**Voraussetzung:** Die Adresse laeuft ueber NetBird. Auf dem Telefon muss also
+die NetBird-App verbunden sein, sonst startet die App im Offline-Modus.
+
+**iPhone und iPad** — geht nur in **Safari**; Chrome und Firefox legen auf iOS
+nur eine Verknuepfung an:
+
+1. `service.example.com` in Safari oeffnen
+2. Unten auf **Teilen** (Quadrat mit Pfeil nach oben)
+3. **Zum Home-Bildschirm** → **Hinzufuegen**
+
+**Android** — in Chrome ueber ⋮ → **App installieren**, oder im Zahnradmenue
+der App auf **Zum Startbildschirm**; dort erscheint der Punkt, sobald Chrome
+das Installieren anbietet.
+
+Der Menuepunkt ist auch der iOS-Weg: dort zeigt er die drei Schritte, weil iOS
+keinen programmgesteuerten Installdialog kennt. Sobald die App installiert
+laeuft, verschwindet er.
+
+**Ohne Netz** bleibt die Oberflaeche stehen, samt Schriften, Symbolen und den
+zuletzt geladenen Daten; Fotos kommen aus dem Cache. Was fehlt, ist der
+Abgleich — Aenderungen landen dann erst beim naechsten Start mit Verbindung
+auf dem Server.
+
+**Angemeldet bleiben:** Die Sitzung laeuft nach 30 Tagen ab, verlaengert sich
+aber bei jedem Start wieder auf 30, solange mehr als die Haelfte verbraucht
+ist. Wer die App benutzt, meldet sich also nicht staendig neu an.
+
+> Die installierte App fuehrt **eigene Cookies**, getrennt von Safari. Nach dem
+> Installieren meldet man sich einmalig darin an.
+
+### Symbole neu erzeugen
+
+`app/icon.svg` ist die Quelle — ein Zahnrad in Silber auf Schwarz, in derselben
+Sprache wie die Oberflaeche. Erzeugt wird es von `symbole.py`, zusammen mit den
+beiden randlosen Fassungen fuer Android (`maskable`, wird auf einen Kreis
+beschnitten) und iOS:
+
+```bash
+python3 symbole.py
+```
+
+Aus den SVG werden die PNG gerastert — auf dem Mac ist weder ImageMagick noch
+rsvg-convert vorausgesetzt, es genuegt ein Browser: die SVG auf ein `<canvas>`
+zeichnen und ueber `toDataURL("image/png")` sichern, in 192, 512 (aus
+`icon.svg`), 512 (`icon-maskable.svg`) und 180 (`icon-apple.svg`). Danach
+verkleinert
+
+```bash
+python3 symbole.py --nachbearbeiten app/icon-*.png app/apple-touch-icon.png
+```
+
+die Dateien verlustfrei: Alphakanal weg, wo nichts durchsichtig ist, je Zeile
+der guenstigste Filter, volle Kompression — aus 322 KB werden so 105 KB.
 
 ## Aktualisieren
 

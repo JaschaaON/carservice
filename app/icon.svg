@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Carservice</title>
+  <defs>
+    <linearGradient id="grund" x1="0" y1="0" x2="0.45" y2="1">
+      <stop offset="0" stop-color="#1d1f23"/>
+      <stop offset="0.45" stop-color="#141619"/>
+      <stop offset="1" stop-color="#0f1113"/>
+    </linearGradient>
+    <linearGradient id="silber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f6f8"/>
+      <stop offset="0.42" stop-color="#dfe3e7"/>
+      <stop offset="1" stop-color="#a8aeb5"/>
+    </linearGradient>
+    <linearGradient id="saum" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#grund)"/>
+  <rect x="1" y="1" width="510" height="510" rx="112" ry="112" fill="none" stroke="url(#saum)" stroke-width="2"/>
+  <path d="M 227.23 136.17 L 232.77 109.35 A 148.48 148.48 0 0 1 279.23 109.35 L 284.77 136.17 A 123.24 123.24 0 0 1 320.39 150.92 L 343.27 135.88 A 148.48 148.48 0 0 1 376.12 168.73 L 361.08 191.61 A 123.24 123.24 0 0 1 375.83 227.23 L 402.65 232.77 A 148.48 148.48 0 0 1 402.65 279.23 L 375.83 284.77 A 123.24 123.24 0 0 1 361.08 320.39 L 376.12 343.27 A 148.48 148.48 0 0 1 343.27 376.12 L 320.39 361.08 A 123.24 123.24 0 0 1 284.77 375.83 L 279.23 402.65 A 148.48 148.48 0 0 1 232.77 402.65 L 227.23 375.83 A 123.24 123.24 0 0 1 191.61 361.08 L 168.73 376.12 A 148.48 148.48 0 0 1 135.88 343.27 L 150.92 320.39 A 123.24 123.24 0 0 1 136.17 284.77 L 109.35 279.23 A 148.48 148.48 0 0 1 109.35 232.77 L 136.17 227.23 A 123.24 123.24 0 0 1 150.92 191.61 L 135.88 168.73 A 148.48 148.48 0 0 1 168.73 135.88 L 191.61 150.92 A 123.24 123.24 0 0 1 227.23 136.17 Z M 205.52 256.00 a 50.48 50.48 0 1 0 100.97 0 a 50.48 50.48 0 1 0 -100.97 0 Z" fill-rule="evenodd" fill="url(#silber)"
+        stroke="url(#silber)" stroke-width="7" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="71.27" fill="none"
+          stroke="#0f1113" stroke-opacity="0.30" stroke-width="8.17"/>
+</svg>

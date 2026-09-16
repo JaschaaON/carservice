@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#08090a">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Carservice">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" href="icon-192.png">
 <title>Overlandvibe Carservice</title>
 <style>
@@ -370,6 +372,8 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .dlg-hd h3{font-size:16px;flex:1}
 .dlg-bd{padding:18px;max-height:65vh;overflow-y:auto}
 .dlg-ft{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+.install-schritte{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.install-schritte li::marker{color:var(--accent-dim);font-family:var(--schrift-zahl)}
 
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-weight:500}
@@ -749,7 +753,6 @@ details.h-notiz[open] p::after{
 .pdf-titel{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .pdf-titel strong{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pdf-dlg iframe{flex:1;width:100%;border:none;background:#525659}
-.pdf-fuss{padding:8px 14px;border-top:1px solid var(--line);flex:none;text-align:center}
 @media(max-width:560px){
   .pdf-dlg{width:100vw;height:100dvh;max-width:100vw;max-height:100dvh;border-radius:0}
   .pdf-titel strong{font-size:14px}
@@ -848,6 +851,8 @@ details.h-notiz[open] p::after{
               title="Menü">⚙</button>
       <div class="menue" id="menue" hidden>
         <div class="menue-kopf" id="menueKopf"></div>
+        <button type="button" class="menue-punkt" data-menue="install" hidden>
+          <span class="menue-symbol">⤓</span> Zum Startbildschirm</button>
         <button type="button" class="menue-punkt" data-menue="fahrzeug">
           <span class="menue-symbol">⚙</span> Fahrzeugdaten</button>
         <a class="menue-punkt" id="menueVerwaltung" href="/admin" hidden>
@@ -2014,9 +2019,9 @@ function kmPruefen(){
 /* ═══════════ Anleitungen ═══════════════════════════════════════
    Werkstattunterlagen als PDF, je Fahrzeug. Angezeigt wird mit den
    Bordmitteln des Browsers — eine PDF-Bibliothek einzubetten haette
-   die App um ein Megabyte wachsen lassen. Auf iOS ist das Einbetten
-   allerdings unzuverlaessig, deshalb immer auch der Weg ins Vollbild,
-   wo Safari PDFs sauber mit Zoom und Suche darstellt.             */
+   die App um ein Megabyte wachsen lassen. Auf iOS traegt das Einbetten
+   nicht: Safari zeigt im <iframe> nur die erste Seite und laesst nicht
+   blaettern. Dort wird deshalb im selben Fenster geoeffnet.        */
 
 const docUrl  = (id,seite)=> api("docs/" + id) + (seite>1?`#page=${seite}`:"");
 const docById = id => (CAR.docs||[]).find(d=>d.id===id);
@@ -2025,11 +2030,12 @@ const mb = n => n==null ? "—"
   : n < 1048576 ? Math.round(n/1024).toLocaleString("de-DE")+" KB"
   : (n/1048576).toLocaleString("de-DE",{maximumFractionDigits:1})+" MB";
 
-/** Anleitung im Dialog anzeigen. */
+/** Anleitung anzeigen — eingebettet, auf iOS im selben Fenster. */
 function zeigeAnleitung(id, seite){
   const d = docById(id);
   if(!d){ toast("Anleitung nicht gefunden",true); return; }
   const url = docUrl(id, seite);
+  if(istIOS()) return anleitungImFenster(d, url, seite);
 
   const el = document.createElement("dialog");
   el.className = "pdf-dlg";
@@ -2042,17 +2048,51 @@ function zeigeAnleitung(id, seite){
       <a class="btn sm" href="${url}" target="_blank" rel="noopener">Vollbild ↗</a>
       <button class="btn icon" data-pdf-zu="1" title="Schließen">✕</button>
     </div>
-    <iframe src="${url}" title="${esc(d.name)}"></iframe>
-    <div class="pdf-fuss tiny faint">
-      Zeigt der Bereich nichts an — auf iPhone und iPad kommt das vor —
-      dann öffne die Anleitung über <strong>Vollbild</strong>.
-    </div>`;
+    <iframe src="${url}" title="${esc(d.name)}"></iframe>`;
   document.body.appendChild(el);
   el.showModal();
   el.addEventListener("close", ()=>el.remove());
   el.addEventListener("click", e=>{
     if(e.target.closest("[data-pdf-zu]")) el.close();
   });
+}
+
+/* Auf iOS uebernimmt der systemeigene Betrachter: blaettern, zoomen,
+   suchen. Ein target="_blank" waere der falsche Weg — das landet in der
+   eingebetteten Browseransicht, die eigene Cookies fuehrt, und dort
+   antwortet /api/docs/<id> mit 401. Also derselbe Tab; die Wischgeste von
+   links fuehrt zurueck, und der gemerkte Rueckweg stellt die Ansicht
+   wieder her, in der man war. */
+function anleitungImFenster(d, url, seite){
+  openDlg(d.name, `
+    <p class="tiny" style="margin:0 0 4px;color:var(--text-dim)">
+      ${d.seiten?d.seiten+" Seiten · ":""}${mb(d.bytes)}${seite>1?" · ab Seite "+seite:""}</p>
+    <p class="tiny faint" style="margin:0">
+      Die Anleitung öffnet sich in der Anzeige von iOS. Zurück kommst du mit
+      einem Wisch von links — die App steht dann wieder da, wo du warst.</p>`, null);
+  $("#dlgFoot").innerHTML =
+    `<button class="btn" value="cancel" formnovalidate>Abbrechen</button>
+     <button class="btn primary" type="button" id="btnDokAuf">Anleitung öffnen</button>`;
+  $("#btnDokAuf").onclick = ()=>{
+    try{
+      sessionStorage.setItem("rueckweg", JSON.stringify({ansicht: aktiveAnsicht()}));
+    }catch(e){}
+    location.assign(url);
+  };
+}
+
+const aktiveAnsicht = () => ($("#nav button.active")||{dataset:{}}).dataset.view;
+
+/** Nach der Rueckkehr von einer Anleitung wieder dieselbe Ansicht zeigen. */
+function rueckwegGehen(){
+  let merk = null;
+  try{
+    merk = JSON.parse(sessionStorage.getItem("rueckweg") || "null");
+    sessionStorage.removeItem("rueckweg");
+  }catch(e){}
+  if(!merk || !merk.ansicht) return;
+  const knopf = $(`#nav button[data-view="${merk.ansicht}"]`);
+  if(knopf) knopf.click();
 }
 
 /** Kompakte Liste verknüpfter Anleitungen, für Positionskarten. */
@@ -3551,6 +3591,16 @@ $("#menue").addEventListener("click", async e=>{
     if(CAR) vehicleDialog(CAR.id);
     else vehicleDialog(null);
   }
+  if(punkt.dataset.menue === "install"){
+    if(INSTALL_EREIGNIS){
+      INSTALL_EREIGNIS.prompt();                    // muss in der Geste bleiben
+      const wahl = await INSTALL_EREIGNIS.userChoice;
+      INSTALL_EREIGNIS = null; zeichneInstall();
+      if(wahl.outcome === "accepted") toast("Liegt jetzt auf dem Startbildschirm");
+    }else{
+      installHinweis();
+    }
+  }
   if(punkt.dataset.menue === "abmelden"){
     if(!confirm("Wirklich abmelden?")) return;
     try{ await fetch("api/logout", {method:"POST"}); }catch(err){}
@@ -3580,6 +3630,48 @@ function zeichneMenue(){
     verwaltung.hidden = true;
     abmelden.hidden = true;                 // ohne Server nichts abzumelden
   }
+  zeichneInstall();
+}
+
+/* ---------- Zum Startbildschirm ----------
+   Zwei Welten: Chrome auf Android meldet sich von selbst mit
+   "beforeinstallprompt" und laesst sich programmgesteuert oeffnen — aber nur
+   aus einer echten Geste heraus, deshalb wird das Ereignis aufgehoben statt
+   sofort benutzt. Safari auf iOS kennt nichts dergleichen; dort bleibt nur,
+   den Weg zu zeigen. Erkennbar ist es an navigator.standalone, das es
+   ausschliesslich auf iOS gibt. */
+let INSTALL_EREIGNIS = null;
+const istInstalliert = () =>
+  matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const istIOS = () => navigator.standalone !== undefined;
+
+function zeichneInstall(){
+  const punkt = $("#menue [data-menue='install']");
+  if(!punkt) return;
+  punkt.hidden = istInstalliert() || !(INSTALL_EREIGNIS || istIOS());
+}
+addEventListener("beforeinstallprompt", e=>{
+  e.preventDefault(); INSTALL_EREIGNIS = e; zeichneInstall();
+});
+addEventListener("appinstalled", ()=>{ INSTALL_EREIGNIS = null; zeichneInstall(); });
+
+function installHinweis(){
+  openDlg("Zum Startbildschirm", `
+    <p class="tiny" style="margin:0 0 14px;color:var(--text-dim)">
+      Danach startet Carservice im Vollbild, ohne Adressleiste — und iOS
+      räumt die gespeicherten Daten nicht mehr nach sieben Tagen ohne
+      Benutzung weg.</p>
+    <ol class="install-schritte">
+      <li>Unten in Safari auf <b>Teilen</b> tippen
+          <span class="tiny faint">(das Quadrat mit dem Pfeil nach oben)</span></li>
+      <li>In der Liste <b>Zum Home-Bildschirm</b> wählen</li>
+      <li>Oben rechts <b>Hinzufügen</b></li>
+    </ol>
+    <p class="tiny faint" style="margin:14px 0 0">
+      Das geht nur in <b>Safari</b>. Chrome und Firefox legen auf iOS nur eine
+      Verknüpfung an, keine App.</p>`, null);
+  $("#dlgFoot").innerHTML =
+    `<button class="btn primary" value="cancel" formnovalidate>Alles klar</button>`;
 }
 $("#showInactive").onchange=renderPlan;
 $("#partSearch").oninput  =renderParts;
@@ -3619,6 +3711,7 @@ $("#kmNow").onchange=()=>{
   await loadDB();
   $("#kmNow").value = CAR ? (CAR.km || "") : "";
   renderAll();
+  rueckwegGehen();
   kmPruefen();
   if("serviceWorker" in navigator && !isFile)
     navigator.serviceWorker.register("sw.js").catch(()=>{});

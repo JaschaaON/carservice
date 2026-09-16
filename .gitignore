@@ -16,3 +16,6 @@ docs-import/
 __pycache__/
 *.pyc
 .claude/
+
+# Zwischenstand der Symbolerzeugung (symbole.py)
+build/

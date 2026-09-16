@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#08090a">
+<!-- Vollstaendig wie in index.html: Wer nicht angemeldet ist, landet auf
+     dieser Seite — und installiert die App genau von hier aus. Fehlten die
+     Angaben, hiesse das Symbol auf dem Startbildschirm "Anmelden · …" und
+     waere ein Bildschirmfoto. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Carservice">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" href="icon-192.png">
 <title>Anmelden · Overlandvibe Carservice</title>
 <style>
@@ -32,7 +43,7 @@ body{
   margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;
   background:var(--bg);color:var(--text);
   font:15px/1.5 var(--schrift);
-  padding:24px 16px calc(24px + env(safe-area-inset-bottom));
+  padding:calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
   -webkit-font-smoothing:antialiased;
 }
 .karte{width:100%;max-width:370px}
