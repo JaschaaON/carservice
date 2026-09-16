@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#16181d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Hilux">
+<meta name="apple-mobile-web-app-title" content="Carservice">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<title>Hilux Wartung</title>
+<title>Overlandvibe Carservice</title>
 <style>
 :root{
   --bg:#16181d; --surface:#1e2127; --surface-2:#262a32; --line:#343943;
@@ -81,7 +81,7 @@ nav button{
 }
 nav button.active{color:var(--text);border-bottom-color:var(--accent)}
 
-main{padding:18px 16px 60px;max-width:1080px;margin:0 auto}
+main{padding:18px 16px 28px;max-width:1080px;margin:0 auto}
 .view{display:none}
 .view.active{display:block}
 
@@ -415,6 +415,28 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .bib-name{font-size:14px;font-weight:500}
 .bib-zeile[hidden],.bib-gruppe[hidden]{display:none}
 
+/* ---------- Signatur in der Fußzeile ----------
+   Das Zeichen stammt aus dem Schwesterprojekt overlandvibe.com und ist
+   inline eingebettet: bei 400 Byte lohnt kein eigener Request, und so
+   bleibt es auch ohne Netz sichtbar. Sein dunkler Kreis liegt fast auf
+   der Hintergrundfarbe der App — das Zeichen wirkt dadurch wie ein
+   Abzeichen ohne harte Kante. */
+.signatur{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 16px calc(22px + env(safe-area-inset-bottom));
+  font-size:12.5px;
+}
+.signatur a{
+  display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+}
+.ov-mark{width:20px;height:20px;flex:none;display:block}
+.ov-name{
+  color:var(--text-dim);letter-spacing:.015em;font-weight:500;
+  transition:color .15s;
+}
+.signatur a:hover .ov-name{color:var(--accent)}
+.ov-zusatz{color:var(--text-faint)}
+
 /* ---------- Verlauf einer Position ---------- */
 .verlauf{
   margin-top:14px;padding-top:13px;border-top:1px solid var(--line);
@@ -743,6 +765,19 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
     <div id="costOut"></div>
   </section>
 </main>
+
+<footer class="signatur">
+  <a href="https://overlandvibe.com" target="_blank" rel="noopener noreferrer">
+    <svg class="ov-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <circle cx="32" cy="32" r="32" fill="#111413"/>
+      <path d="M10 43 L21.5 25 L29 35 L37 22.5 L54 43 Z" fill="#F2EFE9"/>
+      <path d="M10 51 C17.5 47, 24 54, 32 50.5 C40 47, 46.5 54, 54 50"
+            fill="none" stroke="#E0872A" stroke-width="4.2" stroke-linecap="round"/>
+    </svg>
+    <span class="ov-name">overlandvibe</span>
+  </a>
+  <span class="ov-zusatz">carservice</span>
+</footer>
 
 <div class="toast" id="toast"></div>
 <dialog id="dlg"><form method="dialog" id="dlgForm">
@@ -1519,7 +1554,7 @@ function renderTrip(){
     + block("Vor der Abfahrt erledigen", before, "crit", "Diese Positionen sind bereits überfällig.")
     + block("Wird unterwegs fällig", during, "warn", "Entweder vorziehen oder Teile und Werkzeug mitnehmen.")
     + pack
-    + (!before.length&&!during.length?`<div class="card"><strong>✓ Der Hilux ist tourbereit.</strong>
+    + (!before.length&&!during.length?`<div class="card"><strong>✓ ${esc([CAR.brand,CAR.name].filter(Boolean).join(" ")||"Das Fahrzeug")} ist tourbereit.</strong>
        <div class="tiny faint">Auf dieser Strecke wird nichts fällig.</div></div>`:"");
 }
 

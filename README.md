@@ -1,6 +1,7 @@
-# Fahrzeugwartung
+# Overlandvibe Carservice
 
 Wartungsplan, Teilekatalog und Historie für **beliebig viele Fahrzeuge**.
+Ein Projekt von [overlandvibe.com](https://overlandvibe.com).
 Ersetzt die Excel-Liste durch eine Übersicht, die selbst ausrechnet, was als Nächstes ansteht.
 Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 
