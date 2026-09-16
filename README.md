@@ -54,6 +54,28 @@ Ueber das Stiftsymbol laesst sich jeder Eintrag direkt bearbeiten.
 Teilenamen in der Einkaufsliste und in der Teileliste einer Position sind
 verlinkt und oeffnen den Teiledialog — fuer Teilenummer, Preis und Kauflinks.
 
+## Marke
+
+Die Fussleiste traegt das Zeichen von overlandvibe.com und den Schriftzug
+„overlandvibe carservice", verlinkt auf die Website. Das SVG ist **inline in
+`app/index.html` eingebettet**, nicht als Datei verlinkt: bei rund 400 Byte
+lohnt kein eigener Request, und so bleibt es auch ohne Netz sichtbar, ohne dass
+der Service Worker eine weitere Datei vorhalten muss. Quelle des Zeichens ist
+`overlandvibe/public/logo/mark-trail.svg` im Schwesterprojekt.
+
+Sein dunkler Kreis (`#111413`) liegt praktisch auf der Hintergrundfarbe der App
+(`#16181d`), wodurch es wie ein Abzeichen ohne harte Kante wirkt.
+
+Der Name auf dem Homescreen kommt aus `apple-mobile-web-app-title` — dieses
+Meta-Tag hat auf iOS **Vorrang vor dem Manifest**. Es steht auf „Carservice",
+weil iOS unter dem Icon nach etwa zwoelf Zeichen abschneidet; der vollstaendige
+Name „Overlandvibe Carservice" steht im Manifest und erscheint beim
+Installieren.
+
+Die **App-Icons sind noch das blaue Zahnrad**. Sie auf die Overlandvibe-Marke
+umzustellen hiesse, die drei PNG (192, 512 und 180 px) aus dem SVG neu zu
+erzeugen — bislang bewusst offen gelassen.
+
 ## Kilometerstand
 
 Ein veralteter Kilometerstand macht jede Faelligkeitsangabe falsch — bei
