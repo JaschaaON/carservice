@@ -137,9 +137,15 @@ main{padding:18px 16px 60px;max-width:1080px;margin:0 auto}
 .fz-karte.aktiv{background:var(--surface-2)}
 .fz-kopf{display:flex;align-items:center;gap:10px}
 .fz-titel{font-size:16px;font-weight:650;flex:1;letter-spacing:-.01em}
-.fz-ampel{width:9px;height:9px;border-radius:50%;flex:none;background:var(--text-faint)}
-.fz-ampel.ok{background:var(--ok)} .fz-ampel.warn{background:var(--warn)}
-.fz-ampel.crit{background:var(--crit)}
+.fz-zeichen{
+  width:28px;height:28px;flex:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--flaeche);border:1px solid var(--rand);
+}
+.fz-zeichen svg{width:19px;height:19px}
+.fz-zeichen.ok  {color:var(--ok);   --flaeche:rgba(62,207,142,.10); --rand:rgba(62,207,142,.3)}
+.fz-zeichen.warn{color:var(--warn); --flaeche:rgba(245,182,66,.10); --rand:rgba(245,182,66,.32)}
+.fz-zeichen.crit{color:var(--crit); --flaeche:rgba(255,95,86,.10);  --rand:rgba(255,95,86,.32)}
 .fz-sub{margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fz-zahlen{display:flex;flex-wrap:wrap;gap:13px;margin:12px 0 10px;
   padding-top:11px;border-top:1px solid var(--line);font-size:12.5px;color:var(--text-dim)}
@@ -152,21 +158,76 @@ main{padding:18px 16px 60px;max-width:1080px;margin:0 auto}
 }
 .fz-karte.neu:hover{color:var(--accent);border-color:var(--accent)}
 
-/* ---------- Statusring ---------- */
-.ring-karte{
-  grid-column:1/-1;display:flex;align-items:center;gap:22px;
-  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;
+/* ---------- Statuskarte ----------
+   Die Karte traegt die Statusfarbe nur als leiser Schimmer am Rand;
+   die Aussage macht das Zeichen, nicht die Flaeche. */
+.statuskarte{
+  grid-column:1/-1;position:relative;overflow:hidden;
+  display:flex;align-items:center;gap:26px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:18px;padding:26px 28px;
 }
-.ring{width:128px;height:128px;flex:none}
-.ring-gross{font-size:26px;font-weight:700;fill:var(--text)}
-.ring-klein{font-size:11px;fill:var(--text-faint);letter-spacing:.03em}
-.ring-text{min-width:0;flex:1}
-.ring-name{font-size:19px;font-weight:650;letter-spacing:-.01em;margin:2px 0 3px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ring-zahlen{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;
-  padding-top:13px;border-top:1px solid var(--line);font-size:13px;color:var(--text-dim)}
-.ring-zahlen b{color:var(--text);font-weight:650;font-size:15px;margin-right:3px}
-.ring-zahlen .warnfarbe b{color:var(--crit)}
+.statuskarte::before{                       /* farbiger Hauch von links */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 0% 50%, var(--hauch) 0%, transparent 62%);
+}
+.statuskarte.ok  {--hauch:rgba(62,207,142,.10); border-color:rgba(62,207,142,.22)}
+.statuskarte.warn{--hauch:rgba(245,182,66,.11); border-color:rgba(245,182,66,.24)}
+.statuskarte.crit{--hauch:rgba(255,95,86,.11); border-color:rgba(255,95,86,.26)}
+
+/* ---------- Statuszeichen ---------- */
+.statuszeichen{
+  position:relative;width:104px;height:104px;flex:none;
+  display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:var(--flaeche);border:1.5px solid var(--rand);
+}
+.statuszeichen svg{width:104px;height:104px;position:relative;z-index:1}
+.statuszeichen .schein{            /* weicher Schein hinter dem Zeichen */
+  position:absolute;inset:-14px;border-radius:50%;
+  background:radial-gradient(circle, var(--schein) 0%, transparent 68%);
+}
+.statuszeichen.ok  {color:var(--ok);   --flaeche:rgba(62,207,142,.09); --rand:rgba(62,207,142,.3);  --schein:rgba(62,207,142,.20)}
+.statuszeichen.warn{color:var(--warn); --flaeche:rgba(245,182,66,.09); --rand:rgba(245,182,66,.32); --schein:rgba(245,182,66,.20)}
+.statuszeichen.crit{color:var(--crit); --flaeche:rgba(255,95,86,.09);  --rand:rgba(255,95,86,.32);  --schein:rgba(255,95,86,.22)}
+
+/* Linien zeichnen sich beim Erscheinen */
+.statuszeichen svg path{
+  stroke-dasharray:100; stroke-dashoffset:100;
+  animation:zeichnen .55s cubic-bezier(.65,0,.35,1) forwards;
+}
+.statuszeichen svg path:nth-child(2){animation-delay:.14s}
+@keyframes zeichnen{to{stroke-dashoffset:0}}
+.statuszeichen{animation:auftauchen .4s cubic-bezier(.34,1.3,.64,1) both}
+@keyframes auftauchen{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+
+@media(prefers-reduced-motion:reduce){
+  .statuszeichen,.statuszeichen svg path{animation:none;stroke-dashoffset:0}
+}
+
+.status-text{min-width:0;flex:1}
+.status-titel{
+  font-size:25px;font-weight:680;letter-spacing:-.022em;line-height:1.18;margin:0;
+}
+.status-sub{font-size:14px;color:var(--text-dim);margin-top:7px;line-height:1.45}
+.status-sub strong{color:var(--text);font-weight:600}
+.status-zahlen{
+  display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:15px;
+  border-top:1px solid var(--line);font-size:12px;color:var(--text-faint);
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.status-zahlen span{display:flex;align-items:baseline;gap:5px}
+.status-zahlen b{
+  color:var(--text);font-weight:680;font-size:19px;letter-spacing:-.01em;text-transform:none;
+}
+.status-zahlen .warnfarbe b{color:var(--crit)}
+.status-zahlen .bald b{color:var(--warn)}
+
+@media(max-width:560px){
+  .statuskarte{flex-direction:column;align-items:center;text-align:center;gap:18px;padding:24px 18px}
+  .statuszeichen,.statuszeichen svg{width:88px;height:88px}
+  .status-titel{font-size:21px}
+  .status-zahlen{justify-content:center;gap:16px;width:100%}
+}
 
 /* ---------- Zeitstrahl ---------- */
 .strahl-wrap{
@@ -812,29 +873,22 @@ const partById = id=>CAR.parts.find(p=>p.id===id);
 
 /* ═══════════ Übersicht ═══════════ */
 
-/** Ring, der zeigt wie viel vom Intervall verbraucht ist.
- *  Inline-SVG statt Diagrammbibliothek — die Seite muss offline
- *  funktionieren, und ein Ring ist etwas Geometrie, keine Bibliothek. */
-function statusRing(s){
-  const r = 52, u = 2*Math.PI*r;
-  const anteil = s ? Math.max(0, Math.min(1, s.pct/100)) : 0;
-  const farbe = s ? (s.level==="crit"?"var(--crit)":s.level==="warn"?"var(--warn)":"var(--ok)") : "var(--line)";
-
-  const mitte = !s ? `<tspan class="ring-gross">—</tspan>`
-    : s.rem<=0 ? `<tspan class="ring-gross" style="fill:var(--crit)">fällig</tspan>`
-    : s.lead==="km" ? `<tspan class="ring-gross">${nKm(s.remKm)}</tspan>`
-    : `<tspan class="ring-gross">${s.remDays}</tspan>`;
-  const einheit = !s ? "" : s.rem<=0 ? "" : s.lead==="km" ? "km übrig" : "Tage übrig";
-
-  return `<svg class="ring" viewBox="0 0 128 128" role="img"
-      aria-label="${s?esc(s.task.name)+": "+Math.round(anteil*100)+" Prozent des Intervalls verbraucht":"keine Daten"}">
-    <circle cx="64" cy="64" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="11"/>
-    <circle cx="64" cy="64" r="${r}" fill="none" stroke="${farbe}" stroke-width="11"
-      stroke-linecap="round" stroke-dasharray="${u}" stroke-dashoffset="${u*(1-anteil)}"
-      transform="rotate(-90 64 64)" style="transition:stroke-dashoffset .6s ease"/>
-    <text x="64" y="60" text-anchor="middle">${mitte}</text>
-    <text x="64" y="80" text-anchor="middle" class="ring-klein">${einheit}</text>
-  </svg>`;
+/** Statussymbol: Haken, Warnzeichen oder Kreuz. Ein Symbol ist auf
+ *  einen Blick eindeutiger als ein Fortschrittsring — gerade wenn man
+ *  mit öligen Händen kurz aufs Telefon schaut. Die Linien werden beim
+ *  Erscheinen gezeichnet, das lenkt den Blick ohne zu zappeln. */
+function statusSymbol(stufe){
+  const pfade = {
+    ok:   '<path d="M20 34 L29 43 L46 22" pathLength="100"/>',
+    warn: '<path d="M33 17 L33 36" pathLength="100"/><path d="M33 46 L33 46.5" pathLength="100"/>',
+    crit: '<path d="M22 22 L44 44" pathLength="100"/><path d="M44 22 L22 44" pathLength="100"/>'
+  };
+  return `<div class="statuszeichen ${stufe}" aria-hidden="true">
+    <span class="schein"></span>
+    <svg viewBox="0 0 66 66" fill="none" stroke="currentColor"
+         stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      ${pfade[stufe] || pfade.ok}
+    </svg></div>`;
 }
 
 /** Zeitstrahl der kommenden zwölf Monate. */
@@ -922,22 +976,33 @@ function renderDash(){
   const kpd = kmPerDay();
   const naechste = crit[0] || echt[0] || null;
 
+  const stufe = crit.length ? "crit" : warn.length ? "warn" : "ok";
+  const ueberschrift = crit.length
+      ? (crit.length===1 ? "Eine Position ist fällig" : `${crit.length} Positionen sind fällig`)
+    : warn.length
+      ? (warn.length===1 ? "Eine Position steht an" : `${warn.length} Positionen stehen an`)
+    : "Alles in Ordnung";
+
+  const unterzeile = naechste
+    ? (naechste.rem<=0
+        ? `<strong>${esc(naechste.task.name)}</strong> — ${naechste.lead==="km"
+            ? nKm(-naechste.remKm)+" km überfällig" : Math.abs(naechste.remDays)+" Tage überfällig"}`
+        : `Als Nächstes <strong>${esc(naechste.task.name)}</strong> in ${naechste.lead==="km"
+            ? nKm(naechste.remKm)+" km" : naechste.remDays+" Tagen"}${
+            naechste.forecast?` · etwa ${dDE(naechste.forecast)}`:""}`)
+    : "Für keine Position lässt sich eine Fälligkeit berechnen.";
+
   $("#dashStats").innerHTML = `
-    <div class="ring-karte">
-      ${statusRing(naechste)}
-      <div class="ring-text">
-        <div class="tiny faint">${naechste ? (naechste.rem<=0?"Überfällig":"Als Nächstes") : "Keine Fälligkeit"}</div>
-        <div class="ring-name">${naechste?esc(naechste.task.name):"—"}</div>
-        ${naechste&&naechste.forecast&&naechste.rem>0
-          ? `<div class="tiny muted">voraussichtlich ${dDE(naechste.forecast)}</div>` : ""}
-        ${naechste&&naechste.rem<=0
-          ? `<div class="tiny" style="color:var(--crit)">${naechste.lead==="km"
-              ? nKm(-naechste.remKm)+" km überfällig" : Math.abs(naechste.remDays)+" Tage überfällig"}</div>` : ""}
-        <div class="ring-zahlen">
-          <span><b class="num">${nKm(CAR.km)}</b> km</span>
-          <span><b class="num">${Math.round(kpd)}</b> km/Tag</span>
-          <span class="${crit.length?"warnfarbe":""}"><b>${crit.length}</b> überfällig</span>
-          <span><b>${warn.length}</b> bald</span>
+    <div class="statuskarte ${stufe}">
+      ${statusSymbol(stufe)}
+      <div class="status-text">
+        <h2 class="status-titel">${ueberschrift}</h2>
+        <div class="status-sub">${unterzeile}</div>
+        <div class="status-zahlen">
+          <span><b class="num">${nKm(CAR.km)}</b>km</span>
+          <span><b class="num">${Math.round(kpd)}</b>km/Tag</span>
+          <span class="${crit.length?"warnfarbe":""}"><b>${crit.length}</b>überfällig</span>
+          <span class="${warn.length?"bald":""}"><b>${warn.length}</b>demnächst</span>
         </div>
       </div>
     </div>`;
@@ -2082,7 +2147,11 @@ function renderFuhrpark(){
       <div class="fz-kopf">
         <div class="fz-titel">${esc(titel)}
           ${v.id===CAR.id?`<span class="pill info">aktiv</span>`:""}</div>
-        <div class="fz-ampel ${stufe}"></div>
+        <span class="fz-zeichen ${stufe}">${
+          stufe==="crit" ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M7 7 L17 17"/><path d="M17 7 L7 17"/></svg>`
+        : stufe==="warn" ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M12 6 L12 14"/><path d="M12 18 L12 18.4"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12.5 L10 16.5 L18 7.5"/></svg>`
+        }</span>
       </div>
       <div class="fz-sub tiny faint">${esc([v.model, v.plate, v.owner&&"Halter: "+v.owner].filter(Boolean).join(" · ")) || "—"}</div>
       <div class="fz-zahlen">
