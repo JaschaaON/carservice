@@ -414,6 +414,77 @@ Ohne Fremdbibliotheken, alles mit Node-Bordmitteln:
 **Passwort vergessen** setzt der Admin zurueck — es gibt bewusst keinen
 Mailversand, das waere eigene Infrastruktur.
 
+## Fahrzeug bestimmen
+
+Beim Anlegen eines Fahrzeugs steht oben ein Auswahlblock: **Marke → Baujahr →
+Modell → Motorisierung**. Das Baujahr grenzt die Modelle ein (ein Golf VI
+verschwindet, sobald 2016 dasteht), das Modell die Motoren. Danach traegt die
+App Marke, Bezeichnung, Motor, Kraftstoff und Antrieb selbst in die Felder ein
+— sichtbar, damit man es korrigieren kann.
+
+Abgedeckt sind **24 Marken, 116 Modellreihen, 324 Motorisierungen** — die in
+Deutschland gaengigen Fahrzeuge, nicht der Weltmarkt.
+
+### Was der Katalog weiss und was nicht
+
+Der Katalog traegt **keine Wartungsintervalle**. Die kommen aus dem
+Markenprofil. Er traegt die paar technischen Tatsachen, an denen sich der Plan
+tatsaechlich entscheidet:
+
+| Merkmal | Wirkung im Plan |
+|---|---|
+| `steuer: riemen` | Zahnriemenposition mit Wechseltermin |
+| `steuer: nassriemen` | Riemen im Oelbad — Pruefen **und** Wechseln, frueher |
+| `steuer: kette` | nur „Steuerkette pruefen", kein Termin |
+| `steuer: unklar` | Position „Steuertrieb feststellen" statt einer Behauptung |
+| `abgas: kat` | kein Partikelfilter, kein AdBlue |
+| `abgas: dpf` | Partikelfilter, kein AdBlue |
+| `abgas: dpf+adblue` | beides |
+
+Das ist der Punkt der ganzen Uebung: Ein Markenprofil kennt die Marke, nicht
+den Motor. Der **Pajero** bekommt aus dem Markenprofil eine Zahnriemenposition
+— beim 4M41 ist das falsch, der hat eine Kette. Waehlt man die Motorisierung,
+raeumt die App die Steuertriebspositionen aus dem Plan und setzt genau die
+richtige hinein. Dasselbe gilt fuer AdBlue bei einem Euro-5-Diesel, den es dort
+nicht gibt.
+
+Motoren stehen **einmal je Konzern** und werden von den Modellen nur
+referenziert. Ein EA288 sitzt in Golf, Passat, Octavia und Leon gleichermassen
+— dreimal abgeschrieben waere er dreimal falsch.
+
+> **Grenze, die bleibt.** Verbindliche Werksintervalle fuer jeden Motor liegen
+> nicht frei vor; sie stehen im Serviceheft und in kostenpflichtigen
+> Werkstattdatenbanken. Die Intervalle hier sind praxisnahe Groessenordnungen,
+> absichtlich kuerzer als die laengste Werksangabe, und jede erzeugte Position
+> sagt das auch. Wo eine Motorenreihe je nach Motorcode Riemen **oder** Kette
+> hat, behauptet die App nichts, sondern legt eine Position an, die zum
+> Nachsehen auffordert.
+
+### Wenn das Fahrzeug nicht dabei ist
+
+Drei Wege, alle gleichwertig:
+
+1. **Grundplan · Diesel** oder **Grundplan · Benziner** — was jedes Fahrzeug
+   braucht (Oel, Filter, Bremsen, Reifen, Fahrwerk) plus das, was am Kraftstoff
+   haengt. Bewusst **ohne** Zahnriemen: den traegt man nach, wenn man weiss, ob
+   der Motor einen hat. Alles Weitere ueber *Aus Bibliothek*.
+2. **Nach Marke** — das Markenprofil wie bisher.
+3. **Leer beginnen** und jede Position selbst anlegen.
+
+### HSN und TSN
+
+Zwei Felder im Fahrzeugformular, aus der Zulassungsbescheinigung Teil I (2.1
+und 2.2). Sie stehen auf der Fahrzeugkarte, damit man sie im Teileshop zur Hand
+hat — **eine Suche daraus gibt es bewusst nicht.**
+
+Warum nicht: Das KBA veroeffentlicht zwar eine Liste der Hersteller- und
+Typschluesselnummern, die fuehrt aber zu Herstellername und Handelsbezeichnung
+— nicht zum Motorcode. Genau die Verknuepfung HSN/TSN → Motor ist das, was
+kommerzielle Werkstattdatenbanken verkaufen. Eine Suche haette also entweder
+geraten oder waere bei „VW Golf" stehen geblieben, und das sind dieselben drei
+Klicks wie im Auswahlblock — bei mehreren Megabyte Zusatzdaten in einer App,
+die offline funktionieren soll.
+
 ## Markenprofile
 
 Beim Anlegen eines Fahrzeugs laesst sich ein Markenprofil waehlen.

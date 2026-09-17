@@ -2465,6 +2465,405 @@ const MARKENPROFILE = [
   },
 ];
 
+/* ═══════════ Fahrzeugkatalog ═══════════════════════════════════
+   Marke → Modell → Motorisierung. Der Katalog traegt nicht die
+   Wartungsintervalle — die kommen aus dem Markenprofil — sondern die
+   paar technischen Tatsachen, an denen sich der Plan entscheidet:
+   Zahnriemen oder Steuerkette, Nassriemen, Partikelfilter, AdBlue.
+   Genau daran haengt, ob eine teure Position im Plan steht oder fehlt.
+
+   Motoren stehen einmal je Konzern und werden von den Modellen nur
+   referenziert — ein EA288 sitzt in Golf, Passat, Octavia und Leon
+   gleichermassen, und dreimal abgeschrieben waere er dreimal falsch.
+
+   Felder einer Motorisierung:
+     fuel    diesel | benzin | hybrid
+     steuer  riemen | kette | nassriemen | unklar
+     rWechsel [km, Monate] — nur bei riemen und nassriemen
+     abgas   kat (ohne Filter) | dpf | dpf+adblue
+     getriebe/antrieb  Vorauswahl fuers Formular
+     h       Hinweis, der in die Zahnriemen- bzw. Motorposition wandert
+
+   Die Intervalle sind praxisnahe Groessenordnungen, absichtlich
+   kuerzer als die laengste Werksangabe. Was gilt, steht im
+   Serviceheft — die App sagt das bei jeder erzeugten Position.     */
+
+const KATALOG = [
+{
+  gruppe:"VW-Konzern", profil:"vw-longlife",
+  motoren:{
+    "1.0 TSI (EA211)":      {fuel:"benzin", steuer:"riemen", rWechsel:[120000,72], abgas:"kat",
+      h:"Dreizylinder EA211. Werksangabe teils 210.000 km — viele Werkstaetten wechseln deutlich frueher."},
+    "1.2 / 1.4 TSI (EA111, bis ca. 2012)": {fuel:"benzin", steuer:"kette", abgas:"kat",
+      h:"Steuerkette. Bei dieser Baureihe ist Kettenlaengung ein bekanntes Schadensbild — Rasseln beim Kaltstart ernst nehmen."},
+    "1.2 / 1.4 TSI (EA211, ab 2012)": {fuel:"benzin", steuer:"riemen", rWechsel:[120000,72], abgas:"kat"},
+    "1.5 TSI (EA211 evo)":  {fuel:"benzin", steuer:"riemen", rWechsel:[120000,72], abgas:"dpf",
+      h:"Ottopartikelfilter ab Euro 6c."},
+    "1.8 / 2.0 TSI (EA888)":{fuel:"benzin", steuer:"kette", abgas:"kat",
+      h:"Steuerkette. Bei Gen 1 und 2 (bis ca. 2011) gilt der Kettenspanner als Schwachstelle."},
+    "2.0 TFSI (EA113)":     {fuel:"benzin", steuer:"riemen", rWechsel:[120000,72], abgas:"kat"},
+    "1.9 TDI (PD)":         {fuel:"diesel", steuer:"riemen", rWechsel:[120000,72], abgas:"kat",
+      h:"Pumpe-Duese. Ohne Partikelfilter, ausser nachgeruestet."},
+    "1.6 / 2.0 TDI (EA189, 2008–2015)": {fuel:"diesel", steuer:"riemen", rWechsel:[180000,96], abgas:"dpf",
+      h:"Werksangabe teils 210.000 km. Die Wasserpumpe sitzt im Riementrieb — sinnvollerweise mitwechseln."},
+    "1.6 / 2.0 TDI (EA288, ab 2015)":   {fuel:"diesel", steuer:"riemen", rWechsel:[180000,96], abgas:"dpf+adblue",
+      h:"SCR mit AdBlue ab Euro 6."},
+    "3.0 TDI V6":           {fuel:"diesel", steuer:"kette", abgas:"dpf+adblue",
+      h:"Steuerkette, sitzt motorruecksseitig — ein Wechsel bedeutet Getriebe raus."},
+    "2.5 TDI R5 (T5)":      {fuel:"diesel", steuer:"riemen", rWechsel:[120000,72], abgas:"dpf"},
+  },
+  marken:{
+    "VW":[
+      {n:"Polo", gen:"V (6R/6C)", von:2009, bis:2017, m:["1.0 TSI (EA211)","1.2 / 1.4 TSI (EA111, bis ca. 2012)","1.2 / 1.4 TSI (EA211, ab 2012)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"Polo", gen:"VI (AW)", von:2017, m:["1.0 TSI (EA211)","1.5 TSI (EA211 evo)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Golf", gen:"VI", von:2008, bis:2012, m:["1.2 / 1.4 TSI (EA111, bis ca. 2012)","1.8 / 2.0 TSI (EA888)","1.9 TDI (PD)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"Golf", gen:"VII", von:2012, bis:2020, m:["1.0 TSI (EA211)","1.2 / 1.4 TSI (EA211, ab 2012)","1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Golf", gen:"VIII", von:2019, m:["1.0 TSI (EA211)","1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Passat", gen:"B7", von:2010, bis:2014, m:["1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"Passat", gen:"B8", von:2014, m:["1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)","3.0 TDI V6"]},
+      {n:"Tiguan", gen:"I (5N)", von:2007, bis:2016, m:["1.4 TSI (EA111, bis ca. 2012)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"Tiguan", gen:"II (AD)", von:2016, m:["1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"T5 Transporter / Multivan", von:2003, bis:2015, m:["2.5 TDI R5 (T5)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"T6 / T6.1 Transporter", von:2015, m:["1.6 / 2.0 TDI (EA288, ab 2015)","1.8 / 2.0 TSI (EA888)"]},
+      {n:"Touran", von:2003, m:["1.2 / 1.4 TSI (EA211, ab 2012)","1.6 / 2.0 TDI (EA189, 2008–2015)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Caddy", von:2004, m:["1.2 / 1.4 TSI (EA211, ab 2012)","1.6 / 2.0 TDI (EA189, 2008–2015)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+    ],
+    "Audi":[
+      {n:"A1", von:2010, m:["1.0 TSI (EA211)","1.2 / 1.4 TSI (EA111, bis ca. 2012)","1.2 / 1.4 TSI (EA211, ab 2012)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"A3", gen:"8P", von:2003, bis:2012, m:["1.2 / 1.4 TSI (EA111, bis ca. 2012)","2.0 TFSI (EA113)","1.9 TDI (PD)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"A3", gen:"8V/8Y", von:2012, m:["1.0 TSI (EA211)","1.2 / 1.4 TSI (EA211, ab 2012)","1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"A4", gen:"B8", von:2007, bis:2015, m:["1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)","3.0 TDI V6"]},
+      {n:"A4", gen:"B9", von:2015, m:["1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)","3.0 TDI V6"]},
+      {n:"A6", gen:"C7/C8", von:2011, m:["1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)","3.0 TDI V6"]},
+      {n:"Q5", von:2008, m:["1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)","1.6 / 2.0 TDI (EA288, ab 2015)","3.0 TDI V6"]},
+    ],
+    "Škoda":[
+      {n:"Fabia", von:2007, m:["1.0 TSI (EA211)","1.2 / 1.4 TSI (EA111, bis ca. 2012)","1.2 / 1.4 TSI (EA211, ab 2012)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"Octavia", gen:"II (1Z)", von:2004, bis:2013, m:["1.2 / 1.4 TSI (EA111, bis ca. 2012)","1.8 / 2.0 TSI (EA888)","1.9 TDI (PD)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"Octavia", gen:"III (5E)", von:2013, bis:2020, m:["1.0 TSI (EA211)","1.2 / 1.4 TSI (EA211, ab 2012)","1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Octavia", gen:"IV (NX)", von:2019, m:["1.0 TSI (EA211)","1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Superb", von:2008, m:["1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Kodiaq", von:2016, m:["1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Yeti", von:2009, bis:2017, m:["1.2 / 1.4 TSI (EA111, bis ca. 2012)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+    ],
+    "Seat":[
+      {n:"Ibiza", von:2008, m:["1.0 TSI (EA211)","1.2 / 1.4 TSI (EA111, bis ca. 2012)","1.2 / 1.4 TSI (EA211, ab 2012)","1.6 / 2.0 TDI (EA189, 2008–2015)"]},
+      {n:"Leon", von:2005, m:["1.2 / 1.4 TSI (EA211, ab 2012)","1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA189, 2008–2015)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+      {n:"Ateca", von:2016, m:["1.5 TSI (EA211 evo)","1.8 / 2.0 TSI (EA888)","1.6 / 2.0 TDI (EA288, ab 2015)"]},
+    ],
+  }
+},
+{
+  gruppe:"BMW", profil:"bmw",
+  motoren:{
+    "N47 / N57 Diesel (2007–2015)": {fuel:"diesel", steuer:"kette", abgas:"dpf",
+      h:"Steuerkette am Motorruecken. Beim N47 ist Kettenriss ein bekanntes Schadensbild — Rasseln im Leerlauf sofort nachgehen."},
+    "B37 / B47 / B57 Diesel (ab 2014)": {fuel:"diesel", steuer:"kette", abgas:"dpf+adblue"},
+    "N43 / N46 Benziner":   {fuel:"benzin", steuer:"kette", abgas:"kat"},
+    "N20 / N26 Benziner (2011–2017)": {fuel:"benzin", steuer:"kette", abgas:"kat",
+      h:"Auch hier gilt die Steuerkette als Schwachstelle der frueheren Baujahre."},
+    "B38 / B48 / B58 Benziner (ab 2014)": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+    "N54 / N55 Reihensechser": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+  },
+  marken:{
+    "BMW":[
+      {n:"1er", gen:"E87/F20/F40", von:2004, m:["N47 / N57 Diesel (2007–2015)","B37 / B47 / B57 Diesel (ab 2014)","N43 / N46 Benziner","N20 / N26 Benziner (2011–2017)","B38 / B48 / B58 Benziner (ab 2014)"]},
+      {n:"3er", gen:"E90", von:2005, bis:2012, m:["N47 / N57 Diesel (2007–2015)","N43 / N46 Benziner","N54 / N55 Reihensechser"]},
+      {n:"3er", gen:"F30", von:2011, bis:2019, m:["N47 / N57 Diesel (2007–2015)","B37 / B47 / B57 Diesel (ab 2014)","N20 / N26 Benziner (2011–2017)","B38 / B48 / B58 Benziner (ab 2014)","N54 / N55 Reihensechser"]},
+      {n:"3er", gen:"G20", von:2018, m:["B37 / B47 / B57 Diesel (ab 2014)","B38 / B48 / B58 Benziner (ab 2014)"]},
+      {n:"5er", gen:"F10/G30", von:2010, m:["N47 / N57 Diesel (2007–2015)","B37 / B47 / B57 Diesel (ab 2014)","B38 / B48 / B58 Benziner (ab 2014)","N54 / N55 Reihensechser"]},
+      {n:"X1", von:2009, m:["N47 / N57 Diesel (2007–2015)","B37 / B47 / B57 Diesel (ab 2014)","B38 / B48 / B58 Benziner (ab 2014)"]},
+      {n:"X3", von:2003, m:["N47 / N57 Diesel (2007–2015)","B37 / B47 / B57 Diesel (ab 2014)","B38 / B48 / B58 Benziner (ab 2014)"]},
+      {n:"X5", von:2006, m:["N47 / N57 Diesel (2007–2015)","B37 / B47 / B57 Diesel (ab 2014)","N54 / N55 Reihensechser"]},
+    ],
+    "Mini":[
+      {n:"Mini", gen:"R56", von:2006, bis:2013, m:["N43 / N46 Benziner","N47 / N57 Diesel (2007–2015)"]},
+      {n:"Mini", gen:"F55/F56", von:2014, m:["B38 / B48 / B58 Benziner (ab 2014)","B37 / B47 / B57 Diesel (ab 2014)"]},
+      {n:"Countryman", von:2010, m:["N47 / N57 Diesel (2007–2015)","B37 / B47 / B57 Diesel (ab 2014)","B38 / B48 / B58 Benziner (ab 2014)"]},
+    ],
+  }
+},
+{
+  gruppe:"Mercedes-Benz", profil:"mercedes",
+  motoren:{
+    "OM 651 (2.1 CDI, ab 2008)": {fuel:"diesel", steuer:"kette", abgas:"dpf",
+      h:"Steuerkette. Ab Euro 6 mit AdBlue — dann die SCR-Position behalten."},
+    "OM 654 (2.0 d, ab 2016)":   {fuel:"diesel", steuer:"kette", abgas:"dpf+adblue"},
+    "OM 642 (3.0 V6 CDI)":       {fuel:"diesel", steuer:"kette", abgas:"dpf+adblue",
+      h:"Der Oelkuehler unter dem Ansaugkruemmer ist ein bekannter Leckagepunkt."},
+    "M 271 / M 274 Benziner":    {fuel:"benzin", steuer:"kette", abgas:"kat"},
+    "M 133 / M 260 / M 264":     {fuel:"benzin", steuer:"kette", abgas:"dpf"},
+    "M 272 / M 276 V6":          {fuel:"benzin", steuer:"kette", abgas:"kat"},
+  },
+  marken:{
+    "Mercedes-Benz":[
+      {n:"A-Klasse", gen:"W176/W177", von:2012, m:["OM 651 (2.1 CDI, ab 2008)","OM 654 (2.0 d, ab 2016)","M 271 / M 274 Benziner","M 133 / M 260 / M 264"]},
+      {n:"C-Klasse", gen:"W204", von:2007, bis:2014, m:["OM 651 (2.1 CDI, ab 2008)","M 271 / M 274 Benziner","M 272 / M 276 V6"]},
+      {n:"C-Klasse", gen:"W205/W206", von:2014, m:["OM 651 (2.1 CDI, ab 2008)","OM 654 (2.0 d, ab 2016)","M 271 / M 274 Benziner","M 133 / M 260 / M 264"]},
+      {n:"E-Klasse", gen:"W212/W213", von:2009, m:["OM 651 (2.1 CDI, ab 2008)","OM 654 (2.0 d, ab 2016)","OM 642 (3.0 V6 CDI)","M 272 / M 276 V6"]},
+      {n:"Sprinter", von:2006, m:["OM 651 (2.1 CDI, ab 2008)","OM 642 (3.0 V6 CDI)","OM 654 (2.0 d, ab 2016)"]},
+      {n:"Vito / V-Klasse", von:2003, m:["OM 651 (2.1 CDI, ab 2008)","OM 654 (2.0 d, ab 2016)"]},
+      {n:"GLC", von:2015, m:["OM 651 (2.1 CDI, ab 2008)","OM 654 (2.0 d, ab 2016)","M 271 / M 274 Benziner","M 133 / M 260 / M 264"]},
+    ],
+  }
+},
+{
+  gruppe:"Ford", profil:"ford",
+  motoren:{
+    "1.0 EcoBoost":      {fuel:"benzin", steuer:"nassriemen", rWechsel:[100000,72], abgas:"kat",
+      h:"Zahnriemen im Oelbad. Ford gibt bis 240.000 km an, in der Praxis treten Schaeden deutlich frueher auf. Oelsieb auf Riemenabrieb kontrollieren."},
+    "1.5 / 2.0 EcoBlue Diesel": {fuel:"diesel", steuer:"nassriemen", rWechsel:[100000,72], abgas:"dpf+adblue",
+      h:"Ebenfalls Nassriemen. Oelwechsel nie ueberziehen — verduenntes Oel greift den Riemen an."},
+    "1.5 / 1.6 TDCi":    {fuel:"diesel", steuer:"riemen", rWechsel:[120000,96], abgas:"dpf"},
+    "2.0 TDCi (Duratorq)": {fuel:"diesel", steuer:"riemen", rWechsel:[150000,96], abgas:"dpf"},
+    "1.5 / 1.6 EcoBoost (Trockenriemen)": {fuel:"benzin", steuer:"riemen", rWechsel:[150000,120], abgas:"kat"},
+    "2.3 EcoBoost":      {fuel:"benzin", steuer:"kette", abgas:"kat"},
+  },
+  marken:{
+    "Ford":[
+      {n:"Fiesta", von:2008, m:["1.0 EcoBoost","1.5 / 1.6 TDCi","1.5 / 1.6 EcoBoost (Trockenriemen)"]},
+      {n:"Focus", von:2004, m:["1.0 EcoBoost","1.5 / 1.6 TDCi","2.0 TDCi (Duratorq)","1.5 / 2.0 EcoBlue Diesel","1.5 / 1.6 EcoBoost (Trockenriemen)"]},
+      {n:"Kuga", von:2008, m:["1.5 / 2.0 EcoBlue Diesel","2.0 TDCi (Duratorq)","1.5 / 1.6 EcoBoost (Trockenriemen)"]},
+      {n:"Transit / Transit Custom", von:2006, m:["2.0 TDCi (Duratorq)","1.5 / 2.0 EcoBlue Diesel"]},
+      {n:"Ranger", von:2011, m:["2.0 TDCi (Duratorq)","1.5 / 2.0 EcoBlue Diesel"]},
+      {n:"Mondeo", von:2007, m:["2.0 TDCi (Duratorq)","1.5 / 2.0 EcoBlue Diesel","1.5 / 1.6 EcoBoost (Trockenriemen)"]},
+    ],
+  }
+},
+{
+  gruppe:"Stellantis", profil:"stellantis",
+  motoren:{
+    "1.2 PureTech":      {fuel:"benzin", steuer:"nassriemen", rWechsel:[100000,72], abgas:"dpf",
+      h:"Zahnriemen im Oelbad, bekanntes Schadensbild. Der Riemen zerfaellt und verstopft das Oelsieb — nicht auf die lange Werksvorgabe verlassen."},
+    "1.4 / 1.6 THP":     {fuel:"benzin", steuer:"kette", abgas:"kat",
+      h:"Steuerkette. Bei den frueheren THP gilt der Kettenspanner als Schwachstelle."},
+    "1.5 / 1.6 BlueHDi": {fuel:"diesel", steuer:"riemen", rWechsel:[120000,96], abgas:"dpf+adblue",
+      h:"Der BlueHDi braucht AdBlue und ein eigenes Additiv (Eolys) fuer die Filterregeneration."},
+    "1.6 HDi (vor BlueHDi)": {fuel:"diesel", steuer:"riemen", rWechsel:[120000,96], abgas:"dpf"},
+    "2.0 BlueHDi":       {fuel:"diesel", steuer:"riemen", rWechsel:[150000,96], abgas:"dpf+adblue"},
+    "1.3 MultiJet":      {fuel:"diesel", steuer:"kette", abgas:"dpf"},
+    "1.6 CDTI (Opel)":   {fuel:"diesel", steuer:"riemen", rWechsel:[120000,96], abgas:"dpf"},
+  },
+  marken:{
+    "Opel":[
+      {n:"Corsa", von:2006, m:["1.2 PureTech","1.6 CDTI (Opel)","1.5 / 1.6 BlueHDi","1.3 MultiJet"]},
+      {n:"Astra", von:2009, m:["1.2 PureTech","1.4 / 1.6 THP","1.6 CDTI (Opel)","1.5 / 1.6 BlueHDi"]},
+      {n:"Insignia", von:2008, m:["1.6 CDTI (Opel)","1.4 / 1.6 THP"]},
+      {n:"Vivaro", von:2014, m:["1.6 HDi (vor BlueHDi)","2.0 BlueHDi","1.5 / 1.6 BlueHDi"]},
+      {n:"Mokka", von:2012, m:["1.2 PureTech","1.6 CDTI (Opel)","1.5 / 1.6 BlueHDi"]},
+    ],
+    "Peugeot":[
+      {n:"208", von:2012, m:["1.2 PureTech","1.5 / 1.6 BlueHDi","1.6 HDi (vor BlueHDi)"]},
+      {n:"308", von:2007, m:["1.2 PureTech","1.4 / 1.6 THP","1.5 / 1.6 BlueHDi","1.6 HDi (vor BlueHDi)","2.0 BlueHDi"]},
+      {n:"3008 / 5008", von:2009, m:["1.2 PureTech","1.5 / 1.6 BlueHDi","2.0 BlueHDi"]},
+      {n:"Boxer", von:2006, m:["2.0 BlueHDi","1.6 HDi (vor BlueHDi)"]},
+    ],
+    "Citroën":[
+      {n:"C3", von:2009, m:["1.2 PureTech","1.5 / 1.6 BlueHDi","1.6 HDi (vor BlueHDi)"]},
+      {n:"C4", von:2010, m:["1.2 PureTech","1.4 / 1.6 THP","1.5 / 1.6 BlueHDi","2.0 BlueHDi"]},
+      {n:"Berlingo", von:2008, m:["1.2 PureTech","1.5 / 1.6 BlueHDi","1.6 HDi (vor BlueHDi)"]},
+      {n:"Jumper", von:2006, m:["2.0 BlueHDi","1.6 HDi (vor BlueHDi)"]},
+    ],
+    "Fiat":[
+      {n:"Panda", von:2011, m:["1.3 MultiJet"]},
+      {n:"500", von:2007, m:["1.3 MultiJet"]},
+      {n:"Ducato", von:2006, m:["2.0 BlueHDi","1.3 MultiJet"]},
+    ],
+  }
+},
+{
+  gruppe:"Toyota", profil:"toyota",
+  motoren:{
+    "1GD-FTV (2.8 D-4D, ab 2015)": {fuel:"diesel", steuer:"kette", abgas:"dpf+adblue",
+      h:"Steuerkette. Der DPF regeneriert im Kurzstreckenbetrieb schlecht — Aschebeladung im Blick behalten."},
+    "2GD-FTV (2.4 D-4D)":   {fuel:"diesel", steuer:"kette", abgas:"dpf"},
+    "1AD / 2AD (2.0 / 2.2 D-4D)": {fuel:"diesel", steuer:"kette", abgas:"dpf",
+      h:"Beim 2AD gilt die Zylinderkopfdichtung der frueheren Baujahre als Schwachstelle."},
+    "1KD-FTV (3.0 D-4D)":   {fuel:"diesel", steuer:"kette", abgas:"dpf"},
+    "Hybrid (HSD)":         {fuel:"hybrid", steuer:"kette", abgas:"kat",
+      h:"Der Verbrenner laeuft im Atkinson-Zyklus. Die Bremsen halten durch die Rekuperation sehr lange — dafuer rosten sie eher fest."},
+    "1.0 / 1.2 / 1.33 Benziner": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+    "2.0 / 2.5 Benziner (Dynamic Force)": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+  },
+  marken:{
+    "Toyota":[
+      {n:"Hilux", gen:"AN120/AN130", von:2015, m:["1GD-FTV (2.8 D-4D, ab 2015)","2GD-FTV (2.4 D-4D)"]},
+      {n:"Hilux", gen:"AN20/AN30", von:2005, bis:2015, m:["1KD-FTV (3.0 D-4D)","1AD / 2AD (2.0 / 2.2 D-4D)"]},
+      {n:"Land Cruiser", von:2002, m:["1KD-FTV (3.0 D-4D)","1GD-FTV (2.8 D-4D, ab 2015)"]},
+      {n:"RAV4", von:2005, m:["1AD / 2AD (2.0 / 2.2 D-4D)","Hybrid (HSD)","2.0 / 2.5 Benziner (Dynamic Force)"]},
+      {n:"Corolla / Auris", von:2006, m:["1AD / 2AD (2.0 / 2.2 D-4D)","Hybrid (HSD)","1.0 / 1.2 / 1.33 Benziner"]},
+      {n:"Yaris", von:2005, m:["Hybrid (HSD)","1.0 / 1.2 / 1.33 Benziner"]},
+      {n:"Proace", von:2013, m:["1.5 / 1.6 BlueHDi","2.0 BlueHDi"]},
+    ],
+    "Lexus":[
+      {n:"CT / NX / RX", von:2009, m:["Hybrid (HSD)","2.0 / 2.5 Benziner (Dynamic Force)"]},
+    ],
+  }
+},
+{
+  gruppe:"Mitsubishi", profil:"mitsubishi-pajero",
+  motoren:{
+    "4M41 (3.2 DI-D)":   {fuel:"diesel", steuer:"kette", abgas:"dpf", antrieb:"4x4",
+      h:"Steuerkette — die Zahnriemenposition aus dem Markenprofil entfaellt hier."},
+    "4D56 (2.5 DI-D)":   {fuel:"diesel", steuer:"riemen", rWechsel:[90000,72], abgas:"dpf", antrieb:"4x4",
+      h:"Zahnriemen samt Ausgleichswellenriemen. Reisst der Ausgleichswellenriemen, nimmt er den Steuerriemen mit."},
+    "4N15 (2.4 DI-D)":   {fuel:"diesel", steuer:"kette", abgas:"dpf", antrieb:"4x4"},
+    "6G72 / 6G74 / 6G75 V6": {fuel:"benzin", steuer:"riemen", rWechsel:[90000,72], abgas:"kat", antrieb:"4x4"},
+    "1.6 / 2.0 MIVEC Benziner": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+  },
+  marken:{
+    "Mitsubishi":[
+      {n:"Pajero", gen:"V60/V80", von:2000, m:["4M41 (3.2 DI-D)","6G72 / 6G74 / 6G75 V6"]},
+      {n:"Pajero Sport", von:2008, m:["4D56 (2.5 DI-D)","4N15 (2.4 DI-D)"]},
+      {n:"L200", von:2005, m:["4D56 (2.5 DI-D)","4N15 (2.4 DI-D)"]},
+      {n:"Outlander", von:2006, m:["4N15 (2.4 DI-D)","1.6 / 2.0 MIVEC Benziner"]},
+      {n:"ASX", von:2010, m:["1.6 / 2.0 MIVEC Benziner"]},
+    ],
+  }
+},
+{
+  gruppe:"Hyundai · Kia · Mazda · Suzuki · Honda", profil:"asien",
+  motoren:{
+    "1.6 CRDi (U2)":     {fuel:"diesel", steuer:"riemen", rWechsel:[120000,96], abgas:"dpf",
+      h:"Zahnriemen — anders als der 2.0 CRDi, der eine Kette hat. Werksangaben schwanken je Baujahr stark."},
+    "2.0 CRDi (R-Serie)":{fuel:"diesel", steuer:"kette", abgas:"dpf+adblue"},
+    "1.0 / 1.4 T-GDI":   {fuel:"benzin", steuer:"kette", abgas:"dpf"},
+    "1.2 / 1.6 MPI":     {fuel:"benzin", steuer:"kette", abgas:"kat"},
+    "Skyactiv-G (Mazda Benzin)": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+    "Skyactiv-D (Mazda Diesel)": {fuel:"diesel", steuer:"kette", abgas:"dpf",
+      h:"Neigt bei viel Kurzstrecke zu Oelverduennung durch Nacheinspritzung — Oelstand beobachten."},
+    "Honda i-VTEC Benziner": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+    "Honda i-DTEC Diesel":   {fuel:"diesel", steuer:"kette", abgas:"dpf"},
+    "Suzuki 1.0 / 1.2 / 1.4 Benziner": {fuel:"benzin", steuer:"kette", abgas:"kat"},
+  },
+  marken:{
+    "Hyundai":[
+      {n:"i20", von:2008, m:["1.0 / 1.4 T-GDI","1.2 / 1.6 MPI","1.6 CRDi (U2)"]},
+      {n:"i30", von:2007, m:["1.0 / 1.4 T-GDI","1.2 / 1.6 MPI","1.6 CRDi (U2)","2.0 CRDi (R-Serie)"]},
+      {n:"Tucson", von:2015, m:["1.0 / 1.4 T-GDI","1.6 CRDi (U2)","2.0 CRDi (R-Serie)"]},
+      {n:"Santa Fe", von:2006, m:["2.0 CRDi (R-Serie)","1.6 CRDi (U2)"]},
+    ],
+    "Kia":[
+      {n:"Ceed", von:2006, m:["1.0 / 1.4 T-GDI","1.2 / 1.6 MPI","1.6 CRDi (U2)"]},
+      {n:"Sportage", von:2010, m:["1.6 CRDi (U2)","2.0 CRDi (R-Serie)","1.0 / 1.4 T-GDI"]},
+      {n:"Sorento", von:2009, m:["2.0 CRDi (R-Serie)"]},
+      {n:"Picanto", von:2011, m:["1.2 / 1.6 MPI"]},
+    ],
+    "Mazda":[
+      {n:"Mazda2", von:2007, m:["Skyactiv-G (Mazda Benzin)"]},
+      {n:"Mazda3", von:2009, m:["Skyactiv-G (Mazda Benzin)","Skyactiv-D (Mazda Diesel)"]},
+      {n:"CX-5", von:2012, m:["Skyactiv-G (Mazda Benzin)","Skyactiv-D (Mazda Diesel)"]},
+      {n:"MX-5", von:2005, m:["Skyactiv-G (Mazda Benzin)"]},
+    ],
+    "Honda":[
+      {n:"Jazz", von:2008, m:["Honda i-VTEC Benziner"]},
+      {n:"Civic", von:2006, m:["Honda i-VTEC Benziner","Honda i-DTEC Diesel"]},
+      {n:"CR-V", von:2007, m:["Honda i-VTEC Benziner","Honda i-DTEC Diesel"]},
+    ],
+    "Suzuki":[
+      {n:"Swift", von:2010, m:["Suzuki 1.0 / 1.2 / 1.4 Benziner"]},
+      {n:"Vitara / S-Cross", von:2013, m:["Suzuki 1.0 / 1.2 / 1.4 Benziner"]},
+      {n:"Jimny", von:1998, m:["Suzuki 1.0 / 1.2 / 1.4 Benziner"]},
+    ],
+  }
+},
+{
+  gruppe:"Renault · Dacia · Nissan", profil:"renault",
+  motoren:{
+    "1.5 dCi (K9K)":     {fuel:"diesel", steuer:"riemen", rWechsel:[120000,72], abgas:"dpf",
+      h:"Zahnriemen. Der K9K reagiert empfindlich auf ueberzogene Oelwechsel — das Turbolader-Oelsieb setzt sich zu."},
+    "1.6 / 2.0 dCi (R9M / M9R)": {fuel:"diesel", steuer:"kette", abgas:"dpf+adblue"},
+    "1.0 / 1.2 / 1.3 TCe":{fuel:"benzin", steuer:"kette", abgas:"dpf"},
+    "1.6 / 1.2 16V Sauger": {fuel:"benzin", steuer:"riemen", rWechsel:[120000,72], abgas:"kat"},
+    "SCe / TCe (Dacia)": {fuel:"benzin", steuer:"unklar", abgas:"kat",
+      h:"Je nach Motorcode Riemen oder Kette — vor dem Planen im Serviceheft nachsehen."},
+  },
+  marken:{
+    "Renault":[
+      {n:"Clio", von:2005, m:["1.5 dCi (K9K)","1.0 / 1.2 / 1.3 TCe","1.6 / 1.2 16V Sauger"]},
+      {n:"Mégane", von:2008, m:["1.5 dCi (K9K)","1.6 / 2.0 dCi (R9M / M9R)","1.0 / 1.2 / 1.3 TCe"]},
+      {n:"Kadjar / Captur", von:2013, m:["1.5 dCi (K9K)","1.0 / 1.2 / 1.3 TCe"]},
+      {n:"Trafic / Master", von:2006, m:["1.6 / 2.0 dCi (R9M / M9R)","1.5 dCi (K9K)"]},
+    ],
+    "Dacia":[
+      {n:"Sandero", von:2008, m:["1.5 dCi (K9K)","SCe / TCe (Dacia)"]},
+      {n:"Duster", von:2010, m:["1.5 dCi (K9K)","SCe / TCe (Dacia)"]},
+      {n:"Logan", von:2004, m:["1.5 dCi (K9K)","SCe / TCe (Dacia)"]},
+    ],
+    "Nissan":[
+      {n:"Qashqai", von:2007, m:["1.5 dCi (K9K)","1.6 / 2.0 dCi (R9M / M9R)","1.0 / 1.2 / 1.3 TCe"]},
+      {n:"Juke", von:2010, m:["1.5 dCi (K9K)","1.0 / 1.2 / 1.3 TCe"]},
+      {n:"Navara", von:2005, m:["1.6 / 2.0 dCi (R9M / M9R)"]},
+      {n:"X-Trail", von:2007, m:["1.6 / 2.0 dCi (R9M / M9R)","1.5 dCi (K9K)"]},
+    ],
+  }
+},
+{
+  gruppe:"Volvo", profil:"volvo",
+  motoren:{
+    "D3 / D4 / D5 (5-Zylinder, bis 2015)": {fuel:"diesel", steuer:"riemen", rWechsel:[180000,120], abgas:"dpf",
+      h:"Zahnriemen. Volvo gibt lange Intervalle an; auf Risse und Spannrollengeraeusche achten."},
+    "D3 / D4 (VEA, ab 2013)": {fuel:"diesel", steuer:"riemen", rWechsel:[180000,120], abgas:"dpf+adblue"},
+    "T3 / T4 / T5 (VEA Benzin)": {fuel:"benzin", steuer:"riemen", rWechsel:[180000,120], abgas:"dpf"},
+    "T5 / T6 (5- und 6-Zylinder, bis 2015)": {fuel:"benzin", steuer:"riemen", rWechsel:[180000,120], abgas:"kat"},
+  },
+  marken:{
+    "Volvo":[
+      {n:"V40 / V60", von:2010, m:["D3 / D4 / D5 (5-Zylinder, bis 2015)","D3 / D4 (VEA, ab 2013)","T3 / T4 / T5 (VEA Benzin)"]},
+      {n:"V70 / XC70", von:2007, bis:2016, m:["D3 / D4 / D5 (5-Zylinder, bis 2015)","T5 / T6 (5- und 6-Zylinder, bis 2015)"]},
+      {n:"XC60", von:2008, m:["D3 / D4 / D5 (5-Zylinder, bis 2015)","D3 / D4 (VEA, ab 2013)","T3 / T4 / T5 (VEA Benzin)"]},
+      {n:"XC90", von:2002, m:["D3 / D4 / D5 (5-Zylinder, bis 2015)","D3 / D4 (VEA, ab 2013)","T5 / T6 (5- und 6-Zylinder, bis 2015)"]},
+    ],
+  }
+},
+];
+
+/** Alle Marken des Katalogs, alphabetisch. */
+function katalogMarken(){
+  const raus = [];
+  for(const g of KATALOG) for(const marke of Object.keys(g.marken)) raus.push(marke);
+  return raus.sort((a,b)=>a.localeCompare(b,"de"));
+}
+
+/** Alle Modelle einer Marke, in Katalogreihenfolge. Der Index in dieser
+ *  Liste ist der Schluessel fuers Formular — "Golf" gibt es dreimal, nur
+ *  die Generation unterscheidet sie. */
+function katalogModelle(marke){
+  for(const g of KATALOG) if(g.marken[marke]) return g.marken[marke];
+  return [];
+}
+
+/** Lesbarer Name eines Modelleintrags: "Golf VII (2012–2020)". */
+function modellName(mo){
+  const jahre = mo.von ? (mo.bis ? `${mo.von}–${mo.bis}` : `ab ${mo.von}`) : "";
+  return mo.n + (mo.gen ? " " + mo.gen : "") + (jahre ? ` (${jahre})` : "");
+}
+
+/** Passt der Modelleintrag zum Baujahr? Ohne Baujahr passt alles. */
+function modellPasstZuJahr(mo, baujahr){
+  if(!baujahr) return true;
+  return (!mo.von || baujahr >= mo.von) && (!mo.bis || baujahr <= mo.bis);
+}
+
+/** Motorisierungen eines Modells, mit aufgeloesten Merkmalen. */
+function katalogMotoren(marke, index){
+  for(const g of KATALOG){
+    const liste = g.marken[marke];
+    if(!liste) continue;
+    const mo = liste[index];
+    if(!mo) return [];
+    return mo.m.map(schluessel => {
+      // Manche Modelle teilen Motoren ueber Konzerngrenzen hinweg — der
+      // Toyota Proace ist ein Stellantis-Transporter. Deshalb notfalls
+      // im ganzen Katalog nachsehen.
+      const daten = g.motoren[schluessel]
+        || KATALOG.map(x => x.motoren[schluessel]).find(Boolean);
+      return daten ? {schluessel, profil:g.profil, ...daten} : null;
+    }).filter(Boolean);
+  }
+  return [];
+}
+
 /** Trifft eine Zusatzposition auf dieses Fahrzeug zu?
  *  Ohne Bedingung gilt sie immer; fehlt die Angabe am Fahrzeug,
  *  nehmen wir sie lieber mit auf, als sie stillschweigend wegzulassen. */
@@ -2500,11 +2899,77 @@ function profilPositionen(profil, merkmale){
   return [...map.values()];
 }
 
+/* Der Steuertrieb ist die teuerste Unterscheidung im ganzen Plan: eine
+   Kette braucht nur Beobachtung, ein Riemen einen Termin, und ein Riemen
+   im Oelbad einen frueheren. Das Markenprofil kann das nicht wissen — es
+   kennt die Marke, nicht den Motor. Deshalb raeumt der Katalog hier auf:
+   erst alle Steuertriebspositionen raus, dann genau die richtige rein. */
+const STEUERTRIEB_POSITION = /^(Zahnriemen \+|Nassriemen|Steuerkette)/;
+
+function steuertriebPositionen(motor){
+  const r = motor.rWechsel || [120000, 72];
+  if(motor.steuer === "kette")
+    return [{n:"Steuerkette prüfen", c:"Motor", km:100000, mo:null, t:[],
+             h:(motor.h ? motor.h + " " : "") +
+               "Steuerkette statt Zahnriemen — kein Wechseltermin, aber auf Rasseln beim Kaltstart achten."}];
+
+  if(motor.steuer === "nassriemen")
+    return [
+      {n:"Nassriemen prüfen (Zahnriemen im Ölbad)", c:"Motor",
+       km:Math.round(r[0]/2), mo:r[1] ? Math.round(r[1]/2) : 36, t:[],
+       h:(motor.h ? motor.h + " " : "") +
+         "Ölsieb auf Riemenabrieb kontrollieren — das ist das Frühwarnzeichen."},
+      {n:"Nassriemen wechseln", c:"Motor", km:r[0], mo:r[1], t:["Zahnriemensatz im Ölbad"],
+       h:"Viele Werkstätten wechseln deutlich vor der Werksvorgabe."},
+    ];
+
+  if(motor.steuer === "riemen")
+    return [{n:"Zahnriemen + Spannrolle", c:"Motor", km:r[0], mo:r[1],
+             t:["Zahnriemensatz","Wasserpumpe"],
+             h:(motor.h ? motor.h + " " : "") +
+               "Reißt der Riemen, ist der Motor hin — Termin nicht überziehen."}];
+
+  // steuer:"unklar" — lieber eine Position, die nach dem Serviceheft fragt,
+  // als eine erfundene Angabe.
+  return [{n:"Steuertrieb feststellen — Riemen oder Kette?", c:"Motor", km:null, mo:null, t:[],
+           h:(motor.h ? motor.h + " " : "") +
+             "Bei dieser Motorenreihe hängt es am Motorcode. Steht im Serviceheft oder auf dem " +
+             "Motoraufkleber. Danach diese Position durch die passende ersetzen."}];
+}
+
+/** Aus einer Motorisierung des Katalogs ein fertiges Fahrzeug bauen. */
+function fahrzeugAusMotor(motor, merkmale){
+  const profil = MARKENPROFILE.find(p => p.id === motor.profil);
+  if(!profil) return seedVehicle({blank:true});
+
+  const m = {...(merkmale||{}), fuel: motor.fuel};
+  if(motor.antrieb && !m.drive) m.drive = motor.antrieb;
+
+  let liste = profilPositionen(profil, m)
+    .filter(e => !STEUERTRIEB_POSITION.test(e.n));
+  liste = liste.concat(steuertriebPositionen(motor));
+
+  // Abgasnachbehandlung: ohne Filter kein Filterthema, ohne SCR kein AdBlue.
+  const abgas = motor.abgas || "dpf";
+  if(abgas === "kat")
+    liste = liste.filter(e => !/^(Partikelfilter|AdBlue)/.test(e.n));
+  else if(abgas === "dpf")
+    liste = liste.filter(e => !/^AdBlue/.test(e.n));
+
+  return fahrzeugAusPositionen(liste);
+}
+
 /** Aus einem Profil ein fertiges Fahrzeug bauen. */
 function fahrzeugAusProfil(profil, merkmale){
-  const v = seedVehicle({blank:true});
+  const v = fahrzeugAusPositionen(profilPositionen(profil, merkmale));
   if(profil.art) v.art = profil.art;        // steuert, was die Bibliothek zuerst zeigt
-  for(const e of profilPositionen(profil, merkmale)){
+  return v;
+}
+
+/** Positionsliste zu einem Fahrzeug machen: Teile anlegen, Aufgaben bauen. */
+function fahrzeugAusPositionen(positionen){
+  const v = seedVehicle({blank:true});
+  for(const e of positionen){
     const teile = (e.t||[]).map(name=>{
       let teil = v.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
       if(!teil){
@@ -3279,7 +3744,14 @@ function vehicleDialog(id){
   const tpl = isNew ? `
     <div class="field"><label>Wartungsplan</label>
       <select id="f-tpl">
-        <optgroup label="Autos">${profilListe("auto")}</optgroup>
+        <optgroup label="Aus der Fahrzeugbestimmung" id="tplMotorGruppe" hidden>
+          <option value="" id="tplMotor"></option>
+        </optgroup>
+        <optgroup label="Ohne Modellwissen">
+          <option value="grund-diesel">Grundplan · Diesel</option>
+          <option value="grund-benzin">Grundplan · Benziner</option>
+        </optgroup>
+        <optgroup label="Nach Marke">${profilListe("auto")}</optgroup>
         <optgroup label="Motorräder">${profilListe("motorrad")}</optgroup>
         <optgroup label="Sonstige">
           <option value="diesel">Diesel-Geländewagen (Toyota Hilux 1GD-FTV)</option>
@@ -3289,6 +3761,31 @@ function vehicleDialog(id){
       </select>
       <div class="hint" id="tplHinweis"></div>
     </div>` : "";
+
+  /* Der schnelle Weg: Marke, Baujahr, Modell, Motor — daraus steht der
+     Plan. Wer sein Fahrzeug nicht findet, ueberspringt den Block und nimmt
+     unten einen Grundplan; von Hand ausfuellen geht immer. */
+  const bestimmen = isNew ? `
+    <div class="sec-head"><h2>Fahrzeug bestimmen</h2><div class="line"></div></div>
+    <p class="tiny muted" style="margin:0 0 12px">
+      Vier Angaben, dann steht der passende Wartungsplan. Nicht dabei?
+      Einfach überspringen — weiter unten gibt es einen Grundplan für Diesel
+      und Benziner, den du selbst ergänzt.</p>
+    <div class="grid2">
+      <div class="field"><label>Marke</label><select id="k-marke">
+        <option value="">— wählen —</option>
+        ${katalogMarken().map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>Baujahr</label>
+        <input type="number" id="k-jahr" placeholder="z. B. 2016" min="1950" max="2100">
+        <div class="hint">Grenzt die Modelle ein. Darf leer bleiben.</div></div>
+    </div>
+    <div class="field"><label>Modell</label>
+      <select id="k-modell" disabled><option value="">— erst Marke wählen —</option></select></div>
+    <div class="field"><label>Motorisierung</label>
+      <select id="k-motor" disabled><option value="">— erst Modell wählen —</option></select>
+      <div class="hint" id="k-info"></div></div>
+    <div class="sec-head"><h2>Angaben zum Fahrzeug</h2><div class="line"></div></div>` : "";
 
   const dataBlock = isNew ? "" : `
     <div class="sec-head"><h2>Konto</h2><div class="line"></div></div>
@@ -3307,6 +3804,7 @@ function vehicleDialog(id){
     </div>`;
 
   openDlg(isNew ? "Neues Fahrzeug" : "Fahrzeug bearbeiten", `
+    ${bestimmen}
     <div class="grid2">
       <div class="field"><label>Marke</label><input id="f-brand" value="${esc(d.brand)}" placeholder="z. B. Toyota"></div>
       <div class="field"><label>Bezeichnung</label><input id="f-name" value="${esc(d.name)}" required placeholder="z. B. Hilux Extra Cab">
@@ -3323,6 +3821,15 @@ function vehicleDialog(id){
     </div>
     <div class="field"><label>Fahrgestellnummer (FIN)</label><input id="f-vin" value="${esc(d.vin)}" placeholder="17 Zeichen">
       <div class="hint">Hilfreich beim Teilekauf.</div></div>
+    <div class="grid2">
+      <div class="field"><label>HSN (2.1)</label><input id="f-hsn" value="${esc(d.hsn||"")}"
+        placeholder="4 Ziffern" maxlength="4" inputmode="numeric"></div>
+      <div class="field"><label>TSN (2.2)</label><input id="f-tsn" value="${esc(d.tsn||"")}"
+        placeholder="3 Zeichen" maxlength="3"></div>
+    </div>
+    <div class="hint" style="margin:-8px 0 14px">Aus der Zulassungsbescheinigung Teil I, Felder 2.1
+      und 2.2. Die App schlägt damit nichts nach — sie hat die Nummern nur zur Hand, wenn du im
+      Teileshop danach gefragt wirst.</div>
     <div class="grid2">
       <div class="field"><label>Fahrzeugart</label><select id="f-art">
         ${[["","—"],["auto","Auto"],["motorrad","Motorrad"]]
@@ -3357,6 +3864,7 @@ function vehicleDialog(id){
     target.brand=val("f-brand"); target.name=val("f-name"); target.model=val("f-model");
     target.year=num(val("f-year")); target.plate=val("f-plate"); target.vin=val("f-vin");
     target.owner=val("f-owner"); target.fuel=val("f-fuel");
+    target.hsn=val("f-hsn"); target.tsn=val("f-tsn");
     target.gearbox=val("f-gearbox"); target.drive=val("f-drive");
     // Leer heisst "nicht gesagt" — dann das Feld gar nicht erst anlegen,
     // sonst sortiert die Bibliothek nach einem leeren Merkmal.
@@ -3396,6 +3904,25 @@ function vehicleDialog(id){
              <span style="display:block;margin-top:4px">Die Intervalle sind typische Größenordnungen,
              keine Werksvorgabe — nach dem Anlegen gegen das Serviceheft prüfen.</span>${endantrieb}`
           : "";
+      } else if(wert.startsWith("motor:")){
+        const [marke, iModell, iMotor] = wert.slice(6).split("|");
+        const motor = katalogMotoren(marke, +iModell)[+iMotor];
+        const n = motor ? fahrzeugAusMotor(motor, {gearbox:val("f-gearbox"), drive:val("f-drive")}).tasks.length : 0;
+        hinweis.innerHTML = `<strong>${n} Positionen.</strong> Aus dem Markenplan, auf diesen Motor
+          zugeschnitten: Steuertrieb, Partikelfilter und AdBlue stehen nur drin, wenn dieser Motor
+          sie hat.
+          <span style="display:block;margin-top:4px">Die Intervalle sind praxisnahe Größenordnungen,
+          absichtlich kürzer als die längste Werksangabe — verbindlich ist dein Serviceheft.</span>`;
+      } else if(wert === "grund-diesel" || wert === "grund-benzin"){
+        const n = profilPositionen({extra:[]},
+          {fuel: wert === "grund-diesel" ? "diesel" : "benzin",
+           gearbox:val("f-gearbox"), drive:val("f-drive")}).length;
+        hinweis.innerHTML = `<strong>${n} Positionen.</strong> Was jedes Fahrzeug braucht — Öl,
+          Filter, Bremsen, Reifen, Fahrwerk — plus das, was am Kraftstoff hängt. Ohne
+          Markenwissen, also <em>ohne</em> Zahnriemen: den trägst du nach, wenn du weißt, ob dein
+          Motor einen hat.
+          <span style="display:block;margin-top:4px">Alles Weitere über <em>Aus Bibliothek</em>
+          im Wartungsplan.</span>`;
       } else if(wert.startsWith("copy:")){
         hinweis.textContent = "Positionen und Teile werden übernommen, Historie und Kilometerstand bleiben leer.";
       } else if(wert==="blank"){
@@ -3420,6 +3947,102 @@ function vehicleDialog(id){
     };
     $("#f-brand").addEventListener("input", vorschlagen);
     $("#f-name").addEventListener("input", vorschlagen);
+
+    /* ---- Fahrzeugbestimmung: Marke → Baujahr → Modell → Motor ----
+       Jede Stufe fuellt die naechste. Am Ende traegt sie die Angaben in
+       die Felder unten ein, damit sichtbar bleibt, was uebernommen wurde
+       — und damit man es korrigieren kann. */
+    const kMarke = $("#k-marke"), kJahr = $("#k-jahr"),
+          kModell = $("#k-modell"), kMotor = $("#k-motor"), kInfo = $("#k-info");
+
+    const leerenAuf = (feld, text)=>{
+      feld.innerHTML = `<option value="">${text}</option>`;
+      feld.disabled = true;
+    };
+
+    function fuelleModelle(){
+      const marke = kMarke.value;
+      kInfo.textContent = "";
+      leerenAuf(kMotor, "— erst Modell wählen —");
+      if(!marke){ leerenAuf(kModell, "— erst Marke wählen —"); return; }
+
+      const jahr = num(kJahr.value);
+      const alle = katalogModelle(marke);
+      // Index in der vollen Liste merken, sonst zeigt der Filter auf das
+      // falsche Modell — "Golf" gibt es dreimal.
+      const treffer = alle.map((mo, i)=>({mo, i})).filter(x => modellPasstZuJahr(x.mo, jahr));
+      const rest = treffer.length ? "" :
+        `<option value="">— kein Modell für ${jahr} —</option>`;
+      kModell.innerHTML = `<option value="">— wählen —</option>` + rest +
+        treffer.map(({mo, i})=>`<option value="${i}">${esc(modellName(mo))}</option>`).join("");
+      kModell.disabled = false;
+      if(treffer.length === 1) { kModell.value = String(treffer[0].i); fuelleMotoren(); }
+    }
+
+    function fuelleMotoren(){
+      const marke = kMarke.value, iModell = kModell.value;
+      kInfo.textContent = "";
+      if(!marke || iModell === ""){ leerenAuf(kMotor, "— erst Modell wählen —"); return; }
+      const motoren = katalogMotoren(marke, +iModell);
+      kMotor.innerHTML = `<option value="">— wählen —</option>` +
+        motoren.map((mt, i)=>`<option value="${i}">${esc(mt.schluessel)}</option>`).join("");
+      kMotor.disabled = false;
+      if(motoren.length === 1){ kMotor.value = "0"; uebernehmen(); }
+    }
+
+    const STEUER_TEXT = {
+      riemen:     "Zahnriemen — mit Wechseltermin im Plan",
+      nassriemen: "Zahnriemen im Ölbad — Prüfen und Wechseln im Plan",
+      kette:      "Steuerkette — kein Wechseltermin, nur Kontrolle",
+      unklar:     "Steuertrieb je nach Motorcode — der Plan fragt danach",
+    };
+
+    function uebernehmen(){
+      const marke = kMarke.value, iModell = kModell.value, iMotor = kMotor.value;
+      if(!marke || iModell === "" || iMotor === ""){ kInfo.textContent = ""; return; }
+      const modell = katalogModelle(marke)[+iModell];
+      const motor  = katalogMotoren(marke, +iModell)[+iMotor];
+      if(!modell || !motor) return;
+
+      $("#f-brand").value = marke;
+      $("#f-name").value  = modell.n + (modell.gen ? " " + modell.gen : "");
+      $("#f-model").value = motor.schluessel;
+      $("#f-fuel").value  = motor.fuel;
+      $("#f-art").value   = "auto";
+      if(motor.antrieb) $("#f-drive").value = motor.antrieb;
+      if(num(kJahr.value)) $("#f-year").value = kJahr.value;
+
+      // Eigener Eintrag in der Vorlagenliste, damit sichtbar ist, woher
+      // der Plan kommt — und damit man ihn bewusst wieder verlassen kann.
+      const opt = $("#tplMotor");
+      opt.value = `motor:${marke}|${iModell}|${iMotor}`;
+      opt.textContent = `${marke} ${modell.n}${modell.gen ? " "+modell.gen : ""} · ${motor.schluessel}`;
+      $("#tplMotorGruppe").hidden = false;
+      auswahl.value = opt.value;
+      delete auswahl.dataset.handverlesen;   // die Bestimmung sticht den Vorschlag
+      zeigeHinweis();
+
+      const abgas = {kat:"ohne Partikelfilter", dpf:"mit Partikelfilter",
+                     "dpf+adblue":"Partikelfilter und AdBlue"}[motor.abgas || "dpf"];
+      // Getriebe und Antrieb kann der Katalog nicht wissen — denselben Motor
+      // gibt es mit Schaltung wie mit DSG, mit und ohne Allrad. Fehlt die
+      // Angabe, nimmt der Plan beides vorsorglich auf; darauf hinweisen ist
+      // ehrlicher, als es stillschweigend zu tun.
+      const offen = [];
+      if(!val("f-gearbox")) offen.push("Getriebe");
+      if(!val("f-drive"))   offen.push("Antrieb");
+      kInfo.innerHTML = `<strong>${esc(STEUER_TEXT[motor.steuer] || "")}</strong>, ${esc(abgas)}.`
+        + (offen.length ? `<span style="display:block;margin-top:4px;color:var(--warn)">
+             ${offen.join(" und ")} noch nicht gewählt — die davon abhängigen Positionen
+             (DSG-Öl, Allrad) kommen vorsorglich mit in den Plan.</span>` : "");
+    }
+
+    for(const id of ["f-gearbox","f-drive"])
+      $("#"+id).addEventListener("change", uebernehmen);
+    kMarke.addEventListener("change", fuelleModelle);
+    kJahr.addEventListener("input",  fuelleModelle);
+    kModell.addEventListener("change", ()=>{ fuelleMotoren(); uebernehmen(); });
+    kMotor.addEventListener("change", uebernehmen);
     auswahl.addEventListener("change", ()=>{ auswahl.dataset.handverlesen = "1"; });
     $("#f-art").addEventListener("change", e=>{ e.target.dataset.handverlesen = "1"; });
     zeigeHinweis();
@@ -3490,6 +4113,21 @@ function vehicleDialog(id){
 /** Neues Fahrzeug nach gewaehlter Vorlage aufbauen. */
 function buildVehicle(tpl, merkmale){
   if(tpl==="blank") return seedVehicle({blank:true});
+
+  // Grundplan ohne Markenwissen: Sockel plus das, was am Kraftstoff haengt.
+  // Fuer alle, die ihr Fahrzeug nicht im Katalog finden oder lieber selbst
+  // zusammenstellen.
+  if(tpl==="grund-diesel" || tpl==="grund-benzin"){
+    const fuel = tpl === "grund-diesel" ? "diesel" : "benzin";
+    return fahrzeugAusPositionen(profilPositionen({extra:[]}, {...merkmale, fuel}));
+  }
+
+  if(tpl && tpl.startsWith("motor:")){
+    const [marke, iModell, iMotor] = tpl.slice(6).split("|");
+    const motor = katalogMotoren(marke, +iModell)[+iMotor];
+    if(motor) return fahrzeugAusMotor(motor, merkmale);
+  }
+
   if(tpl && tpl.startsWith("profil:")){
     const profil = MARKENPROFILE.find(p=>p.id===tpl.slice(7));
     if(profil) return fahrzeugAusProfil(profil, merkmale);
@@ -3609,6 +4247,9 @@ function renderFahrzeuge(){
         }</span>
       </div>
       <div class="fz-sub tiny faint">${esc([v.model, v.plate, v.owner&&"Halter: "+v.owner].filter(Boolean).join(" · ")) || "—"}</div>
+      ${v.hsn||v.tsn||v.vin ? `<div class="fz-sub tiny faint num">${
+        esc([v.hsn&&v.tsn ? `HSN ${v.hsn} · TSN ${v.tsn}` : (v.hsn||v.tsn||""),
+             v.vin && "FIN "+v.vin].filter(Boolean).join(" · "))}</div>` : ""}
       <div class="fz-zahlen">
         <span><b class="num">${nKm(v.km)}</b> km</span>
         <span class="${z.crit?"warnfarbe":""}"><b>${z.crit}</b> überfällig</span>
