@@ -1028,7 +1028,7 @@ const PRUEF = "Intervall gegen dein Serviceheft prüfen.";
    die trägst du beim ersten Kauf selbst ein, dann stimmen sie
    garantiert für deine Fahrgestellnummer. */
 function seedVehicle(opts){
-  const P = (id,name,unit,note,spare)=>({id,name,oem:"",unit:unit||"Stück",price:null,qty:0,spare:!!spare,links:[],note:note||""});
+  const P = (id,name,unit,note,spare)=>({id,name,oem:"",unit:unit||"Stück",price:null,qty:0,spare:!!spare,links:[],photos:[],note:note||""});
   const parts = [
     P("p1","Motoröl 0W-30 / 5W-30 ACEA C2","Liter","Füllmenge ca. 7,5 l inkl. Filter — gegen Handbuch prüfen."),
     P("p2","Ölfiltereinsatz",0,"Papiereinsatz inkl. O-Ringen.",1),
@@ -1383,7 +1383,8 @@ function einkaufsliste(liste){
         <td><button type="button" class="teil-sprung" data-edit-part="${e.p.id}"
               title="Teil bearbeiten — Nummer, Preis, Kauflinks">${esc(e.p.name)}</button>
           ${e.p.oem?`<div class="tiny faint num">${esc(e.p.oem)}</div>`:""}
-          ${e.p.qty>0?`<div class="tiny" style="color:var(--ok)">${e.p.qty} ${esc(e.p.unit)} im Regal</div>`:""}</td>
+          ${e.p.qty>0?`<div class="tiny" style="color:var(--ok)">${e.p.qty} ${esc(e.p.unit)} im Regal</div>`:""}
+          ${fotoStreifen(e.p.photos)}</td>
         <td class="r num">${Math.round(e.menge*100)/100} ${e.p.unit==="Stück"?"×":esc(e.p.unit)}</td>
         <td class="r num">${e.p.price!=null?eur(e.p.price*e.menge):"—"}</td>
         <td class="links">${(e.p.links||[]).map(l=>
@@ -1608,7 +1609,8 @@ function renderParts(){
       const u = used(p.id);
       return `<tr>
         <td><strong>${esc(p.name)}</strong>${p.note?`<div class="tiny faint">${esc(p.note)}</div>`:""}
-            ${p.spare?`<span class="pill info">Bordvorrat</span>`:""}</td>
+            ${p.spare?`<span class="pill info">Bordvorrat</span>`:""}
+            ${fotoStreifen(p.photos)}</td>
         <td class="num tiny">${p.oem?esc(p.oem):'<span class="faint">—</span>'}</td>
         <td class="r num">${p.qty||0} ${esc(p.unit)}</td>
         <td class="r num">${p.price!=null?eur(p.price):"—"}</td>
@@ -2974,7 +2976,7 @@ function fahrzeugAusPositionen(positionen){
       let teil = v.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
       if(!teil){
         teil = {id:uid("p"), name, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[],
-                note:"Aus Markenprofil — Teilenummer beim ersten Kauf eintragen."};
+                photos:[], note:"Aus Markenprofil — Teilenummer beim ersten Kauf eintragen."};
         v.parts.push(teil);
       }
       return {p:teil.id, q:1};
@@ -3551,7 +3553,7 @@ function zeichneTreffer(){
 
 /* -- Teil -- */
 function partDialog(id){
-  const p = id?CAR.parts.find(x=>x.id===id):{id:uid("p"),name:"",oem:"",unit:"Stück",price:null,qty:0,spare:false,links:[],note:""};
+  const p = id?CAR.parts.find(x=>x.id===id):{id:uid("p"),name:"",oem:"",unit:"Stück",price:null,qty:0,spare:false,links:[],note:"",photos:[]};
   openDlg(id?"Teil bearbeiten":"Neues Teil",`
     <div class="field"><label>Bezeichnung</label><input id="f-name" value="${esc(p.name)}" required></div>
     <div class="grid2">
@@ -3570,12 +3572,14 @@ function partDialog(id){
       <button type="button" class="btn sm" id="addLink">+ Link hinzufügen</button>
       <div class="hint">Mehrere möglich — etwa Originalteil und günstigere Alternative.</div></div>
     <div class="field"><label>Notiz</label><textarea id="f-note">${esc(p.note)}</textarea></div>
+    ${fotoFeld(p.photos, "Zum Wiedererkennen — das Teil selbst, die Nummer auf der Verpackung, die Einbaustelle.")}
     ${id?`<button type="button" class="btn sm danger" id="delPart">Teil löschen</button>`:""}`,
   ()=>{
     if(!val("f-name")){ toast("Bezeichnung fehlt",true); return false; }
     p.name=val("f-name"); p.oem=val("f-oem"); p.unit=val("f-unit")||"Stück";
     p.price=num(val("f-price")); p.qty=num(val("f-qty"))||0;
     p.spare=$("#f-spare").checked; p.note=$("#f-note").value.trim(); p.links=readLinks();
+    const fotos = liesFotos(); if(fotos) p.photos = fotos;
     if(!id) CAR.parts.push(p);
   });
 
@@ -3704,7 +3708,7 @@ function bibliothekDialog(){
         let teil = CAR.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
         if(!teil){
           teil = {id:uid("p"), name, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[],
-                  note:"Aus Bibliothek — Teilenummer beim ersten Kauf eintragen."};
+                  photos:[], note:"Aus Bibliothek — Teilenummer beim ersten Kauf eintragen."};
           CAR.parts.push(teil); neueTeile++;
         }
         return {p:teil.id, q:1};
@@ -4421,7 +4425,7 @@ document.addEventListener("click",e=>{
   if(neu){
     // Teil sofort anlegen, ohne den Dialog zu verlassen
     const roh = $("#teileSuche").value.trim();
-    const teil = {id:uid("p"), name:roh, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[], note:""};
+    const teil = {id:uid("p"), name:roh, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[], photos:[], note:""};
     CAR.parts.push(teil);
     teileAuswahl.push({p:teil.id, q:1});
     $("#teileSuche").value=""; $("#teileTreffer").hidden=true;

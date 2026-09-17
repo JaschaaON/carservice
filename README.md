@@ -594,6 +594,20 @@ Einzelne PDFs lassen sich jederzeit ueber die App nachtragen.
 
 ## Fotos und Videos
 
+Fotos haengen an drei Stellen: an der **Wartungsposition** (zum Nachschlagen —
+wo sitzt was, welches Werkzeug), am **Historieneintrag** (Beleg der
+Durchfuehrung) und am **Teil im Katalog** (zum Wiedererkennen — das Teil
+selbst, die Nummer auf der Verpackung, die Einbaustelle).
+
+Teilefotos erscheinen als Streifen unter dem Namen, im Teilekatalog **und in
+der Einkaufsliste** — beim Bestellen ist das Wiedererkennen am wichtigsten.
+Ein Klick oeffnet die grosse Ansicht.
+
+> Wer Fotos an Teile anhaengt, muss `/api/storage` mitziehen: Das Aufraeumen
+> haelt jede Datei fuer verwaist, die es in keinem Eintrag findet. Stuenden
+> `parts` nicht in der Liste der durchsuchten Sammlungen, wuerde der Knopf
+> „verwaiste Dateien entfernen" genau die neuen Teilefotos loeschen.
+
 Der Browser verkleinert jedes Bild vor dem Hochladen auf 1600 px und wandelt es
 in JPEG — aus einem 4-MB-Handyfoto werden rund 300 KB. Zusaetzlich entsteht ein
 Vorschaubild. Hochgeladen wird die Datei als reiner Body per `PUT`, damit der
