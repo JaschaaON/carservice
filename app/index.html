@@ -2137,6 +2137,30 @@ const SOCKEL = [
   {k:"unterb",  n:"Unterboden / Rostvorsorge",     c:"Karosserie", km:null,  mo:12, t:[]},
 ];
 
+/* Ein Motorrad teilt mit dem Auto fast nichts ausser dem Motoroel: kein
+   Innenraumfilter, keine Wischerblaetter, keine Klimaanlage — dafuer
+   Ventilspiel, Kette und Gabeloel. Deshalb ein eigener Sockel statt
+   Ausnahmen im bestehenden. */
+const MOTORRAD_SOCKEL = [
+  {k:"oel",     n:"Motoröl + Ölfilter",            c:"Motor",    km:6000,  mo:12, t:["Motoröl","Ölfilter","Dichtring Ölablassschraube"]},
+  {k:"luft",    n:"Luftfilter",                    c:"Motor",    km:12000, mo:24, t:["Luftfilter"]},
+  {k:"kerzen",  n:"Zündkerzen",                    c:"Motor",    km:12000, mo:24, t:["Zündkerzen"]},
+  {k:"ventil",  n:"Ventilspiel prüfen",            c:"Motor",    km:24000, mo:null, t:["Ventildeckeldichtung"]},
+  {k:"kuehl",   n:"Kühlflüssigkeit wechseln",      c:"Motor",    km:24000, mo:24, t:["Kühlmittel"]},
+  {k:"kette",   n:"Kette spannen + schmieren",     c:"Antrieb",  km:1000,  mo:1,  t:["Kettenspray"], wenn:{drive:["kette"]}},
+  {k:"kettensatz", n:"Kettensatz erneuern",        c:"Antrieb",  km:25000, mo:null, t:["Kettensatz"], wenn:{drive:["kette"]}},
+  {k:"kardan",  n:"Endantrieb Öl wechseln",        c:"Antrieb",  km:20000, mo:24, t:["Getriebeöl Endantrieb"], wenn:{drive:["kardan"]}},
+  {k:"riemen",  n:"Zahnriemen Endantrieb prüfen",  c:"Antrieb",  km:8000,  mo:12, t:[], wenn:{drive:["riemen"]}},
+  {k:"bremsen", n:"Bremsbeläge + Scheiben prüfen", c:"Bremsen",  km:6000,  mo:12, t:["Bremsbeläge vorne","Bremsbeläge hinten"]},
+  {k:"bremsfl", n:"Bremsflüssigkeit wechseln",     c:"Bremsen",  km:null,  mo:24, t:["Bremsflüssigkeit"]},
+  {k:"reifen",  n:"Reifen prüfen",                 c:"Reifen",   km:null,  mo:1,  t:[]},
+  {k:"gabel",   n:"Gabelöl wechseln",              c:"Fahrwerk", km:20000, mo:24, t:["Gabelöl","Simmerringe Gabel"]},
+  {k:"lenkkopf",n:"Lenkkopflager prüfen",          c:"Fahrwerk", km:12000, mo:12, t:[]},
+  {k:"zuege",   n:"Züge, Hebel und Ständer schmieren", c:"Sonstiges", km:6000, mo:12, t:[]},
+  {k:"batt",    n:"Batterie prüfen",               c:"Elektrik", km:null,  mo:12, t:[]},
+  {k:"licht",   n:"Beleuchtung und Blinker prüfen",c:"Elektrik", km:null,  mo:6,  t:[]},
+];
+
 /* Zusatzpositionen, die je nach Antrieb dazukommen. */
 const ANTRIEB_EXTRA = {
   diesel: [
@@ -2256,9 +2280,42 @@ const MARKENPROFILE = [
     ]
   },
   {
+    id:"mitsubishi-pajero", gruppe:"Mitsubishi",
+    name:"Mitsubishi · Pajero und Geländewagen",
+    marken:["Mitsubishi","Pajero","Montero","Shogun","Pajero Sport","L200"],
+    hinweis:"Wartung üblicherweise alle 15.000 km oder jährlich, im Gelände- und Anhängerbetrieb kürzer. "+
+            "Ob der Motor Zahnriemen oder Steuerkette hat, hängt am Motorcode — beim 2.5 DI-D (4D56) und "+
+            "den V6-Benzinern läuft ein Riemen, beim 3.2 DI-D (4M41) eine Kette. Vor dem Planen im "+
+            "Serviceheft nachsehen und die nicht zutreffende Position löschen.",
+    anpassung:{oel:[10000,12], innen:[15000,12], luft:[30000,24], fahrwerk:[15000,12]},
+    extra:[
+      {n:"Zahnriemen + Spannrolle", c:"Motor", km:90000, mo:72, t:["Zahnriemensatz","Wasserpumpe"],
+       h:"Betrifft 4D56 (2.5 DI-D) und die V6-Benziner. Der 4M41 (3.2 DI-D) hat stattdessen eine "+
+         "Steuerkette — dann diese Position löschen. Reißt der Riemen, ist der Motor hin."},
+      {n:"Verteilergetriebe Öl (Super Select)", c:"Antrieb", km:40000, mo:48, t:["Getriebeöl Verteilergetriebe"],
+       wenn:{drive:["4x4"]},
+       h:"Super Select erlaubt Allrad auch auf Asphalt — das Verteilergetriebe arbeitet dadurch "+
+         "deutlich häufiger als bei rein zuschaltbaren Systemen."},
+      {n:"Differentialöl vorne", c:"Antrieb", km:40000, mo:48, t:["Differentialöl"],
+       wenn:{drive:["4x4"]},
+       h:"Nach Wasserdurchfahrten früher. Wasser im Öl erkennst du an der hellen, milchigen Färbung."},
+      {n:"Differentialöl hinten", c:"Antrieb", km:40000, mo:48, t:["Differentialöl"],
+       h:"Bei Sperrdifferential den vorgeschriebenen Zusatz nicht vergessen."},
+      {n:"Schaltgetriebeöl", c:"Antrieb", km:60000, mo:60, t:["Getriebeöl"],
+       wenn:{gearbox:["schalt"]}, h:"Im Geländebetrieb früher."},
+      {n:"Automatikgetriebeöl", c:"Antrieb", km:60000, mo:48, t:["ATF Automatikgetriebeöl","Getriebeölfilter"],
+       wenn:{gearbox:["automatik"]},
+       h:"Bei Anhängelast und Geländebetrieb deutlich früher — die Hitze kommt aus dem Wandler."},
+      {n:"Freilaufnaben prüfen und fetten", c:"Antrieb", km:40000, mo:24, t:["Fett"],
+       wenn:{drive:["4x4"]}, h:"Ältere Pajero mit manuellen Freilaufnaben."},
+      {n:"Gelenkwellen abschmieren", c:"Antrieb", km:15000, mo:12, t:["Fett"],
+       h:"Sofern Schmiernippel vorhanden. Nach Wasserdurchfahrten immer."},
+    ]
+  },
+  {
     id:"asien", gruppe:"Weitere",
     name:"Hyundai · Kia · Mazda · Suzuki · Honda",
-    marken:["Hyundai","Kia","Mazda","Suzuki","Honda","Mitsubishi","Subaru"],
+    marken:["Hyundai","Kia","Mazda","Suzuki","Honda","Subaru"],
     hinweis:"Überwiegend feste Intervalle, meist 15.000 km oder jährlich. "+
             "Einige Motoren haben Zahnriemen — im Serviceheft prüfen.",
     anpassung:{oel:[15000,12], innen:[15000,12], luft:[30000,24]},
@@ -2286,6 +2343,126 @@ const MARKENPROFILE = [
        wenn:{drive:["haldex","4x4"]}, h:"Bei Allradmodellen."},
     ]
   },
+
+  /* ---- Motorraeder ----
+     art:"motorrad" schaltet auf den eigenen Sockel um und laesst die
+     Antriebszusaetze der Autos weg. Der Endantrieb steht im Formular
+     unter "Antrieb" — ohne Angabe erscheinen Kette, Kardan und Riemen
+     gemeinsam, damit nichts stillschweigend fehlt. */
+  {
+    id:"moto-suzuki", gruppe:"Suzuki", art:"motorrad",
+    name:"Suzuki · Bandit, GSF, SV, V-Strom",
+    marken:["Suzuki Bandit","Suzuki Motorrad","Suzuki GSX","Suzuki GSF","Suzuki SV","Suzuki DL","Bandit","V-Strom","DL650","DL1000","SV650","SV 650"],
+    hinweis:"Suzuki fährt in der Regel 6.000 km oder ein Jahr, Ventilspiel alle 12.000 km. "+
+            "Die luft-/ölgekühlten Bandit-Motoren (GSF 600 und 1200, System SACS) haben keinen "+
+            "Wasserkreislauf — dort entfällt die Kühlflüssigkeit, dafür zählt der Ölkühler. "+
+            "SV und V-Strom sind wassergekühlt.",
+    anpassung:{oel:[6000,12], luft:[12000,24], kerzen:[12000,24], ventil:[12000,null]},
+    extra:[
+      {n:"Ölkühler und Leitungen prüfen", c:"Motor", km:12000, mo:12, t:[],
+       h:"Bandit 600 und 1200: luft-/ölgekühlt. Kühler auf Steinschlag und Undichtigkeit ansehen. "+
+         "Bei den wassergekühlten Modellen stattdessen die Kühlflüssigkeit im Blick behalten."},
+      {n:"Vergaser synchronisieren", c:"Motor", km:12000, mo:24, t:[],
+       h:"Bandit mit Vergaser (bis etwa Baujahr 2006). Einspritzer brauchen stattdessen einen "+
+         "Abgleich der Drosselklappen."},
+      {n:"Bremssattel reinigen, Bolzen fetten", c:"Bremsen", km:12000, mo:12, t:["Bremsenpaste"],
+       h:"Ältere Bandit neigen zu festgegangenen Sattelbolzen — dann schleift der Belag einseitig."},
+      {n:"Kupplungsspiel einstellen", c:"Antrieb", km:6000, mo:12, t:[],
+       h:"Seilzugkupplung: Spiel am Hebel prüfen und den Zug schmieren."},
+      {n:"Kettenspanner und Ritzelabdeckung reinigen", c:"Antrieb", km:6000, mo:12, t:[],
+       wenn:{drive:["kette"]}, h:"Unter der Abdeckung sammelt sich abgeschleudertes Kettenfett."},
+    ]
+  },
+  {
+    id:"moto-japan", gruppe:"Japan", art:"motorrad",
+    name:"Honda · Yamaha · Kawasaki",
+    marken:["Honda Motorrad","Honda CB","Honda CBR","Honda NC","Honda Africa","Honda Transalp","Yamaha","Kawasaki","MT-07","MT-09","Ténéré","Tenere","Z900","Versys","Africa Twin","CB500"],
+    hinweis:"Typisch 6.000 bis 12.000 km oder jährlich. Das Ventilspiel steht je nach Modell zwischen "+
+            "24.000 und 42.000 km — bei Schraubenventilen schnell erledigt, bei Tassenstößeln mit "+
+            "Shims eine längere Arbeit.",
+    anpassung:{oel:[6000,12], ventil:[24000,null]},
+    extra:[
+      {n:"Drosselklappen synchronisieren", c:"Motor", km:12000, mo:24, t:[],
+       h:"Mehrzylinder laufen sonst rau im Standgas und verbrauchen mehr."},
+      {n:"Bremssattel reinigen, Bolzen fetten", c:"Bremsen", km:12000, mo:12, t:["Bremsenpaste"],
+       h:"Vor allem nach Wintereinsatz und Streusalz."},
+      {n:"Schwingenlager fetten", c:"Fahrwerk", km:24000, mo:36, t:["Fett"],
+       h:"Wird gern vergessen — trockene Lager schlagen aus."},
+    ]
+  },
+  {
+    id:"moto-bmw", gruppe:"BMW Motorrad", art:"motorrad",
+    name:"BMW Motorrad · Boxer, GS und Kardan",
+    marken:["BMW Motorrad","BMW R","BMW F","R1200","R 1200","R1250","R 1250","F800","F 850"],
+    hinweis:"BMW setzt den Service meist auf 10.000 km oder ein Jahr. Boxer und die meisten "+
+            "Reisemodelle haben Kardan statt Kette — das Öl im Endantrieb wird leicht übersehen.",
+    anpassung:{oel:[10000,12], luft:[20000,null], ventil:[20000,null]},
+    extra:[
+      {n:"Telelever und Paralever prüfen", c:"Fahrwerk", km:20000, mo:24, t:[],
+       h:"Lagerspiel und Faltenbälge ansehen."},
+      {n:"Kupplungsflüssigkeit wechseln", c:"Bremsen", km:null, mo:24, t:["Bremsflüssigkeit"],
+       h:"Bei hydraulischer Kupplung ein eigener Kreislauf — altert genauso wie die Bremsflüssigkeit."},
+      {n:"Getriebeöl wechseln", c:"Antrieb", km:40000, mo:48, t:["Getriebeöl"],
+       h:"Bei den älteren Boxern ein eigener Kreislauf neben Motor und Endantrieb."},
+    ]
+  },
+  {
+    id:"moto-ktm", gruppe:"KTM", art:"motorrad",
+    name:"KTM · Husqvarna · GasGas",
+    marken:["KTM","Husqvarna","GasGas","Husaberg","Duke","Adventure"],
+    hinweis:"Sportlich ausgelegte Einzylinder und LC8-Twins: kurze Ölintervalle. Bei Enduros zählen "+
+            "Betriebsstunden mehr als Kilometer — nach einem staubigen Wochenende ist der Plan "+
+            "überholt, egal was der Tacho sagt.",
+    anpassung:{oel:[7500,12], luft:[5000,12], ventil:[15000,null], gabel:[15000,24]},
+    extra:[
+      {n:"Luftfilter reinigen und ölen", c:"Motor", km:2000, mo:null, t:["Luftfilteröl"],
+       h:"Schaumstofffilter werden gewaschen, nicht ersetzt. Nach jeder staubigen Ausfahrt."},
+      {n:"Federbein Service", c:"Fahrwerk", km:20000, mo:24, t:[],
+       h:"Öl und Stickstoff erneuern — dafür braucht es einen Fachbetrieb mit Füllstation."},
+      {n:"Wasserpumpen-Wellendichtring prüfen", c:"Motor", km:15000, mo:24, t:[],
+       h:"Bekanntes Verschleißteil bei den Einzylindern. Die Kontrollbohrung verrät es früh."},
+      {n:"Kühler und Lüfter prüfen", c:"Motor", km:5000, mo:12, t:[],
+       h:"Verbogene Kühler nach Stürzen und im Gelände sind der Regelfall, nicht die Ausnahme."},
+    ]
+  },
+  {
+    id:"moto-harley", gruppe:"Harley-Davidson", art:"motorrad",
+    name:"Harley-Davidson · luftgekühlte Twins",
+    marken:["Harley","Harley-Davidson","Sportster","Softail","Road King"],
+    hinweis:"Drei getrennte Ölkreisläufe: Motor, Getriebe und Primärantrieb — jeder mit eigener Sorte "+
+            "und eigenem Intervall. Der Endantrieb läuft über einen Zahnriemen, nicht über eine Kette. "+
+            "Luftgekühlt, deshalb steht keine Kühlflüssigkeit im Plan; bei den wassergekühlten "+
+            "Baureihen musst du sie nachtragen.",
+    anpassung:{oel:[8000,12], ventil:[16000,null], kuehl:null},
+    extra:[
+      {n:"Getriebeöl wechseln", c:"Antrieb", km:16000, mo:24, t:["Getriebeöl"],
+       h:"Eigener Kreislauf — nicht mit dem Motoröl verwechseln."},
+      {n:"Primäröl wechseln", c:"Antrieb", km:16000, mo:24, t:["Primäröl"],
+       h:"Im Primärkasten laufen Kupplung und Primärkette."},
+      {n:"Zahnriemen Endantrieb prüfen", c:"Antrieb", km:8000, mo:12, t:[],
+       h:"Spannung und Risse. Riemen halten lange, ein eingeklemmter Stein bringt sie um."},
+      {n:"Speichen prüfen und nachziehen", c:"Reifen", km:8000, mo:12, t:[],
+       h:"Bei Speichenrädern. Ein loser Speichennippel klingt beim Abklopfen dumpf."},
+    ]
+  },
+  {
+    id:"moto-europa", gruppe:"Europa", art:"motorrad",
+    name:"Ducati · Triumph · Moto Guzzi · Aprilia",
+    marken:["Ducati","Triumph","Moto Guzzi","Guzzi","Aprilia","MV Agusta","Monster","Multistrada","Bonneville","Tiger"],
+    hinweis:"Bei Ducati mit Desmodromik ist der Ventilservice die teuerste Position im ganzen Plan und "+
+            "hat ein eigenes, langes Intervall. Moto Guzzi fährt Kardan. Triumph liegt mit 16.000 km "+
+            "dazwischen.",
+    anpassung:{oel:[10000,12], ventil:[30000,null]},
+    extra:[
+      {n:"Zahnriemen Steuertrieb (Ducati)", c:"Motor", km:30000, mo:60, t:["Zahnriemensatz"],
+       h:"Nur bei den riemengetriebenen Ducati-Zweiventilern. Hier zählt das Zeitintervall genauso "+
+         "wie die Kilometer — ein gerissener Riemen kostet den Motor."},
+      {n:"Desmo-Service (Ventilspiel)", c:"Motor", km:30000, mo:null, t:[],
+       h:"Öffner und Schließer einstellen. Ohne Spezialwerkzeug und Erfahrung eine Werkstattarbeit."},
+      {n:"Kupplungskorb und Beläge prüfen", c:"Antrieb", km:20000, mo:24, t:[],
+       h:"Bei Trockenkupplung (ältere Ducati) sitzt der Abrieb im Korb."},
+    ]
+  },
 ];
 
 /** Trifft eine Zusatzposition auf dieses Fahrzeug zu?
@@ -2302,12 +2479,18 @@ function passtZuFahrzeug(e, merkmale){
 /** Positionsliste eines Profils zusammenbauen. */
 function profilPositionen(profil, merkmale){
   const m = typeof merkmale === "string" ? {fuel:merkmale} : (merkmale||{});
+  const zweirad = profil.art === "motorrad";
   const raus = [];
-  for(const b of SOCKEL){
+  for(const b of (zweirad ? MOTORRAD_SOCKEL : SOCKEL)){
+    if(!passtZuFahrzeug(b, m)) continue;
     const anp = profil.anpassung && profil.anpassung[b.k];
-    raus.push({n:b.n, c:b.c, km:anp?anp[0]:b.km, mo:anp?anp[1]:b.mo, t:b.t, h:""});
+    if(anp === null) continue;              // Profil streicht die Position bewusst
+    raus.push({n:b.n, c:b.c, km:anp?anp[0]:b.km, mo:anp?anp[1]:b.mo, t:b.t, h:b.h||""});
   }
-  for(const e of (ANTRIEB_EXTRA[m.fuel] || []))  raus.push(e);
+  // Die Antriebszusaetze sind auf Autos gemuenzt — beim Motorrad stehen
+  // Zuendkerzen und Kraftstofffilter schon im eigenen Sockel.
+  if(!zweirad)
+    for(const e of (ANTRIEB_EXTRA[m.fuel] || []))  raus.push(e);
   for(const e of (profil.extra || []))
     if(passtZuFahrzeug(e, m)) raus.push(e);
 
@@ -2320,6 +2503,7 @@ function profilPositionen(profil, merkmale){
 /** Aus einem Profil ein fertiges Fahrzeug bauen. */
 function fahrzeugAusProfil(profil, merkmale){
   const v = seedVehicle({blank:true});
+  if(profil.art) v.art = profil.art;        // steuert, was die Bibliothek zuerst zeigt
   for(const e of profilPositionen(profil, merkmale)){
     const teile = (e.t||[]).map(name=>{
       let teil = v.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
@@ -2337,13 +2521,22 @@ function fahrzeugAusProfil(profil, merkmale){
   return v;
 }
 
-/** Profil zur eingetippten Marke vorschlagen. */
+/** Profil zur eingetippten Marke vorschlagen.
+ *  Uebergeben wird Marke und Bezeichnung zusammen, denn "Suzuki" allein
+ *  ist zweideutig — erst "Suzuki Bandit" verraet das Motorrad. Deshalb
+ *  gewinnt der laengste gefundene Markenname und nicht der erste. */
 function profilZurMarke(marke){
   const m = (marke||"").trim().toLowerCase();
   if(!m) return null;
-  return MARKENPROFILE.find(p=>p.marken.some(x=>x.toLowerCase()===m))
-      || MARKENPROFILE.find(p=>p.marken.some(x=>m.includes(x.toLowerCase())))
-      || null;
+  const genau = MARKENPROFILE.find(p=>p.marken.some(x=>x.toLowerCase()===m));
+  if(genau) return genau;
+  let treffer = null, laenge = 0;
+  for(const p of MARKENPROFILE)
+    for(const x of p.marken){
+      const k = x.toLowerCase();
+      if(m.includes(k) && k.length > laenge){ treffer = p; laenge = k.length; }
+    }
+  return treffer;
 }
 
 /* ═══════════ Bausteinbibliothek ════════════════════════════════
@@ -2433,6 +2626,26 @@ const BIBLIOTHEK = [
   {n:"Scheibenwaschanlage",       c:"Komfort", km:null, mo:6, t:["Scheibenreiniger"], h:"Im Winter Frostschutz."},
   {n:"Klimaanlage desinfizieren", c:"Komfort", km:null, mo:12, t:[], h:"Gegen Geruch aus dem Verdampfer."},
  ]},
+ {gruppe:"Motorrad — Motor und Fahrwerk", merkmal:"motorrad", eintraege:[
+  {n:"Ventilspiel prüfen",        c:"Motor", km:24000, mo:null, t:["Ventildeckeldichtung"], h:"Je nach Modell 12.000 bis 42.000 km. Schrauben lassen sich schnell nachstellen, Shims kosten Zeit. "+PRUEFEN},
+  {n:"Drosselklappen / Vergaser synchronisieren", c:"Motor", km:12000, mo:24, t:[], h:"Nur bei Mehrzylindern. Rauer Leerlauf ist das erste Anzeichen."},
+  {n:"Gabelöl wechseln",          c:"Fahrwerk", km:20000, mo:24, t:["Gabelöl"], h:"Altes Gabelöl macht die Front stempelig."},
+  {n:"Gabelsimmerringe erneuern", c:"Fahrwerk", km:null, mo:null, t:["Simmerringe Gabel","Staubkappen"], h:"Sobald Öl am Standrohr steht — wartet man, frisst der Schmutz die Beschichtung an."},
+  {n:"Lenkkopflager prüfen und fetten", c:"Fahrwerk", km:12000, mo:12, t:["Fett"], h:"Rasten beim Lenken im Stand heißt: eingelaufen."},
+  {n:"Schwingenlager fetten",     c:"Fahrwerk", km:24000, mo:36, t:["Fett"], h:"Wird gern übersehen, bis es ausgeschlagen ist."},
+  {n:"Radlager prüfen",           c:"Reifen", km:20000, mo:24, t:[], h:"Rad aufbocken, seitliches Spiel und Laufgeräusch prüfen."},
+  {n:"Bremssattel reinigen, Bolzen fetten", c:"Bremsen", km:12000, mo:12, t:["Bremsenpaste"], h:"Festgegangene Bolzen lassen den Belag einseitig schleifen."},
+  {n:"Züge, Hebel und Ständer schmieren", c:"Sonstiges", km:6000, mo:12, t:[], h:"Zehn Minuten, die den Unterschied zwischen leichtgängig und hakelig machen."},
+  {n:"Kühlflüssigkeit wechseln",  c:"Motor", km:24000, mo:24, t:["Kühlmittel"], h:"Nur bei wassergekühlten Motoren. Luft-/ölgekühlte Bandit und die meisten Harleys haben keinen Kreislauf."},
+  {n:"Sturzpads und Anbauteile nachziehen", c:"Karosserie", km:6000, mo:6, t:[], h:"Nach jeder längeren Tour, Vibration löst alles."},
+ ]},
+ {gruppe:"Motorrad — Endantrieb", merkmal:"motorrad", eintraege:[
+  {n:"Kette spannen + schmieren", c:"Antrieb", km:1000, mo:1, t:["Kettenspray"], h:"Alle 500 bis 1.000 km, bei Nässe öfter. Warm gefahren schmiert es besser."},
+  {n:"Kettensatz erneuern",       c:"Antrieb", km:25000, mo:null, t:["Kettensatz"], h:"Immer komplett mit beiden Rädern — eine neue Kette auf altem Ritzel hält nicht."},
+  {n:"Kettendurchhang messen",    c:"Antrieb", km:5000, mo:6, t:[], h:"Nach Handbuch, meist am belasteten Punkt gemessen. Zu straff zerstört das Ausgangslager."},
+  {n:"Endantrieb Öl wechseln",    c:"Antrieb", km:20000, mo:24, t:["Getriebeöl Endantrieb"], h:"Kardanmodelle. Geringe Menge, aber die Sorte ist vorgeschrieben."},
+  {n:"Zahnriemen Endantrieb prüfen", c:"Antrieb", km:8000, mo:12, t:[], h:"Harley und einige Buell. Spannung und Risse ansehen."},
+ ]},
  {gruppe:"Reise und Expedition", merkmal:null, eintraege:[
   {n:"Ersatzrad prüfen",          c:"Reifen", km:null, mo:6, t:[], h:"Luftdruck und Alter. Nützt wenig, wenn es platt unterm Wagen hängt."},
   {n:"Bordwerkzeug kontrollieren",c:"Sonstiges", km:null, mo:12, t:[], h:"Wagenheber, Radkreuz, Abschleppöse."},
@@ -2441,12 +2654,17 @@ const BIBLIOTHEK = [
  ]},
 ];
 
-/** Alle Bausteine flach, passende zuerst. */
+/** Alle Bausteine flach, passende zuerst.
+ *  Drei Stufen statt zwei: was ausdruecklich zu diesem Fahrzeug gehoert,
+ *  dann das Allgemeine, zuletzt die andere Bauart. Sonst sieht der
+ *  Motorradfahrer zuerst Innenraumfilter und Klimaanlage. */
 function bibliothekSortiert(){
-  const merkmale = [CAR.fuel, CAR.drive, CAR.gearbox].filter(Boolean);
-  const passt = g => !g.merkmal || merkmale.includes(g.merkmal);
-  return [...BIBLIOTHEK].sort((a,b)=> (passt(b)?1:0) - (passt(a)?1:0))
-    .map(g=>({...g, passend: passt(g)}));
+  const merkmale = [CAR.fuel, CAR.drive, CAR.gearbox, CAR.art].filter(Boolean);
+  const rang = g => !g.merkmal ? 1 : (merkmale.includes(g.merkmal) ? 2 : 0);
+  return [...BIBLIOTHEK]
+    .map((g, i)=>({g, i}))
+    .sort((a, b)=> rang(b.g) - rang(a.g) || a.i - b.i)
+    .map(({g})=>({...g, passend: rang(g) > 0}));
 }
 
 /* ═══════════ Fotos ═════════════════════════════════════════════
@@ -3052,14 +3270,17 @@ function vehicleDialog(id){
   if(!isNew && !v) return;
   const d = v || {name:"",brand:"",model:"",year:null,vin:"",plate:"",firstReg:today(),note:""};
 
-  const gruppen = [...new Set(MARKENPROFILE.map(p=>p.gruppe))];
+  const profilListe = art => {
+    const teil = MARKENPROFILE.filter(p => (p.art||"auto") === art);
+    return [...new Set(teil.map(p=>p.gruppe))]
+      .map(g=>teil.filter(p=>p.gruppe===g)
+        .map(p=>`<option value="profil:${p.id}">${esc(p.name)}</option>`).join("")).join("");
+  };
   const tpl = isNew ? `
     <div class="field"><label>Wartungsplan</label>
       <select id="f-tpl">
-        <optgroup label="Markenprofile">
-          ${gruppen.map(g=>MARKENPROFILE.filter(p=>p.gruppe===g)
-            .map(p=>`<option value="profil:${p.id}">${esc(p.name)}</option>`).join("")).join("")}
-        </optgroup>
+        <optgroup label="Autos">${profilListe("auto")}</optgroup>
+        <optgroup label="Motorräder">${profilListe("motorrad")}</optgroup>
         <optgroup label="Sonstige">
           <option value="diesel">Diesel-Geländewagen (Toyota Hilux 1GD-FTV)</option>
           ${DB.vehicles.map(o=>`<option value="copy:${o.id}">Plan von „${esc(o.name)}" übernehmen</option>`).join("")}
@@ -3102,16 +3323,23 @@ function vehicleDialog(id){
     </div>
     <div class="field"><label>Fahrgestellnummer (FIN)</label><input id="f-vin" value="${esc(d.vin)}" placeholder="17 Zeichen">
       <div class="hint">Hilfreich beim Teilekauf.</div></div>
-    <div class="grid3">
+    <div class="grid2">
+      <div class="field"><label>Fahrzeugart</label><select id="f-art">
+        ${[["","—"],["auto","Auto"],["motorrad","Motorrad"]]
+          .map(([v,t])=>`<option value="${v}" ${(d.art||"")===v?"selected":""}>${t}</option>`).join("")}</select></div>
       <div class="field"><label>Kraftstoff</label><select id="f-fuel">
         ${[["","—"],["diesel","Diesel"],["benzin","Benzin"],["hybrid","Hybrid / Elektro"]]
           .map(([v,t])=>`<option value="${v}" ${(d.fuel||"")===v?"selected":""}>${t}</option>`).join("")}</select></div>
+    </div>
+    <div class="grid2">
       <div class="field"><label>Getriebe</label><select id="f-gearbox">
         ${[["","—"],["schalt","Schaltgetriebe"],["automatik","Automatik"],["dsg","Doppelkupplung"],["cvt","CVT"]]
           .map(([v,t])=>`<option value="${v}" ${(d.gearbox||"")===v?"selected":""}>${t}</option>`).join("")}</select></div>
       <div class="field"><label>Antrieb</label><select id="f-drive">
-        ${[["","—"],["2wd","Zweirad"],["4x4","Allrad zuschaltbar"],["haldex","Allrad (Haldex)"]]
-          .map(([v,t])=>`<option value="${v}" ${(d.drive||"")===v?"selected":""}>${t}</option>`).join("")}</select></div>
+        ${(()=>{const o=(v,t)=>`<option value="${v}" ${(d.drive||"")===v?"selected":""}>${t}</option>`;
+          return o("","—")
+            + `<optgroup label="Auto">${o("2wd","Zweiradantrieb")}${o("4x4","Allrad zuschaltbar")}${o("haldex","Allrad (Haldex)")}</optgroup>`
+            + `<optgroup label="Motorrad">${o("kette","Kette")}${o("kardan","Kardan")}${o("riemen","Zahnriemen")}</optgroup>`;})()}</select></div>
     </div>
     <div class="hint" style="margin:-8px 0 14px">Steuert, welche Bausteine die Bibliothek zuerst anbietet.</div>
     <div class="grid2">
@@ -3130,6 +3358,9 @@ function vehicleDialog(id){
     target.year=num(val("f-year")); target.plate=val("f-plate"); target.vin=val("f-vin");
     target.owner=val("f-owner"); target.fuel=val("f-fuel");
     target.gearbox=val("f-gearbox"); target.drive=val("f-drive");
+    // Leer heisst "nicht gesagt" — dann das Feld gar nicht erst anlegen,
+    // sonst sortiert die Bibliothek nach einem leeren Merkmal.
+    if(val("f-art")) target.art = val("f-art"); else delete target.art;
     target.built=val("f-built"); target.firstReg=val("f-reg");
     target.note=$("#f-note").value.trim();
     if(isNew){
@@ -3151,11 +3382,19 @@ function vehicleDialog(id){
       const wert = auswahl.value;
       if(wert.startsWith("profil:")){
         const p = MARKENPROFILE.find(x=>x.id===wert.slice(7));
+        if(p && !$("#f-art").dataset.handverlesen) $("#f-art").value = p.art || "auto";
         const n = p ? profilPositionen(p, {fuel:val("f-fuel"), gearbox:val("f-gearbox"), drive:val("f-drive")}).length : 0;
+        // Beim Motorrad haengt der halbe Antriebsteil am Endantrieb. Ohne
+        // Angabe nimmt der Plan Kette, Kardan und Riemen gemeinsam auf —
+        // besser als eine still fehlende Position, aber sagen muss man es.
+        const endantrieb = p && p.art === "motorrad" && !val("f-drive")
+          ? `<span style="display:block;margin-top:4px;color:var(--warn)">Endantrieb noch nicht
+             gewählt — Kette, Kardan und Zahnriemen kommen deshalb alle drei in den Plan.</span>`
+          : "";
         hinweis.innerHTML = p
           ? `<strong>${n} Positionen.</strong> ${esc(p.hinweis)}
              <span style="display:block;margin-top:4px">Die Intervalle sind typische Größenordnungen,
-             keine Werksvorgabe — nach dem Anlegen gegen das Serviceheft prüfen.</span>`
+             keine Werksvorgabe — nach dem Anlegen gegen das Serviceheft prüfen.</span>${endantrieb}`
           : "";
       } else if(wert.startsWith("copy:")){
         hinweis.textContent = "Positionen und Teile werden übernommen, Historie und Kilometerstand bleiben leer.";
@@ -3169,15 +3408,20 @@ function vehicleDialog(id){
     for(const id of ["f-fuel","f-gearbox","f-drive"])
       $("#"+id).addEventListener("change", zeigeHinweis);
 
-    // Tippt jemand die Marke, das passende Profil vorschlagen
-    $("#f-brand").addEventListener("input", e=>{
-      const p = profilZurMarke(e.target.value);
+    // Tippt jemand Marke oder Bezeichnung, das passende Profil vorschlagen.
+    // Beides zusammen, weil "Suzuki" allein nicht verraet, ob Auto oder
+    // Motorrad — erst "Suzuki Bandit" tut das.
+    const vorschlagen = ()=>{
+      const p = profilZurMarke(val("f-brand") + " " + val("f-name"));
       if(p && !auswahl.dataset.handverlesen){
         auswahl.value = "profil:" + p.id;
         zeigeHinweis();
       }
-    });
+    };
+    $("#f-brand").addEventListener("input", vorschlagen);
+    $("#f-name").addEventListener("input", vorschlagen);
     auswahl.addEventListener("change", ()=>{ auswahl.dataset.handverlesen = "1"; });
+    $("#f-art").addEventListener("change", e=>{ e.target.dataset.handverlesen = "1"; });
     zeigeHinweis();
     return;
   }

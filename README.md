@@ -416,16 +416,37 @@ Mailversand, das waere eigene Infrastruktur.
 
 ## Markenprofile
 
-Beim Anlegen eines Fahrzeugs laesst sich ein Markenprofil waehlen: VW-Konzern
-(LongLife oder Festintervall), BMW/Mini, Mercedes-Benz, Ford, Stellantis
-(Opel, Peugeot, Citroën, Fiat), Toyota/Lexus, Hyundai/Kia/Mazda/Suzuki/Honda,
-Renault/Dacia/Nissan und Volvo. Tippt man die Marke ein, schlaegt die App das
-passende Profil selbst vor.
+Beim Anlegen eines Fahrzeugs laesst sich ein Markenprofil waehlen.
 
-Ein Profil erzeugt einen Plan aus einem gemeinsamen Sockel (Oel, Filter,
-Bremsen, Fahrwerk …) plus antriebs- und markenspezifischen Positionen. Es
-richtet sich dabei nach den Fahrzeugmerkmalen: DSG-Oelwechsel erscheint nur bei
-Doppelkupplungsgetriebe, Haldex nur bei Allrad, Zuendkerzen nur bei Benzinern.
+**Autos:** VW-Konzern (LongLife oder Festintervall), BMW/Mini, Mercedes-Benz,
+Ford, Stellantis (Opel, Peugeot, Citroën, Fiat), Toyota/Lexus,
+**Mitsubishi Pajero und Gelaendewagen**, Hyundai/Kia/Mazda/Suzuki/Honda,
+Renault/Dacia/Nissan und Volvo.
+
+**Motorraeder:** Suzuki (Bandit, GSF, SV, V-Strom), Honda/Yamaha/Kawasaki,
+BMW Motorrad, KTM/Husqvarna/GasGas, Harley-Davidson und
+Ducati/Triumph/Moto Guzzi/Aprilia.
+
+Ein Profil erzeugt einen Plan aus einem gemeinsamen Sockel plus antriebs- und
+markenspezifischen Positionen. Es richtet sich dabei nach den
+Fahrzeugmerkmalen: DSG-Oelwechsel erscheint nur bei Doppelkupplungsgetriebe,
+Haldex nur bei Allrad, Zuendkerzen nur bei Benzinern.
+
+**Zwei Sockel.** Ein Motorrad teilt mit dem Auto fast nichts ausser dem
+Motoroel — kein Innenraumfilter, keine Wischerblaetter, keine Klimaanlage,
+dafuer Ventilspiel, Kette, Gabeloel und Lenkkopflager. Profile mit
+`art: "motorrad"` schalten deshalb auf einen eigenen Sockel um und lassen die
+Antriebszusaetze der Autos weg. Der **Endantrieb** steht im Formular unter
+*Antrieb* (Kette, Kardan, Zahnriemen) und entscheidet, welche Positionen
+aufgenommen werden; ohne Angabe kommen alle drei hinein, und das Formular
+sagt das auch.
+
+**Markenerkennung:** Getippt wird Marke *und* Bezeichnung, ausgewertet wird
+beides zusammen — „Suzuki" allein ist zweideutig, erst „Suzuki Bandit" verraet
+das Motorrad. Es gewinnt der laengste gefundene Markenname, nicht der erste.
+Deshalb tragen die Zweiradprofile bei Herstellern, die auch Autos bauen,
+qualifizierte Stichworte (`Honda CB`, `BMW R`, `Suzuki GSX`) statt der blossen
+Marke.
 
 > **"Den" Inspektionsplan einer Marke gibt es nicht.** Innerhalb eines
 > Herstellers unterscheiden sich die Vorgaben nach Motor, Baujahr und
@@ -435,10 +456,14 @@ Doppelkupplungsgetriebe, Haldex nur bei Allrad, Zuendkerzen nur bei Benzinern.
 > Marke ab und tragen Groessenordnungen ein, die jede erzeugte Position als
 > Vorschlag kennzeichnet. Verbindlich ist das Serviceheft des Fahrzeugs.
 
-Zwei Punkte, die in den Profilen bewusst hervorgehoben sind, weil sie teuer
-werden koennen: der **Nassriemen** bei Ford EcoBoost/EcoBlue und Stellantis
-PureTech — die Werksangabe von bis zu 240.000 km gilt als zu optimistisch —
-sowie die Bindung des VW-LongLife-Intervalls an freigegebenes Longlife-Oel.
+Punkte, die in den Profilen bewusst hervorgehoben sind, weil sie teuer werden
+koennen: der **Nassriemen** bei Ford EcoBoost/EcoBlue und Stellantis PureTech
+— die Werksangabe von bis zu 240.000 km gilt als zu optimistisch — die Bindung
+des VW-LongLife-Intervalls an freigegebenes Longlife-Oel, der **Zahnriemen im
+Steuertrieb** riemengetriebener Ducati, und beim **Pajero** die Frage, ob der
+Motor Riemen oder Kette hat: 2.5 DI-D (4D56) und die V6-Benziner laufen mit
+Riemen, der 3.2 DI-D (4M41) mit Kette. Das Profil legt die Riemenposition an
+und sagt dazu, wann sie zu loeschen ist.
 
 ## Bausteinbibliothek
 
@@ -452,9 +477,19 @@ Die Bibliothek liefert deshalb **Vorschlagswerte aus der Praxis**, die beim
 Uebernehmen sichtbar als solche gekennzeichnet sind. Was gilt, steht im
 Serviceheft.
 
-Nach den Fahrzeugmerkmalen (Kraftstoff, Antrieb, Getriebe) sortiert die App
-passende Gruppen nach oben. Benoetigte Teile werden beim Uebernehmen automatisch
-im Katalog angelegt, sofern sie fehlen.
+Nach den Fahrzeugmerkmalen (Fahrzeugart, Kraftstoff, Antrieb, Getriebe)
+sortiert die App in drei Stufen: was ausdruecklich zu diesem Fahrzeug gehoert,
+dann das Allgemeine, zuletzt die andere Bauart. Sonst saehe der
+Motorradfahrer zuerst Innenraumfilter und Klimaanlage.
+
+Fuer Zweiraeder gibt es zwei eigene Gruppen — *Motor und Fahrwerk*
+(Ventilspiel, Gabeloel, Lenkkopf- und Schwingenlager, Synchronisieren) und
+*Endantrieb* (Kette, Kardan, Zahnriemen). Das Feld **Fahrzeugart** im
+Fahrzeugformular steuert das und laesst sich auch nachtraeglich setzen, wenn
+ein Motorrad noch aus der Zeit vor den Zweiradprofilen stammt.
+
+Benoetigte Teile werden beim Uebernehmen automatisch im Katalog angelegt,
+sofern sie fehlen.
 
 ## Anleitungen
 
