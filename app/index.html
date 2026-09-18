@@ -449,6 +449,23 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .teil-zeile .sw-km{width:86px;text-align:right}
 .teil-zeile .sw-dt{width:142px}
 
+.referenz{margin-bottom:14px}
+.foto-mini.umzug{cursor:pointer;border-radius:6px;opacity:.6;transition:opacity .12s}
+.foto-mini.umzug:hover{opacity:1}
+.foto-mini.umzug.gewaehlt{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+
+.card.rep{margin-bottom:10px}
+.card.rep.offen{border-color:rgba(232,178,74,.38)}
+.verlauf-fotos{grid-column:1/-1;margin-top:6px}
+.verlauf-fotos .fotos.mini img{width:44px;height:44px}
+
+.papier-gitter{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));margin-bottom:16px}
+.card.papier{margin:0}
+.card.papier.warn{border-color:rgba(232,178,74,.38)}
+.card.papier.crit{border-color:rgba(255,107,96,.42)}
+.card.papier.leer{text-align:left;cursor:pointer;border-style:dashed;color:var(--text);font:inherit}
+.card.papier.leer:hover{border-color:var(--line-hell);background:var(--surface-2)}
+
 .fz-bild{
   display:block;width:100%;height:136px;object-fit:cover;
   border-radius:10px;margin-bottom:12px;background:var(--mat-vertieft);
@@ -628,7 +645,7 @@ details.h-notiz[open] p::after{
 @media(max-width:560px){
   .verlauf-liste li{
     grid-template-columns:18px 1fr auto;grid-template-areas:
-      "punkt datum extra" ". km abstand";
+      "punkt datum extra" ". km abstand" ". fotos fotos";
     row-gap:1px;padding:7px 0;
   }
   .verlauf-punkt{grid-area:punkt}
@@ -636,6 +653,7 @@ details.h-notiz[open] p::after{
   .verlauf-km{grid-area:km}
   .verlauf-abstand{grid-area:abstand;justify-self:end}
   .verlauf-extra{grid-area:extra}
+  .verlauf-fotos{grid-area:fotos}
 }
 
 /* ---------- Benutzermenü ----------
@@ -897,8 +915,10 @@ details.h-notiz[open] p::after{
     <button data-view="fuhr">Fahrzeuge</button>
     <button data-view="dash" class="active">Übersicht</button>
     <button data-view="plan">Wartungsplan</button>
+    <button data-view="rep">Reparaturen</button>
     <button data-view="parts">Teilekatalog</button>
     <button data-view="hist">Historie</button>
+    <button data-view="papiere">Dokumente</button>
     <button data-view="docs">Anleitungen</button>
     <button data-view="mods">Umbauten</button>
     <button data-view="trip">Tour</button>
@@ -952,6 +972,18 @@ details.h-notiz[open] p::after{
     <div id="planList"></div>
   </section>
 
+  <!-- ══════════ REPARATUREN ══════════ -->
+  <section class="view" id="view-rep">
+    <div class="spread" style="margin-bottom:14px">
+      <div class="muted tiny">Alles Ungeplante — aufgefallen, erledigt, mit Beleg.</div>
+      <div class="row">
+        <label class="chk tiny"><input type="checkbox" id="repNurOffen"> nur offene</label>
+        <button class="btn sm primary" id="btnAddRep">+ Reparatur</button>
+      </div>
+    </div>
+    <div id="repList"></div>
+  </section>
+
   <!-- ══════════ TEILEKATALOG ══════════ -->
   <section class="view" id="view-parts">
     <div class="spread" style="margin-bottom:14px">
@@ -984,6 +1016,15 @@ details.h-notiz[open] p::after{
       <input type="file" id="dokInput" accept="application/pdf,.pdf" multiple hidden>
     </div>
     <div id="dokListe"></div>
+  </section>
+
+  <!-- ══════════ DOKUMENTE ══════════ -->
+  <section class="view" id="view-papiere">
+    <div class="spread" style="margin-bottom:14px">
+      <div class="muted tiny">Fahrzeugpapiere — als Foto oder PDF, mit Ablaufdatum.</div>
+      <button class="btn sm primary" id="btnAddPapier">+ Eigenes Dokument</button>
+    </div>
+    <div id="papierListe"></div>
   </section>
 
   <!-- ══════════ UMBAUTEN ══════════ -->
@@ -1117,14 +1158,14 @@ function seedVehicle(opts){
     owner:"", fuel:"diesel", gearbox:"", drive:"", docs:[], pakete:[], photos:[],
     tasks: o.blank ? [] : tasks,
     parts: o.blank ? [] : parts,
-    history: [], mods: []
+    history: [], mods: [], repairs: [], papiere: []
   };
 }
 
 function seedData(){
   const v = seedVehicle({name:"Hilux Extra Cab", brand:"Toyota",
                          model:"2.8 D-4D, Automatik, 4x4", year:2023, firstReg:"2023-01-01"});
-  return {version:4, rev:0, activeId:v.id, vehicles:[v]};
+  return {version:5, rev:0, activeId:v.id, vehicles:[v]};
 }
 
 /* Version 1 kannte nur ein Fahrzeug und legte dessen Daten direkt in
@@ -1155,6 +1196,25 @@ function migrate3(db){
       for(const e of liste) if(!Array.isArray(e.photos)) e.photos = [];
   }
   db.version = 4;
+  return migrate5(db);
+}
+
+/* Version 5 bringt Reparaturen und Fahrzeugpapiere und zieht die Listen
+   nach, die bisher nur traege entstanden sind — Pakete, Fotos an Teilen
+   und am Fahrzeug. Aendert nie Vorhandenes. */
+function migrate5(db){
+  for(const v of db.vehicles||[]){
+    if(!Array.isArray(v.repairs)) v.repairs = [];
+    if(!Array.isArray(v.papiere)) v.papiere = [];
+    if(!Array.isArray(v.pakete))  v.pakete  = [];
+    if(!Array.isArray(v.photos))  v.photos  = [];
+    for(const t of v.parts||[]){
+      if(!Array.isArray(t.photos)) t.photos = [];
+      if(!Array.isArray(t.docs))   t.docs   = [];
+    }
+    for(const r of v.repairs) if(!Array.isArray(r.photos)) r.photos = [];
+  }
+  db.version = 5;
   return db;
 }
 
@@ -1289,6 +1349,16 @@ function lastDone(t){
   for(const h of CAR.history){
     if(!h.taskIds||!h.taskIds.includes(t.id)) continue;
     if(!best||!best.date||h.date>best.date) best={km:h.km,date:h.date,src:"historie",id:h.id};
+  }
+  /* Eine erledigte Reparatur an derselben Stelle zaehlt genauso — wer die
+     Bremsscheiben erneuert hat, muss sie nicht auch noch pruefen. Offene
+     Reparaturen zaehlen nicht, die sind ja nicht gemacht. */
+  for(const r of CAR.repairs||[]){
+    if(r.status !== "erledigt") continue;
+    if(!r.taskIds||!r.taskIds.includes(t.id)) continue;
+    const datum = repDatum(r);
+    if(!best||!best.date||datum>best.date)
+      best={km:repKm(r), date:datum, src:"reparatur", id:r.id};
   }
   return best;
 }
@@ -1481,6 +1551,24 @@ function renderDash(){
     h += `<div class="sec-head"><h2>Die nächsten zwölf Monate</h2><div class="line"></div></div>
           ${zeitstrahl(echt)}`;
 
+  /* Ein abgelaufener HU-Bericht oder eine ungueltige Gruene Karte kostet
+     mehr als ein uebersprungener Oelwechsel — deshalb stehen sie oben. */
+  const fristen = (CAR.papiere||[])
+    .map(p=>({p, rest: papierRest(p)}))
+    .filter(x=>x.rest != null && x.rest <= 60)
+    .sort((a,b)=>a.rest - b.rest);
+  if(fristen.length)
+    h += `<div class="sec-head"><h2>Dokumente</h2><div class="line"></div>
+        <span class="pill ${fristen[0].rest < 0 ? "crit" : "warn"}">${fristen.length}</span></div>
+      <div class="card" style="border-color:${fristen[0].rest < 0 ? "rgba(255,107,96,.42)" : "rgba(232,178,74,.38)"}">
+        ${fristen.map(({p, rest})=>`<div class="spread" style="margin-bottom:6px">
+          <span>${esc(p.name)}</span>
+          <span class="tiny" style="color:var(--${rest < 0 ? "crit" : "warn"});font-weight:600">${
+            rest < 0 ? `seit ${Math.abs(rest)} Tagen abgelaufen`
+            : rest === 0 ? "läuft heute ab" : `noch ${rest} Tage`}</span></div>`).join("")}
+        <button class="btn sm" id="btnZuPapieren" style="margin-top:6px">Zu den Dokumenten</button>
+      </div>`;
+
   h += einkaufsliste([...crit, ...warn]);
 
   if(!crit.length && !warn.length)
@@ -1501,6 +1589,8 @@ function renderDash(){
   }
   $("#dashDue").innerHTML = h;
   const sw = $("#btnStartwerte2"); if(sw) sw.onclick = ()=>startwerteDialog();
+  const zp = $("#btnZuPapieren");
+  if(zp) zp.onclick = ()=>$('#nav button[data-view="papiere"]').click();
 }
 
 /* ═══════════ Wartungsplan ═══════════ */
@@ -1515,11 +1605,17 @@ function renderPlan(){
  *  welchen Abstaenden. Der Abstand ist das eigentlich Interessante —
  *  daran sieht man, ob das gesetzte Intervall zur Praxis passt. */
 function positionsVerlauf(t){
-  const eintraege = CAR.history
-    .filter(h => (h.taskIds||[]).includes(t.id))
-    .map(h => ({id:h.id, date:h.date, km:h.km, cost:h.cost, note:h.note,
-                photos:h.photos||[], quelle:"historie"}))
-    .sort((a,b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const eintraege = [
+    ...CAR.history
+      .filter(h => (h.taskIds||[]).includes(t.id))
+      .map(h => ({id:h.id, date:h.date, km:h.km, cost:h.cost, note:h.note,
+                  photos:h.photos||[], quelle:"historie"})),
+    // Erledigte Reparaturen stehen im selben Verlauf, nur gekennzeichnet
+    ...(CAR.repairs||[])
+      .filter(r => r.status === "erledigt" && (r.taskIds||[]).includes(t.id))
+      .map(r => ({id:r.id, date:repDatum(r), km:repKm(r), cost:r.cost, note:r.titel,
+                  photos:r.photos||[], quelle:"reparatur"})),
+  ].sort((a,b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
   // Manuell gesetzter Startwert zaehlt mit, sofern er aelter ist
   if((t.lastKm != null || t.lastDate) &&
@@ -1553,7 +1649,7 @@ function verlaufBlock(t){
 
   return `<div class="verlauf">
     <div class="verlauf-kopf">
-      <span class="verlauf-titel">Verlauf</span>
+      <span class="verlauf-titel">Verlauf und Belege</span>
       <span class="tiny faint">${v.length}× erfasst${
         schnittKm ? ` · im Schnitt alle ${nKm(schnittKm)} km` : ""}${
         kosten ? ` · ${eur(kosten)} gesamt` : ""}</span>
@@ -1568,10 +1664,13 @@ function verlaufBlock(t){
             : e.dTage != null ? "nach " + e.dTage + " Tagen"
             : e.quelle === "manuell" ? "Startwert" : "erste Erfassung"}</span>
         <span class="verlauf-extra">
+          ${e.quelle==="reparatur"?`<span class="pill warn">Reparatur</span>`:""}
           ${e.cost!=null?`<span class="tiny num">${eur(e.cost)}</span>`:""}
-          ${e.photos.length?`<span class="tiny faint" title="${e.photos.length} Aufnahmen">▣ ${e.photos.length}</span>`:""}
-          ${e.id?`<button type="button" class="btn icon" data-edit-hist="${e.id}" title="Eintrag bearbeiten">✎</button>`:""}
-        </span></li>`).join("")}
+          ${e.id?`<button type="button" class="btn icon" data-${
+            e.quelle==="reparatur"?"edit-rep":"edit-hist"}="${e.id}" title="Eintrag bearbeiten">✎</button>`:""}
+        </span>
+        ${e.photos.length?`<span class="verlauf-fotos">${fotoStreifen(e.photos)}</span>`:""}
+      </li>`).join("")}
     </ol></div>`;
 }
 
@@ -1605,7 +1704,10 @@ function taskCard(s,expandable){
   const body = expandable ? `<div class="task-body">
       ${t.note?`<p class="tiny muted" style="margin:0 0 12px">${esc(t.note)}</p>`:""}
       ${anleitungStreifen(t.docs)}
-      ${fotoStreifen(t.photos)}
+      ${(t.photos||[]).length ? `<div class="referenz">
+        <div class="verlauf-kopf"><span class="verlauf-titel">Referenz</span>
+          <span class="tiny faint">gilt dauerhaft für diese Position — nicht für einen einzelnen Termin</span></div>
+        ${fotoStreifen(t.photos)}</div>` : ""}
       ${verlaufBlock(t)}
       ${plist?`<div class="tbl-wrap" style="margin-bottom:12px"><table>
         <thead><tr><th>Benötigtes Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th></tr></thead>
@@ -1673,28 +1775,34 @@ async function pdfSeiten(datei){
 
 /** PDF hochladen und in CAR.docs aufnehmen. Gibt die neuen IDs zurueck,
  *  damit der Positionsdialog sie gleich verknuepfen kann. */
-async function ladeAnleitungen(dateien){
+/** Ein PDF hochladen und beschreiben. Kennt den Bestand nicht — wer es
+ *  aufruft, entscheidet, ob daraus eine Anleitung oder ein Fahrzeugpapier
+ *  wird. Gibt null zurueck, wenn die Datei nicht taugt. */
+async function ladePdfHoch(f){
   const MAX = 60*1048576;
+  if(f.type!=="application/pdf" && !f.name.toLowerCase().endsWith(".pdf")){
+    toast(`„${f.name}" ist kein PDF`,true); return null;
+  }
+  if(f.size > MAX){
+    toast(`„${f.name}" ist ${(f.size/1048576).toFixed(0)} MB — höchstens 60 MB`,true); return null;
+  }
+  toast(`Lade „${f.name}" …`);
+  const id = "d_" + neueId();
+  try{
+    const r = await fetch(api("docs/"+id),{method:"PUT",headers:{"Content-Type":"application/pdf"},body:f});
+    if(!r.ok){
+      let grund="HTTP "+r.status; try{ grund=(await r.json()).error||grund; }catch(e){}
+      throw new Error(grund);
+    }
+    return {id, name:f.name.replace(/\.pdf$/i,""), seiten:await pdfSeiten(f), bytes:f.size, note:""};
+  }catch(e){ toast(`„${f.name}": ${e.message}`,true); return null; }
+}
+
+async function ladeAnleitungen(dateien){
   const neue = [];
   for(const f of dateien){
-    if(f.type!=="application/pdf" && !f.name.toLowerCase().endsWith(".pdf")){
-      toast(`„${f.name}" ist kein PDF`,true); continue;
-    }
-    if(f.size > MAX){
-      toast(`„${f.name}" ist ${(f.size/1048576).toFixed(0)} MB — höchstens 60 MB`,true); continue;
-    }
-    toast(`Lade „${f.name}" …`);
-    const id = "d_" + neueId();
-    try{
-      const r = await fetch(api("docs/"+id),{method:"PUT",headers:{"Content-Type":"application/pdf"},body:f});
-      if(!r.ok){
-        let grund="HTTP "+r.status; try{ grund=(await r.json()).error||grund; }catch(e){}
-        throw new Error(grund);
-      }
-      CAR.docs.push({id, name:f.name.replace(/\.pdf$/i,""), seiten:await pdfSeiten(f),
-                     bytes:f.size, note:""});
-      neue.push(id);
-    }catch(e){ toast(`„${f.name}": ${e.message}`,true); }
+    const d = await ladePdfHoch(f);
+    if(d){ CAR.docs.push(d); neue.push(d.id); }
   }
   if(neue.length){
     save(); renderAll();
@@ -1758,7 +1866,17 @@ function renderDocs(){
 const KURZ = 150;   // ab dieser Laenge wird die Notiz eingeklappt
 
 function renderHist(){
-  const eintraege = [...CAR.history].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  /* Eine Datenquelle, zwei Ansichten: Der Reparaturreiter zeigt nur
+     Reparaturen, hier stehen sie zwischen den Wartungen nach Datum.
+     Nichts wird doppelt eingetragen. */
+  const eintraege = [
+    ...CAR.history.map(h=>({...h, art:"wartung"})),
+    ...(CAR.repairs||[]).filter(r=>r.status==="erledigt").map(r=>({
+      id:r.id, art:"reparatur", date:repDatum(r), km:repKm(r),
+      taskIds:r.taskIds||[], title:r.titel, cost:r.cost,
+      werkstatt:r.werkstatt, note:r.note, photos:r.photos||[],
+    })),
+  ].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
 
   if(!eintraege.length){
     $("#histList").innerHTML =
@@ -1812,8 +1930,10 @@ function renderHist(){
             ${e.werkstatt?`<span class="tiny faint">· ${esc(e.werkstatt)}</span>`:""}
           </div>
           <div class="h-rechts">
+            ${e.art==="reparatur"?`<span class="pill warn">Reparatur</span>`:""}
             ${e.cost!=null?`<span class="h-kosten num">${eur(e.cost)}</span>`:""}
-            <button class="btn icon" data-edit-hist="${e.id}" title="Eintrag bearbeiten">✎</button>
+            <button class="btn icon" data-${e.art==="reparatur"?"edit-rep":"edit-hist"}="${e.id}"
+              title="Eintrag bearbeiten">✎</button>
           </div>
         </div>
 
@@ -1861,6 +1981,381 @@ function renderMods(){
     </div></div>`;
   }).join("") + `<div class="spread card"><strong>Summe Umbauten</strong>
     <strong class="num" style="font-size:18px">${eur(sum)}</strong></div>`;
+}
+
+
+
+/* ═══════════ Reparaturen ═══════════════════════════════════════
+   Das Ungeplante: Anlasser getauscht, Rost an der Heckklappe,
+   Steinschlag. Anders als eine Wartungsposition wiederholt es sich
+   nicht, und anders als ein Umbau ist es kein Zugewinn.
+
+   Zwei Zustaende, weil beides vorkommt: „ist mir aufgefallen" und
+   „ist gemacht". Nur die erledigten zaehlen fuer den Wartungsplan
+   und stehen in der Zeitleiste — was noch offen ist, ist eben nicht
+   gemacht.                                                        */
+
+const repById = id => (CAR.repairs||[]).find(r=>r.id===id);
+
+/** Datum, unter dem eine Reparatur in der Zeitleiste steht. */
+const repDatum = r => r.status === "erledigt" ? (r.erledigtAm || r.date) : r.date;
+const repKm    = r => r.status === "erledigt" ? (r.erledigtKm ?? r.km) : r.km;
+
+function renderRepairs(){
+  const alle = CAR.repairs || [];
+  const nurOffen = $("#repNurOffen") && $("#repNurOffen").checked;
+  const offen = alle.filter(r=>r.status !== "erledigt")
+    .sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const fertig = alle.filter(r=>r.status === "erledigt")
+    .sort((a,b)=>(repDatum(b)||"").localeCompare(repDatum(a)||""));
+
+  if(!alle.length){
+    $("#repList").innerHTML = `<div class="empty">
+      <p>Noch keine Reparaturen.<br>
+      Hier steht, was nicht im Wartungsplan vorgesehen war — vom Steinschlag
+      bis zum getauschten Anlasser. Mit Bild, Rechnung und Datum.</p>
+      <button class="btn primary" id="btnAddRep2">+ Erste Reparatur</button></div>`;
+    const b = $("#btnAddRep2"); if(b) b.onclick = ()=>repairDialog();
+    return;
+  }
+
+  const karte = r => {
+    const positionen = (r.taskIds||[]).map(id=>CAR.tasks.find(t=>t.id===id)).filter(Boolean);
+    const teile = (r.parts||[]).map(x=>partById(x.p)).filter(Boolean);
+    const erledigt = r.status === "erledigt";
+    return `<div class="card rep ${erledigt?"":"offen"}">
+      <div class="spread">
+        <div style="min-width:0">
+          <strong>${esc(r.titel)}</strong>
+          <span class="pill ${erledigt?"flat":"warn"}">${erledigt?"erledigt":"offen"}</span>
+          ${r.cat?`<span class="pill flat">${esc(r.cat)}</span>`:""}
+          <div class="tiny faint" style="margin-top:4px">
+            ${erledigt
+              ? `Erledigt ${dDE(repDatum(r))}${repKm(r)!=null?" bei "+nKm(repKm(r))+" km":""}${
+                  r.werkstatt?" · "+esc(r.werkstatt):""}`
+              : `Aufgefallen ${dDE(r.date)}${r.km!=null?" bei "+nKm(r.km)+" km":""}`}
+          </div>
+          ${r.note?`<div class="tiny muted" style="margin-top:6px">${esc(r.note)}</div>`:""}
+          ${positionen.length?`<div class="h-positionen" style="margin-top:8px">${
+            positionen.map(t=>`<span class="h-chip">${esc(t.name)}</span>`).join("")}</div>`:""}
+          ${teile.length?`<div class="tiny faint" style="margin-top:6px">Teile: ${
+            teile.map(t=>esc(t.name)).join(", ")}</div>`:""}
+        </div>
+        <div style="text-align:right;white-space:nowrap">
+          ${r.cost!=null?`<div class="num" style="font-weight:600">${eur(r.cost)}</div>`:""}
+          <button class="btn icon" data-edit-rep="${r.id}" title="Bearbeiten">✎</button>
+        </div>
+      </div>
+      ${anleitungStreifen(r.docs)}
+      ${fotoStreifen(r.photos)}
+    </div>`;
+  };
+
+  let h = "";
+  if(offen.length)
+    h += `<div class="sec-head"><h2>Offen</h2><div class="line"></div>
+          <span class="pill warn">${offen.length}</span></div>
+          ${offen.map(karte).join("")}`;
+
+  if(!nurOffen && fertig.length){
+    h += `<div class="sec-head"><h2>Erledigt</h2><div class="line"></div>
+          <span class="pill flat">${fertig.length}</span></div>`;
+    let jahrZuvor = null;
+    for(const r of fertig){
+      const jahr = (repDatum(r)||"").slice(0,4);
+      if(jahr !== jahrZuvor){
+        h += `<div class="jahr-trenner"><span class="jahr-zahl">${esc(jahr||"ohne Jahr")}</span>
+              <span class="line"></span></div>`;
+        jahrZuvor = jahr;
+      }
+      h += karte(r);
+    }
+    const summe = fertig.reduce((a,r)=>a+(r.cost||0),0);
+    if(summe) h += `<div class="spread card"><strong>Summe Reparaturen</strong>
+      <strong class="num" style="font-size:18px">${eur(summe)}</strong></div>`;
+  }
+  if(nurOffen && !offen.length)
+    h += `<div class="empty"><p>Nichts offen. ${fertig.length} erledigte Reparatur${
+      fertig.length===1?"":"en"} sind ausgeblendet.</p></div>`;
+
+  $("#repList").innerHTML = h;
+}
+
+function repairDialog(id){
+  const r = id ? repById(id) : {
+    id: uid("r"), titel: "", cat: "Motor", status: "offen",
+    date: today(), km: CAR.km || null,
+    erledigtAm: "", erledigtKm: null, cost: null, werkstatt: "",
+    taskIds: [], parts: [], docs: [], photos: [], note: ""
+  };
+  teileAuswahl = (r.parts||[]).map(x=>({p:x.p, q:x.q}));
+  dokAuswahl   = (r.docs||[]).map(x=>({d:x.d, p:x.p||1}));
+
+  openDlg(id ? "Reparatur bearbeiten" : "Neue Reparatur", `
+    <div class="field"><label>Was ist passiert?</label>
+      <input id="f-titel" value="${esc(r.titel)}" required placeholder="z. B. Anlasser getauscht"></div>
+    <div class="grid2">
+      <div class="field"><label>Kategorie</label><select id="f-cat">${
+        CATS.map(c=>`<option ${c===r.cat?"selected":""}>${c}</option>`).join("")}</select></div>
+      <div class="field"><label>Zustand</label><select id="f-status">
+        <option value="offen" ${r.status!=="erledigt"?"selected":""}>offen — muss noch gemacht werden</option>
+        <option value="erledigt" ${r.status==="erledigt"?"selected":""}>erledigt</option>
+      </select></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Aufgefallen am</label>
+        <input type="date" id="f-date" value="${r.date||""}"></div>
+      <div class="field"><label>bei km</label>
+        <input type="number" id="f-km" inputmode="numeric" value="${r.km??""}"></div>
+    </div>
+
+    <div id="repErledigt" ${r.status==="erledigt"?"":"hidden"}>
+      <div class="sec-head"><h2>Erledigt</h2><div class="line"></div></div>
+      <div class="grid2">
+        <div class="field"><label>Datum</label>
+          <input type="date" id="f-edate" value="${r.erledigtAm||""}"></div>
+        <div class="field"><label>bei km</label>
+          <input type="number" id="f-ekm" inputmode="numeric" value="${r.erledigtKm??""}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Werkstatt / wer</label>
+          <input id="f-werk" value="${esc(r.werkstatt||"")}" placeholder="z. B. selbst"></div>
+        <div class="field"><label>Kosten (€)</label>
+          <input type="number" step="0.01" id="f-cost" value="${r.cost??""}"></div>
+      </div>
+      <div class="field"><label>Erledigt damit auch diese Wartungspositionen</label>
+        <div style="max-height:170px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px 11px">
+        ${CAR.tasks.map(t=>`<label class="chk"><input type="checkbox" class="rt-chk" value="${t.id}"
+            ${(r.taskIds||[]).includes(t.id)?"checked":""}>
+          <span>${esc(t.name)} <span class="tiny faint">${esc(t.cat)}</span></span></label>`).join("")
+          || `<div class="tiny faint">Keine Positionen vorhanden.</div>`}</div>
+        <div class="hint">Optional — setzt deren Fälligkeit auf diesen Stand zurück.</div></div>
+    </div>
+
+    <div class="field"><label>Verbaute Teile</label>
+      <div id="teileListe"></div>
+      <div class="picker">
+        <input type="text" id="teileSuche" placeholder="Teil suchen oder neu anlegen …" autocomplete="off">
+        <div class="picker-liste" id="teileTreffer" hidden></div>
+      </div>
+    </div>
+
+    ${anleitungFeld("Rechnung, Kostenvoranschlag, Einbauanleitung.")}
+
+    <div class="field"><label>Notiz</label>
+      <textarea id="f-note" placeholder="Symptom, Diagnose, Garantie…">${esc(r.note||"")}</textarea></div>
+
+    ${fotoFeld(r.photos, "Schadensbild vorher, Ergebnis nachher, das ausgebaute Teil.")}
+    <div id="umzugHuelle">${umzugFeld(r.taskIds)}</div>
+    ${id?`<button type="button" class="btn sm danger" id="delRep">Reparatur löschen</button>`:""}`,
+  ()=>{
+    if(!val("f-titel")){ toast("Beschreibung fehlt",true); return false; }
+    r.titel = val("f-titel"); r.cat = val("f-cat");
+    r.status = val("f-status");
+    r.date = val("f-date") || today(); r.km = num(val("f-km"));
+    r.note = $("#f-note").value.trim();
+    if(r.status === "erledigt"){
+      r.erledigtAm = val("f-edate") || today();
+      r.erledigtKm = num(val("f-ekm"));
+      r.werkstatt  = val("f-werk"); r.cost = num(val("f-cost"));
+      r.taskIds = $$(".rt-chk").filter(c=>c.checked).map(c=>c.value);
+      // Ein nachgetragener alter Stand darf den aktuellen nie senken.
+      if(r.erledigtKm > (CAR.km||0)){ CAR.km = r.erledigtKm; CAR.kmDate = r.erledigtAm; $("#kmNow").value = CAR.km; }
+    }
+    r.parts = $$("#teileListe [data-teil]").map(z=>({
+      p: z.dataset.teil, q: num(z.querySelector(".pt-q").value) || 1
+    }));
+    if($("#dokZuordnung")) r.docs = dokAuswahl.map(x=>x.p>1?{d:x.d,p:x.p}:{d:x.d});
+    const fotos = liesFotos(); if(fotos) r.photos = fotos;
+    fotosUmziehen();
+    if(!id){ CAR.repairs = CAR.repairs || []; CAR.repairs.push(r); }
+  });
+
+  for(const c of $$(".rt-chk")) c.addEventListener("change", ()=>{
+    const gewaehlt = $$(".rt-chk").filter(x=>x.checked).map(x=>x.value);
+    const huelle = $("#umzugHuelle");
+    if(huelle) huelle.innerHTML = umzugFeld(gewaehlt);
+  });
+
+  /* Beim Umschalten auf erledigt Datum und Stand vorbelegen — der
+     haeufigste Fall ist „ist jetzt gemacht". */
+  $("#f-status").addEventListener("change", e=>{
+    const fertig = e.target.value === "erledigt";
+    $("#repErledigt").hidden = !fertig;
+    if(fertig){
+      if(!val("f-edate")) $("#f-edate").value = today();
+      if(!val("f-ekm") && CAR.km) $("#f-ekm").value = CAR.km;
+    }
+  });
+
+  if(id) $("#delRep").onclick = ()=>{
+    if(!confirm(`„${r.titel}" wirklich löschen?`)) return;
+    CAR.repairs = CAR.repairs.filter(x=>x.id!==r.id);
+    dlgSave = null; $("#dlg").close(); save(); renderAll();
+    toast("Reparatur gelöscht");
+  };
+}
+
+/* ═══════════ Fahrzeugpapiere ═══════════════════════════════════
+   Getrennt von den Anleitungen, weil es etwas anderes ist: Papiere
+   haengen an keiner Wartungsposition, sie laufen ab, und man braucht
+   sie bei einer Kontrolle. Sie liegen deshalb in einem eigenen
+   Bestand — sonst stuende die Zulassungsbescheinigung mitten in der
+   Anleitungsliste.
+
+   ACHTUNG, das sind die empfindlichsten Daten der App: Die
+   Zulassungsbescheinigung Teil II ist das Eigentumsdokument, Teil I
+   traegt Name und Anschrift. Sie liegen unter data/, das nie ins
+   Repository wandert, und sind nur hinter Anmeldung und VPN
+   erreichbar. In die Sicherung gehoeren sie unbedingt.            */
+
+const PAPIER_VORLAGEN = [
+  {n:"Zulassungsbescheinigung Teil I",  h:"Fahrzeugschein — der, der ins Handschuhfach gehört.", frist:false},
+  {n:"Zulassungsbescheinigung Teil II", h:"Fahrzeugbrief — das Eigentumsdokument. Gehört nicht ins Auto.", frist:false},
+  {n:"HU-Bericht (TÜV)",                h:"Letzter Prüfbericht. Das Ablaufdatum steht auf der Plakette.", frist:true},
+  {n:"Versicherungsschein",             h:"Police oder eVB-Bestätigung.", frist:true},
+  {n:"Schutzbrief",                     h:"Pannenhilfe — Nummer und Umfang.", frist:true},
+  {n:"Internationale Versicherungskarte", h:"Grüne Karte, für Fahrten ins Ausland.", frist:true},
+];
+
+const papierById = id => (CAR.papiere||[]).find(p=>p.id===id);
+
+/** Fehlt noch ein Fach fuer diese Vorlage? */
+const papierFehlt = name => !(CAR.papiere||[]).some(p=>p.name === name);
+
+/** Tage bis zum Ablauf, null wenn kein Datum gesetzt ist. */
+function papierRest(p){
+  if(!p.gueltigBis) return null;
+  return daysBetween(today(), p.gueltigBis);
+}
+
+function renderPapiere(){
+  const liste = CAR.papiere || [];
+  const vorlagen = PAPIER_VORLAGEN.filter(v=>papierFehlt(v.n));
+
+  const karte = p => {
+    const rest = papierRest(p);
+    const stufe = rest == null ? "" : rest < 0 ? "crit" : rest <= 60 ? "warn" : "ok";
+    const fristText = rest == null ? ""
+      : rest < 0  ? `<span style="color:var(--crit);font-weight:600">seit ${Math.abs(rest)} Tagen abgelaufen</span>`
+      : rest === 0 ? `<span style="color:var(--crit);font-weight:600">läuft heute ab</span>`
+      : rest <= 60 ? `<span style="color:var(--warn);font-weight:600">noch ${rest} Tage</span>`
+      : `gültig bis ${dDE(p.gueltigBis)}`;
+
+    return `<div class="card papier ${stufe}">
+      <div class="spread">
+        <div style="min-width:0">
+          <strong>${esc(p.name)}</strong>
+          ${p.nummer?`<div class="tiny faint num" style="margin-top:3px">${esc(p.nummer)}</div>`:""}
+          ${fristText?`<div class="tiny" style="margin-top:4px">${fristText}</div>`:""}
+          ${p.note?`<div class="tiny muted" style="margin-top:6px">${esc(p.note)}</div>`:""}
+        </div>
+        <button class="btn icon" data-edit-papier="${p.id}" title="Bearbeiten">✎</button>
+      </div>
+      ${anleitungStreifen((p.pdfs||[]).map(d=>({d:d.id})))}
+      ${fotoStreifen(p.photos)}
+      ${!(p.pdfs||[]).length && !(p.photos||[]).length
+        ? `<div class="tiny faint" style="margin-top:8px">Noch nichts hinterlegt —
+           über ✎ ein Foto oder PDF hinzufügen.</div>` : ""}
+    </div>`;
+  };
+
+  const hinweis = `<div class="card" style="border-color:rgba(232,178,74,.28)">
+    <strong>Was hier hingehört</strong>
+    <p class="tiny muted" style="margin:6px 0 0">
+      Zulassungsbescheinigung Teil I und II, HU-Bericht, Versicherungsschein,
+      Schutzbrief und die Internationale Versicherungskarte. Alles, was man
+      sucht, wenn man es eilig hat — bei einer Kontrolle, nach einem Schaden
+      oder beim Verkauf.</p>
+    <p class="tiny faint" style="margin:8px 0 0">
+      Das sind die empfindlichsten Daten in der App. Sie liegen auf deinem
+      Server hinter Anmeldung und VPN und gehören in die Sicherung — aber nie
+      in einen Screenshot. Der Fahrzeugbrief bleibt ohnehin besser zu Hause
+      als im Handschuhfach.</p></div>`;
+
+  $("#papierListe").innerHTML =
+    (liste.length ? `<div class="papier-gitter">${liste.map(karte).join("")}</div>` : "")
+    + (vorlagen.length ? `
+      <div class="sec-head"><h2>${liste.length?"Noch nicht hinterlegt":"Die wichtigsten Dokumente"}</h2>
+        <div class="line"></div></div>
+      <div class="papier-gitter">${vorlagen.map(v=>`
+        <button type="button" class="card papier leer" data-neues-papier="${esc(v.n)}">
+          <strong>${esc(v.n)}</strong>
+          <div class="tiny faint" style="margin-top:4px">${esc(v.h)}</div>
+          <div class="tiny" style="margin-top:8px;color:var(--accent-dim)">＋ hinterlegen</div>
+        </button>`).join("")}</div>` : "")
+    + hinweis;
+}
+
+function papierDialog(id, vorlageName){
+  const vorlage = PAPIER_VORLAGEN.find(v=>v.n === vorlageName);
+  const p = id ? papierById(id) : {
+    id: uid("pa"), name: vorlageName || "", nummer: "", gueltigBis: "",
+    note: "", pdfs: [], photos: []
+  };
+  papierPdfs = [...(p.pdfs||[])];
+
+  openDlg(id ? "Dokument bearbeiten" : "Dokument hinterlegen", `
+    <div class="field"><label>Bezeichnung</label>
+      <input id="f-name" value="${esc(p.name)}" required placeholder="z. B. Versicherungsschein">
+      ${vorlage?`<div class="hint">${esc(vorlage.h)}</div>`:""}</div>
+    <div class="grid2">
+      <div class="field"><label>Nummer / Kennzeichnung</label>
+        <input id="f-nr" value="${esc(p.nummer||"")}" placeholder="Police, Vertrag, Prüfnummer">
+        <div class="hint">Optional — hilft, wenn du telefonisch etwas klären musst.</div></div>
+      <div class="field"><label>Gültig bis</label>
+        <input type="date" id="f-bis" value="${p.gueltigBis||""}">
+        <div class="hint">Läuft ab? Dann meldet sich die Übersicht rechtzeitig.</div></div>
+    </div>
+
+    <div class="field"><label>PDF</label>
+      <div id="papierPdfListe"></div>
+      ${mode==="server" ? `<div class="row" style="margin-top:8px">
+        <button type="button" class="btn sm" id="papierPdfAdd">＋ PDF hochladen</button>
+        <span class="tiny faint" id="papierPdfStatus">vom Telefon oder Rechner</span>
+      </div>
+      <input type="file" id="papierPdfInput" accept="application/pdf,.pdf" multiple hidden>`
+      : `<div class="tiny faint">Dateien brauchen den Server — im lokalen Dateimodus nicht verfügbar.</div>`}
+    </div>
+
+    <div class="field"><label>Notiz</label>
+      <textarea id="f-note" placeholder="Wo liegt das Original? Ansprechpartner, Besonderheiten…">${esc(p.note||"")}</textarea></div>
+
+    ${fotoFeld(p.photos, "Abfotografiert reicht — Vorder- und Rückseite, gut ausgeleuchtet.")}
+    ${id?`<button type="button" class="btn sm danger" id="delPapier">Dokument löschen</button>`:""}`,
+  ()=>{
+    if(!val("f-name")){ toast("Bezeichnung fehlt",true); return false; }
+    p.name = val("f-name"); p.nummer = val("f-nr");
+    p.gueltigBis = val("f-bis") || "";
+    p.note = $("#f-note").value.trim();
+    p.pdfs = [...papierPdfs];
+    const fotos = liesFotos(); if(fotos) p.photos = fotos;
+    if(!id){ CAR.papiere = CAR.papiere || []; CAR.papiere.push(p); }
+  });
+
+  zeichnePapierPdfs();
+
+  if(id) $("#delPapier").onclick = ()=>{
+    if(!confirm(`„${p.name}" mit allen hinterlegten Dateien löschen?`)) return;
+    for(const d of p.pdfs||[]) fetch(api("docs/"+d.id),{method:"DELETE"}).catch(()=>{});
+    CAR.papiere = CAR.papiere.filter(x=>x.id!==p.id);
+    dlgSave = null; $("#dlg").close(); save(); renderAll();
+    toast("Dokument gelöscht");
+  };
+}
+
+let papierPdfs = [];
+
+function zeichnePapierPdfs(){
+  const box = $("#papierPdfListe"); if(!box) return;
+  box.innerHTML = papierPdfs.length ? papierPdfs.map(d=>`
+    <div class="teil-zeile">
+      <div class="teil-name">${esc(d.name)}
+        <span class="tiny faint">${d.seiten?d.seiten+(d.seiten===1?" Seite":" Seiten")+" · ":""}${mb(d.bytes)}</span></div>
+      <button type="button" class="btn icon" data-pdf="${d.id}" data-seite="1" title="Ansehen">↗</button>
+      <button type="button" class="btn icon" data-papier-pdf-weg="${d.id}" title="Entfernen">✕</button>
+    </div>`).join("")
+    : `<div class="tiny faint" style="padding:6px 0">Noch kein PDF hinterlegt.</div>`;
 }
 
 /* ═══════════ Tourplanung ═══════════ */
@@ -1919,38 +2414,44 @@ function renderCost(){
   for(const h of CAR.history) if(h.cost!=null) rows.push({date:h.date,km:h.km,cost:h.cost,art:"Wartung",
     label:(h.taskIds||[]).map(id=>CAR.tasks.find(t=>t.id===id)?.name).filter(Boolean).join(", ")||h.title||"Service"});
   for(const m of CAR.mods) if(m.cost!=null) rows.push({date:m.date,km:m.km,cost:m.cost,art:"Umbau",label:m.name});
+  for(const r of CAR.repairs||[])
+    if(r.status==="erledigt" && r.cost!=null)
+      rows.push({date:repDatum(r), km:repKm(r), cost:r.cost, art:"Reparatur", label:r.titel});
   if(!rows.length){ $("#costStats").innerHTML=""; 
     $("#costOut").innerHTML=`<div class="empty"><p>Sobald du Kosten bei Historie oder Umbauten einträgst, erscheint hier die Auswertung.</p></div>`; return; }
 
   const wart=rows.filter(r=>r.art==="Wartung").reduce((a,r)=>a+r.cost,0);
   const umb =rows.filter(r=>r.art==="Umbau").reduce((a,r)=>a+r.cost,0);
+  const rep =rows.filter(r=>r.art==="Reparatur").reduce((a,r)=>a+r.cost,0);
   const kms =rows.map(r=>r.km).filter(k=>k>0);
   const span=(CAR.km||0)-(kms.length?Math.min(...kms):0);
   const perKm = span>100 ? wart/span : null;
 
   $("#costStats").innerHTML=[
-    ["Wartung gesamt",eur(wart)],["Umbauten gesamt",eur(umb)],
-    ["Gesamt",eur(wart+umb)],["Wartung je km",perKm!=null?perKm.toLocaleString("de-DE",{style:"currency",currency:"EUR",minimumFractionDigits:3,maximumFractionDigits:3}):"—"]
+    ["Wartung gesamt",eur(wart)],["Reparaturen",eur(rep)],["Umbauten",eur(umb)],
+    ["Gesamt",eur(wart+umb+rep)],["Wartung je km",perKm!=null?perKm.toLocaleString("de-DE",{style:"currency",currency:"EUR",minimumFractionDigits:3,maximumFractionDigits:3}):"—"]
   ].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 
   const years={};
-  for(const r of rows){ const y=(r.date||"????").slice(0,4); (years[y]=years[y]||{w:0,u:0,n:0}); 
-    years[y][r.art==="Wartung"?"w":"u"]+=r.cost; years[y].n++; }
-  const max=Math.max(...Object.values(years).map(v=>v.w+v.u),1);
+  for(const r of rows){ const y=(r.date||"????").slice(0,4); (years[y]=years[y]||{w:0,u:0,r:0,n:0});
+    years[y][r.art==="Wartung"?"w":r.art==="Reparatur"?"r":"u"]+=r.cost; years[y].n++; }
+  const max=Math.max(...Object.values(years).map(v=>v.w+v.u+v.r),1);
 
   $("#costOut").innerHTML =
     `<div class="sec-head"><h2>Pro Jahr</h2><div class="line"></div></div>
      <div class="card">${Object.keys(years).sort().reverse().map(y=>{
-      const v=years[y], tot=v.w+v.u;
+      const v=years[y], tot=v.w+v.u+v.r;
       return `<div style="margin-bottom:13px">
         <div class="spread tiny"><span><strong>${y}</strong> <span class="faint">${v.n} Einträge</span></span>
           <span class="num">${eur(tot)}</span></div>
         <div class="bar" style="height:7px;display:flex">
           <i class="ok" style="width:${v.w/max*100}%;border-radius:0"></i>
+          <i style="width:${v.r/max*100}%;background:var(--warn);border-radius:0"></i>
           <i style="width:${v.u/max*100}%;background:var(--info);border-radius:0"></i></div></div>`;
      }).join("")}
      <div class="row tiny faint" style="margin-top:4px">
        <span><span style="display:inline-block;width:9px;height:9px;background:var(--ok);border-radius:2px"></span> Wartung</span>
+       <span><span style="display:inline-block;width:9px;height:9px;background:var(--warn);border-radius:2px"></span> Reparaturen</span>
        <span><span style="display:inline-block;width:9px;height:9px;background:var(--info);border-radius:2px"></span> Umbauten</span></div></div>
      <div class="sec-head"><h2>Alle Ausgaben</h2><div class="line"></div></div>
      <div class="tbl-wrap"><table><thead><tr><th>Datum</th><th class="r">km</th><th>Art</th><th>Was</th><th class="r">Kosten</th></tr></thead>
@@ -2077,7 +2578,11 @@ function kmPruefen(){
    blaettern. Dort wird deshalb im selben Fenster geoeffnet.        */
 
 const docUrl  = (id,seite)=> api("docs/" + id) + (seite>1?`#page=${seite}`:"");
-const docById = id => (CAR.docs||[]).find(d=>d.id===id);
+/* Ein PDF kann eine Werkstattanleitung sein oder ein Fahrzeugpapier —
+   der Betrachter soll beides oeffnen koennen, ohne zu wissen, woher es
+   kommt. Deshalb sucht docById in beiden Bestaenden. */
+const docById = id => (CAR.docs||[]).find(d=>d.id===id)
+  || (CAR.papiere||[]).flatMap(p=>p.pdfs||[]).find(d=>d.id===id);
 /** Groesse lesbar: unter einem Megabyte in Kilobyte, sonst in MB. */
 const mb = n => n==null ? "—"
   : n < 1048576 ? Math.round(n/1024).toLocaleString("de-DE")+" KB"
@@ -2086,7 +2591,7 @@ const mb = n => n==null ? "—"
 /** Anleitung anzeigen — eingebettet, auf iOS im selben Fenster. */
 function zeigeAnleitung(id, seite){
   const d = docById(id);
-  if(!d){ toast("Anleitung nicht gefunden",true); return; }
+  if(!d){ toast("Dokument nicht gefunden",true); return; }
   const url = docUrl(id, seite);
   if(istIOS()) return anleitungImFenster(d, url, seite);
 
@@ -3451,6 +3956,20 @@ document.addEventListener("change", e=>{
   if(e.target.id==="dokInput" && e.target.files.length){
     const f=[...e.target.files]; e.target.value=""; ladeAnleitungen(f);
   }
+  if(e.target.id==="papierPdfInput" && e.target.files.length){
+    const f=[...e.target.files]; e.target.value="";
+    const status = $("#papierPdfStatus");
+    if(status) status.textContent = `${f.length} PDF wird hochgeladen …`;
+    (async ()=>{
+      let n = 0;
+      for(const datei of f){
+        const d = await ladePdfHoch(datei);
+        if(d){ papierPdfs.push(d); n++; }
+      }
+      zeichnePapierPdfs();
+      if(status) status.textContent = n ? `${n} hinzugefügt` : "vom Telefon oder Rechner";
+    })();
+  }
   // Im Positionsdialog: hochladen und in einem Zug verknuepfen — sonst
   // muesste man den Dialog verlassen, hochladen und wiederkommen.
   if(e.target.id==="dokDlgInput" && e.target.files.length){
@@ -3560,6 +4079,42 @@ function taskDialog(id){
    irgendwann fünfzig Einträge hat.                               */
 let teileAuswahl = [];
 let dokAuswahl   = [];
+
+/* Wer an einer Position fotografiert, legt die Bilder dort ab, wo sie fuer
+   jede kuenftige Wartung gelten. Gemeint war aber meist der eine Termin.
+   Deshalb hier ein Weg zurueck: die Referenzbilder der betroffenen
+   Positionen anbieten und die angeklickten in den Eintrag verschieben —
+   dieselbe Datei, andere Zuordnung. */
+let fotoUmzug = [];      // [{taskId, fotoId}] — beim Speichern auszutragen
+
+function umzugFeld(taskIds){
+  fotoUmzug = [];
+  const kandidaten = [];
+  for(const id of taskIds||[]){
+    const t = CAR.tasks.find(x=>x.id===id);
+    for(const f of (t && t.photos) || []) kandidaten.push({t, f});
+  }
+  if(!kandidaten.length || mode !== "server") return "";
+  return `<div class="field"><label>Fotos von der Position übernehmen</label>
+    <div class="fotos mini" id="umzugBox">${kandidaten.map(({t,f})=>
+      `<span class="foto-mini umzug" data-umzug="${f}" data-umzug-task="${t.id}" title="${esc(t.name)}">
+         <img src="${photoUrl(f,true)}" alt="" loading="lazy">
+         ${istVideo(f)?`<span class="play sm">▶</span>`:""}
+       </span>`).join("")}</div>
+    <div class="hint">Angeklickte Aufnahmen wandern zu diesem Termin und verschwinden
+      aus der dauerhaften Referenz der Position.</div></div>`;
+}
+
+/** Die vorgemerkten Aufnahmen aus ihren Positionen austragen. Wird beim
+ *  Speichern gerufen, nachdem die Zielliste schon steht. */
+function fotosUmziehen(){
+  for(const {taskId, fotoId} of fotoUmzug){
+    const t = CAR.tasks.find(x=>x.id===taskId);
+    if(t) t.photos = (t.photos||[]).filter(x=>x!==fotoId);
+  }
+  if(fotoUmzug.length) toast(`${fotoUmzug.length} Aufnahme${fotoUmzug.length>1?"n":""} zugeordnet`);
+  fotoUmzug = [];
+}
 
 /** Anleitungsfeld fuer einen Dialog: verknuepfte PDF, Sucher, Hochladen.
  *  Haelt seine Auswahl in dokAuswahl — es ist immer nur ein Dialog offen. */
@@ -3720,6 +4275,7 @@ function histDialog(id,preselect){
     </div>
     <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Auffälligkeiten, verbaute Marke, Restprofil…">${esc(h.note||"")}</textarea></div>
     ${fotoFeld(h.photos, "Beleg der Durchführung — altes Teil, Zählerstand, Auffälligkeiten.")}
+    <div id="umzugHuelle">${umzugFeld(h.taskIds)}</div>
     ${id?`<button type="button" class="btn sm danger" id="delHist">Eintrag löschen</button>`:""}`,
   ()=>{
     h.date=val("f-date"); h.km=num(val("f-km"));
@@ -3727,9 +4283,18 @@ function histDialog(id,preselect){
     h.title=val("f-title"); h.cost=num(val("f-cost")); h.note=$("#f-note").value.trim();
     h.werkstatt=val("f-werk");
     const fotos = liesFotos(); if(fotos) h.photos = fotos;
+    fotosUmziehen();
     if(!id) CAR.history.push(h);
     if(h.km>(CAR.km||0)){ CAR.km=h.km; CAR.kmDate=h.date; $("#kmNow").value=h.km; }
   });
+  /* Haekchen bei den Positionen aendern heisst: andere Referenzbilder
+     kommen in Frage. Also neu zeichnen. */
+  for(const c of $$(".ht-chk")) c.addEventListener("change", ()=>{
+    const gewaehlt = $$(".ht-chk").filter(x=>x.checked).map(x=>x.value);
+    const huelle = $("#umzugHuelle");
+    if(huelle) huelle.innerHTML = umzugFeld(gewaehlt);
+  });
+
   if(id) $("#delHist").onclick=()=>{
     if(!confirm("Diesen Historieneintrag wirklich löschen?")) return;
     CAR.history=CAR.history.filter(x=>x.id!==id); dlgSave=null; $("#dlg").close(); save(); renderAll();
@@ -4743,7 +5308,8 @@ function renderAll(){
   renderFahrzeuge();
   $("#hdModel").textContent = [CAR.model, CAR.plate].filter(Boolean).join(" · ");
   document.title = ([CAR.brand,CAR.name].filter(Boolean).join(" ")||"Fahrzeug") + " — Wartung";
-  renderDash(); renderPlan(); renderParts(); renderDocs(); renderHist(); renderMods(); renderTrip(); renderCost();
+  renderDash(); renderPlan(); renderParts(); renderDocs(); renderHist();
+  renderPapiere(); renderRepairs(); renderMods(); renderTrip(); renderCost();
 }
 
 $("#nav").addEventListener("click",e=>{
@@ -4882,6 +5448,40 @@ document.addEventListener("click",e=>{
     save(); renderAll(); zeichneHeftErfasst();
   }
 
+  // ---- Fahrzeugpapiere ----
+  const np = t.closest("[data-neues-papier]");
+  if(np){ papierDialog(null, np.dataset.neuesPapier); return; }
+  const er = t.closest("[data-edit-rep]");
+  if(er){ repairDialog(er.dataset.editRep); return; }
+  const bp = t.closest("[data-edit-papier]");
+  if(bp){ papierDialog(bp.dataset.editPapier); return; }
+  if(t.id==="papierPdfAdd"){ $("#papierPdfInput").click(); }
+  const ppw = t.closest("[data-papier-pdf-weg]");
+  if(ppw){
+    papierPdfs = papierPdfs.filter(d=>d.id!==ppw.dataset.papierPdfWeg);
+    zeichnePapierPdfs();
+  }
+
+  const um = t.closest("[data-umzug]");
+  if(um){
+    const fotoId = um.dataset.umzug, taskId = um.dataset.umzugTask;
+    const box = $("#fotoBox");
+    if(box){
+      const ids = (box.dataset.ids||"").split(",").filter(Boolean);
+      if(um.classList.contains("gewaehlt")){
+        box.dataset.ids = ids.filter(x=>x!==fotoId).join(",");
+        fotoUmzug = fotoUmzug.filter(x=>x.fotoId!==fotoId);
+        um.classList.remove("gewaehlt");
+      }else{
+        if(!ids.includes(fotoId)) ids.push(fotoId);
+        box.dataset.ids = ids.join(",");
+        fotoUmzug.push({taskId, fotoId});
+        um.classList.add("gewaehlt");
+      }
+      zeichneFotos();
+    }
+  }
+
   if(t.id==="dokDlgAdd"){ $("#dokDlgInput").click(); }
   if(t.id==="fotoAdd"){ $("#fotoInput").click(); }
   if(t.id==="fotoCam"){ $("#fotoCamInput").click(); }
@@ -4903,6 +5503,9 @@ $("#btnAddTask").onclick =()=>taskDialog();
 $("#btnBib").onclick     =()=>bibliothekDialog();
 $("#btnAddPart").onclick =()=>partDialog();
 $("#btnAddHist").onclick =()=>histDialog();
+$("#btnAddPapier").onclick=()=>papierDialog(null, "");
+$("#btnAddRep").onclick   =()=>repairDialog();
+$("#repNurOffen").onchange=renderRepairs;
 $("#btnAddMod").onclick  =()=>modDialog();
 $("#btnImport").onclick  =()=>importDialog();
 $("#btnHeft").onclick    =()=>serviceheftDialog();

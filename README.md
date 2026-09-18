@@ -626,6 +626,76 @@ ein Motorrad noch aus der Zeit vor den Zweiradprofilen stammt.
 Benoetigte Teile werden beim Uebernehmen automatisch im Katalog angelegt,
 sofern sie fehlen.
 
+## Reparaturen
+
+Der Wartungsplan kennt das Wiederkehrende, die Umbauten kennen den Zugewinn —
+das Ungeplante hatte keinen Platz. Der Reiter **Reparaturen** schliesst die
+Luecke: Anlasser getauscht, Rost an der Heckklappe, Steinschlag.
+
+**Zwei Zustaende**, weil beides vorkommt. „Ist mir aufgefallen" steht mit Datum
+und Kilometerstand als **offen** oben im Reiter und auf der Uebersicht; „ist
+gemacht" bekommt Datum, Stand, Kosten und Werkstatt und wandert in die
+Zeitleiste. Beim Umschalten auf erledigt werden Datum und Stand vorbelegt —
+der haeufigste Fall ist „ist jetzt gemacht".
+
+**Optional mit Wartungspositionen verknuepft.** Wer die Bremsscheiben erneuert
+hat, muss sie nicht auch noch pruefen: Eine erledigte Reparatur zaehlt in
+`lastDone()` wie ein Historieneintrag und setzt die Faelligkeit zurueck.
+Offene Reparaturen tun das nicht — sie sind ja nicht gemacht.
+
+**Eine Datenquelle, zwei Ansichten.** Der Reiter zeigt nur Reparaturen, die
+Historie zeigt Wartung und Reparatur gemeinsam nach Datum, letztere mit einem
+Kennzeichen. Nichts wird doppelt eingetragen. In der Kostenauswertung sind
+Reparaturen die dritte Kategorie neben Wartung und Umbauten.
+
+Bilder, Videos, PDF und Teile aus dem Katalog haengen an der Reparatur wie
+ueberall sonst — es sind dieselben Bausteine.
+
+## Dokumente
+
+Fahrzeugpapiere sind etwas anderes als Werkstattanleitungen: Sie haengen an
+keiner Wartungsposition, sie laufen ab, und man braucht sie bei einer
+Kontrolle. Deshalb ein eigener Reiter und ein eigener Bestand — sonst stuende
+die Zulassungsbescheinigung mitten in der Anleitungsliste.
+
+Beim ersten Aufruf stehen die sechs wichtigsten als leere Faecher bereit:
+Zulassungsbescheinigung **Teil I** und **Teil II**, **HU-Bericht**,
+**Versicherungsschein**, **Schutzbrief** und die **Internationale
+Versicherungskarte**. Eigene kommen ueber „+ Eigenes Dokument" dazu.
+
+Je Dokument: Bezeichnung, Nummer, **Gueltig bis**, Notiz, beliebig viele Fotos
+und PDF. Laeuft eines in weniger als 60 Tagen ab oder ist es abgelaufen, meldet
+sich die **Uebersicht** — ein abgelaufener HU-Bericht kostet mehr als ein
+uebersprungener Oelwechsel.
+
+> **Das sind die empfindlichsten Daten der App.** Die Zulassungsbescheinigung
+> Teil II ist das Eigentumsdokument, Teil I traegt Name und Anschrift. Sie
+> liegen unter `data/`, das nie ins Repository wandert, und sind nur hinter
+> Anmeldung und NetBird erreichbar. In die Sicherung gehoeren sie unbedingt —
+> in einen Screenshot nie.
+
+## Referenz und Beleg — welche Fotos wohin
+
+Fotos an einer Wartungsposition (`t.photos`) sind **Referenz**: Sie gelten
+dauerhaft und fuer jeden kuenftigen Termin — wo sitzt was, welches Werkzeug,
+welche Menge. Fotos an einem Historieneintrag (`h.photos`) sind **Beleg**: Sie
+gehoeren zu genau diesem Termin.
+
+Beides gab es von Anfang an, nur sah man den Unterschied nicht: Der
+Referenzstreifen stand gross ueber dem Verlauf, waehrend die Belege im Verlauf
+nur als Zahl „▣ 3" auftauchten. Wer an „Unterboden / Rostvorsorge"
+fotografierte, legte die Bilder dorthin, wo sie fuer jede kuenftige Wartung
+gelten — und genau das stoerte.
+
+Jetzt traegt der Referenzstreifen eine Ueberschrift, die sagt was er ist, und
+der Verlauf zeigt die Belege als **Miniaturen beim jeweiligen Termin**.
+
+**Falsch abgelegte Bilder lassen sich nachtraeglich umziehen:** Im Dialog
+„Wartung eintragen" und im Reparaturdialog erscheint „Fotos von der Position
+uebernehmen" mit den Referenzbildern der angehakten Positionen. Angeklickte
+wandern zu diesem Termin und verschwinden aus der dauerhaften Referenz —
+dieselbe Datei, andere Zuordnung.
+
 ## Anleitungen
 
 Werkstattunterlagen liegen als PDF unter `data/docs/`, je Fahrzeug getrennt, und
@@ -678,11 +748,12 @@ Teilefotos erscheinen als Streifen unter dem Namen, im Teilekatalog **und in
 der Einkaufsliste** — beim Bestellen ist das Wiedererkennen am wichtigsten.
 Ein Klick oeffnet die grosse Ansicht.
 
-> Wer Fotos an einer neuen Stelle anhaengt, muss `/api/storage` mitziehen: Das
-> Aufraeumen haelt jede Datei fuer verwaist, die es in keinem Eintrag findet.
-> Stuenden `parts` und das Fahrzeug selbst nicht in der Liste der durchsuchten
-> Sammlungen, wuerde der Knopf „verwaiste Dateien entfernen" genau diese Bilder
-> loeschen.
+> **Regel, die schon dreimal gebissen hat:** Wer Fotos an einer neuen Stelle
+> anhaengt, muss `/api/storage` mitziehen. Das Aufraeumen haelt jede Datei fuer
+> verwaist, die es in keinem Eintrag findet. Durchsucht werden inzwischen
+> `tasks`, `history`, `parts`, `repairs`, `papiere` und das Fahrzeug selbst —
+> fehlt eine Sammlung, loescht „verwaiste Dateien entfernen" genau deren
+> Bilder.
 
 Der Browser verkleinert jedes Bild vor dem Hochladen auf 1600 px und wandelt es
 in JPEG — aus einem 4-MB-Handyfoto werden rund 300 KB. Zusaetzlich entsteht ein
