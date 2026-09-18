@@ -734,8 +734,12 @@ details.h-notiz[open] p::after{
   font-weight:500;text-align:left;
 }
 .dok-link:hover{text-decoration:underline}
-.dok-seite{
-  width:62px;padding:5px 8px;text-align:right;background:var(--bg);
+/* Muss ueber .teil-zeile adressiert werden: ".field input{width:100%}" ist
+   spezifischer als ".dok-seite" allein und hat das Seitenfeld auf die volle
+   Breite gezogen — der Name der Anleitung wurde dadurch auf null gequetscht
+   und war unsichtbar. Beim Teilefeld steht es aus demselben Grund so. */
+.teil-zeile .dok-seite{
+  width:62px;flex:none;padding:5px 8px;text-align:right;background:var(--bg);
   border:1px solid var(--line);border-radius:6px;color:var(--text);
 }
 
@@ -819,6 +823,7 @@ details.h-notiz[open] p::after{
   .task-hd{flex-direction:column;align-items:flex-start;gap:3px}
   .teil-zeile{gap:7px;padding:7px 9px}
   .teil-zeile .pt-q{width:58px}
+  .teil-zeile .dok-seite{width:52px}
   .teil-einheit{width:38px}
   .dlg-bd{padding:14px}
   .task-due{text-align:left}
@@ -1636,9 +1641,11 @@ async function pdfSeiten(datei){
   }catch(e){ return null; }
 }
 
+/** PDF hochladen und in CAR.docs aufnehmen. Gibt die neuen IDs zurueck,
+ *  damit der Positionsdialog sie gleich verknuepfen kann. */
 async function ladeAnleitungen(dateien){
   const MAX = 60*1048576;
-  let n = 0;
+  const neue = [];
   for(const f of dateien){
     if(f.type!=="application/pdf" && !f.name.toLowerCase().endsWith(".pdf")){
       toast(`„${f.name}" ist kein PDF`,true); continue;
@@ -1656,10 +1663,14 @@ async function ladeAnleitungen(dateien){
       }
       CAR.docs.push({id, name:f.name.replace(/\.pdf$/i,""), seiten:await pdfSeiten(f),
                      bytes:f.size, note:""});
-      n++;
+      neue.push(id);
     }catch(e){ toast(`„${f.name}": ${e.message}`,true); }
   }
-  if(n){ save(); renderAll(); toast(`${n} Anleitung${n>1?"en":""} hinzugefügt`); }
+  if(neue.length){
+    save(); renderAll();
+    toast(`${neue.length} Anleitung${neue.length>1?"en":""} hinzugefügt`);
+  }
+  return neue;
 }
 
 /* ═══════════ Anleitungen: Liste ═══════════ */
@@ -3400,6 +3411,21 @@ document.addEventListener("change", e=>{
   if(e.target.id==="dokInput" && e.target.files.length){
     const f=[...e.target.files]; e.target.value=""; ladeAnleitungen(f);
   }
+  // Im Positionsdialog: hochladen und in einem Zug verknuepfen — sonst
+  // muesste man den Dialog verlassen, hochladen und wiederkommen.
+  if(e.target.id==="dokDlgInput" && e.target.files.length){
+    const f=[...e.target.files]; e.target.value="";
+    const status = $("#dokDlgStatus");
+    if(status) status.textContent = `${f.length} PDF wird hochgeladen …`;
+    ladeAnleitungen(f).then(neue=>{
+      for(const id of neue)
+        if(!dokAuswahl.some(x=>x.d===id)) dokAuswahl.push({d:id, p:1});
+      zeichneDokZuordnung();
+      if(status) status.textContent = neue.length
+        ? `${neue.length} verknüpft`
+        : "vom Telefon oder Rechner — wird gleich verknüpft";
+    });
+  }
   if((e.target.id==="fotoInput"||e.target.id==="fotoCamInput") && e.target.files.length){
     const f=[...e.target.files]; e.target.value=""; fotosWaehlen(f);
   }
@@ -3457,6 +3483,13 @@ function taskDialog(id){
         <input type="text" id="dokPicker" placeholder="Anleitung verknüpfen …" autocomplete="off">
         <div class="picker-liste" id="dokTreffer" hidden></div>
       </div>
+      ${mode==="server" ? `<div class="row" style="margin-top:8px">
+        <button type="button" class="btn sm" id="dokDlgAdd">＋ PDF hochladen</button>
+        <span class="tiny faint" id="dokDlgStatus">vom Telefon oder Rechner — wird gleich verknüpft</span>
+      </div>
+      <input type="file" id="dokDlgInput" accept="application/pdf,.pdf" multiple hidden>`
+      : `<div class="tiny faint" style="margin-top:6px">Anleitungen brauchen den Server —
+         im lokalen Dateimodus nicht verfügbar.</div>`}
       <div class="hint">Öffnet sich später direkt an dieser Position.</div>
     </div>
     <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Drehmomente, Besonderheiten, Werkzeug…">${esc(t.note)}</textarea></div>
@@ -3490,7 +3523,7 @@ function zeichneDokZuordnung(){
     const d = docById(x.d); if(!d) return "";
     return `<div class="teil-zeile" data-dok="${d.id}">
       <div class="teil-name">${esc(d.name)}
-        <span class="tiny faint">${d.seiten?d.seiten+" Seiten":""}</span></div>
+        <span class="tiny faint">${d.seiten?d.seiten+(d.seiten===1?" Seite":" Seiten"):""}</span></div>
       <input class="dok-seite" type="number" min="1" max="${d.seiten||9999}" value="${x.p||1}"
              title="Startseite" aria-label="Startseite">
       <span class="teil-einheit tiny faint">Seite</span>
@@ -4433,6 +4466,7 @@ document.addEventListener("click",e=>{
     toast(`„${roh}" angelegt — Nummer und Preis später im Teilekatalog`);
     return;
   }
+  if(t.id==="dokDlgAdd"){ $("#dokDlgInput").click(); }
   if(t.id==="fotoAdd"){ $("#fotoInput").click(); }
   if(t.id==="fotoCam"){ $("#fotoCamInput").click(); }
   const fd = t.closest("[data-foto-del]");

@@ -569,6 +569,12 @@ lassen sich einzelnen Wartungspositionen zuordnen — inklusive Startseite, dami
 ein dickes Nachschlagewerk direkt an der richtigen Stelle aufgeht. In der Position
 erscheinen sie als anklickbare Schaltflaechen.
 
+Hochladen geht an zwei Stellen: unter *Anleitungen* fuer den ganzen Bestand, und
+**direkt im Positionsdialog** im Feld *Anleitungen* — dort laedt „＋ PDF
+hochladen" vom Telefon oder Rechner und verknuepft das Dokument in einem Zug mit
+der offenen Position. Sonst muesste man den Dialog verlassen, hochladen und
+wiederkommen, nur um dieselbe Verknuepfung von Hand zu setzen.
+
 Angezeigt wird mit den Bordmitteln des Browsers; eine PDF-Bibliothek einzubetten
 haette die App um rund ein Megabyte wachsen lassen. Auf iPhone und iPad ist das
 Einbetten unzuverlaessig, deshalb gibt es immer auch den Weg ins Vollbild, wo
