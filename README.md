@@ -63,6 +63,13 @@ einem frueheren Datum, Datum in der Zukunft, Dopplung. Im Heft steht manchmal
 Krummes, und wer es abtippt, weiss besser was dort steht. Ein nachgetragener
 alter Stand senkt den aktuellen Kilometerstand nie.
 
+**Einzelnen Termin nachtragen:** Im Wartungsplan steht im aufgeklappten
+Verlauf jeder Position ein **＋**. Der traegt genau einen alten Termin fuer
+diese Position nach — Datum und Kilometerstand bleiben leer, damit nicht
+versehentlich „heute" erfasst wird, und die Position ist schon angehakt. Der
+Weg fuer ein gekauftes Fahrzeug, dessen Serviceheft ein paar Oelwechsel
+auffuehrt. Steht auch im leeren Verlauf, denn genau dort sucht man ihn.
+
 **Startwerte** (Knopf im Wartungsplan, und aus der Gruppe „Noch nie erfasst"
 auf der Uebersicht) ist der zweite Weg: eine kompakte Liste aller Positionen
 mit je einem km- und einem Datumsfeld. Fuer alles, wozu im Heft nichts steht —

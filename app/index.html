@@ -619,6 +619,12 @@ details.h-notiz[open] p::after{
 }
 .verlauf.leer{padding-top:11px}
 .verlauf-kopf{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.verlauf-plus{
+  margin-left:auto;flex:none;background:var(--mat-knopf);color:var(--text-dim);
+  border:1px solid var(--line);border-radius:7px;box-shadow:var(--kante);
+  font-size:13px;line-height:1;padding:4px 9px;cursor:pointer;
+}
+.verlauf-plus:hover{color:var(--text);border-color:var(--line-hell)}
 .verlauf-titel{
   font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.06em;
   color:var(--text-dim);
@@ -1637,10 +1643,21 @@ function positionsVerlauf(t){
 
 function verlaufBlock(t){
   const v = positionsVerlauf(t);
+  /* Der Knopf muss hier stehen, nicht nur unten bei „Erledigt eintragen":
+     Wer ein gekauftes Auto uebernimmt, hat ein Serviceheft voller alter
+     Termine — und sucht sie dort, wo der Verlauf steht. */
+  const nachtragen = `<button type="button" class="verlauf-plus" data-nachtragen="${t.id}"
+      title="Früheren Eintrag aus dem Serviceheft nachtragen">＋</button>`;
+
   if(!v.length)
     return `<div class="verlauf leer">
-      <span class="tiny faint">Noch nie erfasst — beim nächsten Mal eintragen,
-      dann entsteht hier der Verlauf.</span></div>`;
+      <div class="verlauf-kopf">
+        <span class="verlauf-titel">Verlauf und Belege</span>
+        <span class="tiny faint">noch nie erfasst</span>
+        ${nachtragen}
+      </div>
+      <span class="tiny faint">Beim nächsten Mal eintragen — oder mit ＋ nachtragen,
+      was im Serviceheft steht.</span></div>`;
 
   const mitAbstand = v.filter(e => e.dKm != null);
   const schnittKm  = mitAbstand.length
@@ -1653,6 +1670,7 @@ function verlaufBlock(t){
       <span class="tiny faint">${v.length}× erfasst${
         schnittKm ? ` · im Schnitt alle ${nKm(schnittKm)} km` : ""}${
         kosten ? ` · ${eur(kosten)} gesamt` : ""}</span>
+      ${nachtragen}
     </div>
     <ol class="verlauf-liste">
       ${v.map((e,i)=>`<li class="${i===0?"aktuell":""}">
@@ -4255,10 +4273,20 @@ function partDialog(id){
 }
 
 /* -- Historieneintrag -- */
-function histDialog(id,preselect){
+/** @param nachtragen  true = alter Eintrag aus dem Serviceheft. Dann bleiben
+ *  Datum und Stand leer, damit nicht versehentlich „heute" erfasst wird. */
+function histDialog(id, preselect, nachtragen){
   const h = id?CAR.history.find(x=>x.id===id)
-              :{id:uid("h"),date:today(),km:CAR.km||null,taskIds:preselect?[preselect]:[],title:"",cost:null,note:""};
-  openDlg(id?"Eintrag bearbeiten":"Wartung eintragen",`
+              :{id:uid("h"), date: nachtragen ? "" : today(),
+                km: nachtragen ? null : (CAR.km||null),
+                taskIds:preselect?[preselect]:[], title:"", cost:null, note:""};
+  const pos = preselect && CAR.tasks.find(x=>x.id===preselect);
+  openDlg(id ? "Eintrag bearbeiten" : nachtragen ? "Eintrag nachtragen" : "Wartung eintragen",`
+    ${nachtragen ? `<p class="tiny muted" style="margin-top:0">
+      Was steht im Serviceheft? Datum und Kilometerstand von damals eintragen${
+        pos ? ` — die Position <strong>${esc(pos.name)}</strong> ist schon angehakt` : ""}.
+      Mehrere Termine hintereinander gehen schneller über
+      <em>Historie → Serviceheft nachtragen</em>.</p>` : ""}
     <div class="grid2">
       <div class="field"><label>Datum</label><input type="date" id="f-date" value="${h.date}" required></div>
       <div class="field"><label>Kilometerstand</label><input type="number" id="f-km" inputmode="numeric" value="${h.km??""}" required></div>
@@ -5325,6 +5353,7 @@ document.addEventListener("click",e=>{
   const d=t.closest("[data-done]");        if(d) histDialog(null,d.dataset.done);
   const et=t.closest("[data-edit-task]");  if(et) taskDialog(et.dataset.editTask);
   const ep=t.closest("[data-edit-part]");  if(ep) partDialog(ep.dataset.editPart);
+  const nt=t.closest("[data-nachtragen]"); if(nt){ histDialog(null, nt.dataset.nachtragen, true); return; }
   const eh=t.closest("[data-edit-hist]");  if(eh) histDialog(eh.dataset.editHist);
   const em=t.closest("[data-edit-mod]");   if(em) modDialog(em.dataset.editMod);
   const dt=t.closest("[data-del-task]");
