@@ -752,9 +752,9 @@ const server = http.createServer((req,res)=>{
     const db = readDB(pf);
     const benutzt = new Set();
     for(const v of (db && db.vehicles) || [])
-      // Teile tragen seit 2026-09 ebenfalls Fotos — fehlten sie hier,
-      // wuerde das Aufraeumen sie als verwaist loeschen.
-      for(const liste of [v.tasks||[], v.history||[], v.parts||[]])
+      // Teile und das Fahrzeug selbst tragen seit 2026-09 ebenfalls Fotos —
+      // fehlten sie hier, wuerde das Aufraeumen sie als verwaist loeschen.
+      for(const liste of [v.tasks||[], v.history||[], v.parts||[], [v]])
         for(const eintrag of liste)
           for(const id of eintrag.photos || []){ benutzt.add(id); benutzt.add(id + "_t"); }
 

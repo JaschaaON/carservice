@@ -41,6 +41,56 @@ Diesel-Geländewagen, einer **Kopie des Plans eines vorhandenen Fahrzeugs**
 Fahrzeugdaten änderst du über das Zahnrad rechts oben; dort liegen auch Sichern,
 Laden und Löschen.
 
+## Serviceheft nachtragen
+
+Wer aus einem gefuehrten Serviceheft kommt, hat zwanzig Stempel zu erfassen —
+und die meisten betreffen dieselben Positionen. Ein Fenster pro Eintrag waere
+die falsche Form, deshalb gibt es **Serviceheft nachtragen** in der
+Historie-Ansicht: eine Strecke statt vieler Fenster.
+
+Datum, Kilometerstand, Werkstatt, Positionen, Kosten — dann **„Eintragen und
+naechster"**. Der Eintrag wird sofort gespeichert, Datum und Stand werden
+geleert, **Positionsauswahl und Werkstatt bleiben stehen**. Darunter waechst
+die Liste des in dieser Sitzung Erfassten, jede Zeile mit ✕ zum Zuruecknehmen.
+
+**Pakete** machen aus einem pauschalen Stempel einen Klick: Haken fuer eine
+typische Inspektion setzen, „Auswahl als Paket merken", ab dem naechsten Mal
+reicht der Paketknopf. Bewusst **keine vorgefertigten Pakete** — was zu einer
+Inspektion gehoert, unterscheidet sich je Fahrzeug und Werkstatt.
+
+Plausibilitaet erscheint als **Hinweis, nie als Sperre**: Stand kleiner als bei
+einem frueheren Datum, Datum in der Zukunft, Dopplung. Im Heft steht manchmal
+Krummes, und wer es abtippt, weiss besser was dort steht. Ein nachgetragener
+alter Stand senkt den aktuellen Kilometerstand nie.
+
+**Startwerte** (Knopf im Wartungsplan, und aus der Gruppe „Noch nie erfasst"
+auf der Uebersicht) ist der zweite Weg: eine kompakte Liste aller Positionen
+mit je einem km- und einem Datumsfeld. Fuer alles, wozu im Heft nichts steht —
+Reifen, Batterie, Unterboden. Ein Wert je Position genuegt, damit die
+Faelligkeit rechnet; Positionen ohne Angabe stehen oben, Positionen mit
+Historieneintrag zeigen diesen statt der Felder.
+
+> Nebenbei gewinnt die Prognose: `kmPerDay()` nimmt pauschal 40 km/Tag an,
+> solange keine zwei Datenpunkte ueber mindestens 14 Tage vorliegen. Alte
+> Serviceheft-Eintraege sind genau solche Punkte.
+
+### Import ordnet jetzt zu
+
+Der Excel-Import schrieb bisher `taskIds: []` — die Zeilen standen in der
+Zeitleiste und setzten trotzdem keine Faelligkeit zurueck, weil `lastDone()`
+ueber `taskIds` sucht. Der Verlauf sah richtig aus und rechnete falsch.
+
+Jetzt wird der Text jeder Zeile gegen die Positionsnamen gehalten: erst direkt,
+dann wortweise an Wortgrenzen, zuletzt ueber eine kleine Tabelle `HEFT_REGELN`
+fuer die Faelle, in denen Heft und Plan verschiedene Woerter benutzen —
+„Ölwechsel" findet so „Motoröl + Ölfilter". Die Vorschau zeigt die erkannten
+Positionen vor dem Import; Zeilen ohne Treffer bleiben reine
+Zeitleisteneintraege.
+
+Der Vergleich laeuft bewusst an **Wortgrenzen**: ein reiner
+Teilzeichenkettenvergleich hat „Ölservice" auf „Klimaanlage Service" gezogen,
+weil das Wort „service" in beidem steckt.
+
 ## Verlauf je Position
 
 Jede aufgeklappte Wartungsposition zeigt, wann sie durchgefuehrt wurde — und
@@ -169,6 +219,20 @@ kommt.
 
 Die Farben fuer den Zustand bleiben die einzigen bunten Punkte: gruen in
 Ordnung, gelb demnaechst, rot ueberfaellig, violett noch nie erfasst.
+
+## Zahlenfelder und das Mausrad
+
+Ein `<input type="number">` aendert beim Scrollen seinen Wert, solange es den
+Fokus hat. Wer „Preis je Einheit" antippt und dann die Seite herunterrollt,
+verstellt den Preis unbemerkt — und sieht es erst, wenn im Katalog eine falsche
+Zahl steht. Das betrifft alle Zahlenfelder: Kilometerstand, Intervalle,
+Startseite einer Anleitung, Baujahr, Kosten, Vorrat.
+
+Ein Zuhoerer am Dokument nimmt dem Rad den Zugriff, indem er dem Feld den Fokus
+entzieht — bewusst so und nicht mit `preventDefault()`: Letzteres braeuchte
+einen nicht passiven Zuhoerer, wuerde das Scrollen ueber dem Feld blockieren und
+die Seite auf dem Telefon klebrig machen. Tastatur und die kleinen Pfeilchen am
+Feldrand bleiben unveraendert.
 
 ## Kilometerstand
 
@@ -569,10 +633,14 @@ lassen sich einzelnen Wartungspositionen zuordnen — inklusive Startseite, dami
 ein dickes Nachschlagewerk direkt an der richtigen Stelle aufgeht. In der Position
 erscheinen sie als anklickbare Schaltflaechen.
 
-Hochladen geht an zwei Stellen: unter *Anleitungen* fuer den ganzen Bestand, und
-**direkt im Positionsdialog** im Feld *Anleitungen* — dort laedt „＋ PDF
-hochladen" vom Telefon oder Rechner und verknuepft das Dokument in einem Zug mit
-der offenen Position. Sonst muesste man den Dialog verlassen, hochladen und
+Verknuepfen laesst sich eine Anleitung an **Wartungspositionen und an Teilen im
+Katalog** — das Datenblatt gehoert ans Teil, die Einbauanleitung an die
+Position. Beide Dialoge teilen sich denselben Baustein `anleitungFeld()`.
+
+Hochladen geht an drei Stellen: unter *Anleitungen* fuer den ganzen Bestand, und
+**direkt im Positions- wie im Teiledialog** im Feld *Anleitungen* — dort laedt
+„＋ PDF hochladen" vom Telefon oder Rechner und verknuepft das Dokument in einem
+Zug mit dem offenen Eintrag. Sonst muesste man den Dialog verlassen, hochladen und
 wiederkommen, nur um dieselbe Verknuepfung von Hand zu setzen.
 
 Angezeigt wird mit den Bordmitteln des Browsers; eine PDF-Bibliothek einzubetten
@@ -600,19 +668,21 @@ Einzelne PDFs lassen sich jederzeit ueber die App nachtragen.
 
 ## Fotos und Videos
 
-Fotos haengen an drei Stellen: an der **Wartungsposition** (zum Nachschlagen —
-wo sitzt was, welches Werkzeug), am **Historieneintrag** (Beleg der
-Durchfuehrung) und am **Teil im Katalog** (zum Wiedererkennen — das Teil
-selbst, die Nummer auf der Verpackung, die Einbaustelle).
+Fotos haengen an vier Stellen: am **Fahrzeug** (das erste Bild steht als Kopf
+auf der Fahrzeugkarte), an der **Wartungsposition** (zum Nachschlagen — wo
+sitzt was, welches Werkzeug), am **Historieneintrag** (Beleg der Durchfuehrung)
+und am **Teil im Katalog** (zum Wiedererkennen — das Teil selbst, die Nummer
+auf der Verpackung, die Einbaustelle).
 
 Teilefotos erscheinen als Streifen unter dem Namen, im Teilekatalog **und in
 der Einkaufsliste** — beim Bestellen ist das Wiedererkennen am wichtigsten.
 Ein Klick oeffnet die grosse Ansicht.
 
-> Wer Fotos an Teile anhaengt, muss `/api/storage` mitziehen: Das Aufraeumen
-> haelt jede Datei fuer verwaist, die es in keinem Eintrag findet. Stuenden
-> `parts` nicht in der Liste der durchsuchten Sammlungen, wuerde der Knopf
-> „verwaiste Dateien entfernen" genau die neuen Teilefotos loeschen.
+> Wer Fotos an einer neuen Stelle anhaengt, muss `/api/storage` mitziehen: Das
+> Aufraeumen haelt jede Datei fuer verwaist, die es in keinem Eintrag findet.
+> Stuenden `parts` und das Fahrzeug selbst nicht in der Liste der durchsuchten
+> Sammlungen, wuerde der Knopf „verwaiste Dateien entfernen" genau diese Bilder
+> loeschen.
 
 Der Browser verkleinert jedes Bild vor dem Hochladen auf 1600 px und wandelt es
 in JPEG — aus einem 4-MB-Handyfoto werden rund 300 KB. Zusaetzlich entsteht ein

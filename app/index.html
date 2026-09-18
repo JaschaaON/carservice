@@ -442,6 +442,27 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
   border:1px solid var(--line);border-radius:6px;color:var(--text);
 }
 .teil-einheit{width:48px;flex:none}
+.teil-zeile .sw-km, .teil-zeile .sw-dt{
+  flex:none;padding:5px 8px;background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;color:var(--text);
+}
+.teil-zeile .sw-km{width:86px;text-align:right}
+.teil-zeile .sw-dt{width:142px}
+
+.fz-bild{
+  display:block;width:100%;height:136px;object-fit:cover;
+  border-radius:10px;margin-bottom:12px;background:var(--mat-vertieft);
+  border:1px solid var(--line);
+}
+
+.paket{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:999px;
+  background:var(--mat-knopf);box-shadow:var(--kante);overflow:hidden}
+.paket-name{background:none;border:none;color:var(--text);font:inherit;font-size:13px;
+  padding:5px 4px 5px 12px;cursor:pointer}
+.paket-name:hover{color:var(--accent)}
+.paket-x{background:none;border:none;color:var(--text-faint);font-size:11px;
+  padding:5px 10px 5px 4px;cursor:pointer}
+.paket-x:hover{color:var(--crit)}
 
 .picker{position:relative}
 .picker input{
@@ -824,6 +845,10 @@ details.h-notiz[open] p::after{
   .teil-zeile{gap:7px;padding:7px 9px}
   .teil-zeile .pt-q{width:58px}
   .teil-zeile .dok-seite{width:52px}
+  .teil-zeile.sw{flex-wrap:wrap}
+  .teil-zeile.sw .teil-name{flex:1 0 100%;white-space:normal}
+  .teil-zeile .sw-km{width:80px}
+  .teil-zeile .sw-dt{width:136px}
   .teil-einheit{width:38px}
   .dlg-bd{padding:14px}
   .task-due{text-align:left}
@@ -919,6 +944,7 @@ details.h-notiz[open] p::after{
       <div class="muted tiny">Klick auf eine Position öffnet Details, Teile und „erledigt"-Eintrag.</div>
       <div class="row">
         <label class="chk tiny"><input type="checkbox" id="showInactive"> inaktive zeigen</label>
+        <button class="btn sm" id="btnStartwerte">Startwerte</button>
         <button class="btn sm" id="btnBib">Aus Bibliothek</button>
         <button class="btn sm primary" id="btnAddTask">+ Position</button>
       </div>
@@ -942,6 +968,7 @@ details.h-notiz[open] p::after{
       <div class="muted tiny">Jeder Eintrag setzt die Fälligkeit der zugehörigen Positionen zurück.</div>
       <div class="row">
         <button class="btn sm" id="btnImport">Excel importieren</button>
+        <button class="btn sm" id="btnHeft">Serviceheft nachtragen</button>
         <button class="btn sm primary" id="btnAddHist">+ Eintrag</button>
       </div>
     </div>
@@ -1033,7 +1060,7 @@ const PRUEF = "Intervall gegen dein Serviceheft prüfen.";
    die trägst du beim ersten Kauf selbst ein, dann stimmen sie
    garantiert für deine Fahrgestellnummer. */
 function seedVehicle(opts){
-  const P = (id,name,unit,note,spare)=>({id,name,oem:"",unit:unit||"Stück",price:null,qty:0,spare:!!spare,links:[],photos:[],note:note||""});
+  const P = (id,name,unit,note,spare)=>({id,name,oem:"",unit:unit||"Stück",price:null,qty:0,spare:!!spare,links:[],photos:[],docs:[],note:note||""});
   const parts = [
     P("p1","Motoröl 0W-30 / 5W-30 ACEA C2","Liter","Füllmenge ca. 7,5 l inkl. Filter — gegen Handbuch prüfen."),
     P("p2","Ölfiltereinsatz",0,"Papiereinsatz inkl. O-Ringen.",1),
@@ -1087,7 +1114,7 @@ function seedVehicle(opts){
     built: o.built||"",                      // Herstellungsdatum laut Typenschild
     firstReg: o.firstReg||today(),
     km:0, kmDate: today(), note:"",
-    owner:"", fuel:"diesel", gearbox:"", drive:"", docs:[],
+    owner:"", fuel:"diesel", gearbox:"", drive:"", docs:[], pakete:[], photos:[],
     tasks: o.blank ? [] : tasks,
     parts: o.blank ? [] : parts,
     history: [], mods: []
@@ -1467,11 +1494,13 @@ function renderDash(){
     h += `<div class="sec-head"><h2>${titel}</h2><div class="line"></div>
           <span class="pill ${lvl}">${liste.length}</span></div>`;
     if(lvl==="info") h += `<p class="tiny muted" style="margin:-4px 0 12px">
-      Für diese Positionen fehlt der Startwert. Trage im Wartungsplan ein, wann sie
-      zuletzt gemacht wurden — oder hake sie beim nächsten Mal einfach ab.</p>`;
+      Für diese Positionen fehlt der Startwert — wann wurde das zuletzt gemacht?
+      <button type="button" class="btn sm" id="btnStartwerte2"
+        style="margin-left:6px">Alle auf einmal nachtragen</button></p>`;
     h += liste.map(s=>taskCard(s,false)).join("");
   }
   $("#dashDue").innerHTML = h;
+  const sw = $("#btnStartwerte2"); if(sw) sw.onclick = ()=>startwerteDialog();
 }
 
 /* ═══════════ Wartungsplan ═══════════ */
@@ -1615,6 +1644,7 @@ function renderParts(){
       return `<tr>
         <td><strong>${esc(p.name)}</strong>${p.note?`<div class="tiny faint">${esc(p.note)}</div>`:""}
             ${p.spare?`<span class="pill info">Bordvorrat</span>`:""}
+            ${anleitungStreifen(p.docs)}
             ${fotoStreifen(p.photos)}</td>
         <td class="num tiny">${p.oem?esc(p.oem):'<span class="faint">—</span>'}</td>
         <td class="r num">${p.qty||0} ${esc(p.unit)}</td>
@@ -1691,7 +1721,11 @@ function renderDocs(){
   if(!liste.length){ $("#dokListe").innerHTML=`<div class="empty"><p>Nichts gefunden.</p></div>`; return; }
 
   // Wo ist das Dokument verknüpft?
-  const verwendung = d => CAR.tasks.filter(t=>(t.docs||[]).some(x=>x.d===d.id));
+  // Anleitungen haengen an Positionen und seit 2026-09 auch an Teilen.
+  const verwendung = d => [
+    ...CAR.tasks.filter(t=>(t.docs||[]).some(x=>x.d===d.id)),
+    ...CAR.parts.filter(t=>(t.docs||[]).some(x=>x.d===d.id)),
+  ];
   const summe = alle.reduce((a,d)=>a+(d.bytes||0),0);
 
   $("#dokListe").innerHTML = `<div class="tbl-wrap"><table>
@@ -1729,9 +1763,14 @@ function renderHist(){
   if(!eintraege.length){
     $("#histList").innerHTML =
       `<div class="empty"><p>Noch keine Einträge.<br>
-       Importiere deine Excel-Liste oder lege den ersten Eintrag an.</p>
-       <button class="btn primary" id="btnAddHist2">+ Erster Eintrag</button></div>`;
+       Trag dein Serviceheft nach, importiere deine Excel-Liste oder
+       lege den ersten Eintrag einzeln an.</p>
+       <div class="row" style="justify-content:center">
+         <button class="btn primary" id="btnHeft2">Serviceheft nachtragen</button>
+         <button class="btn" id="btnAddHist2">+ Einzelner Eintrag</button>
+       </div></div>`;
     const b = $("#btnAddHist2"); if(b) b.onclick = ()=>histDialog();
+    const h = $("#btnHeft2");    if(h) h.onclick = ()=>serviceheftDialog();
     return;
   }
 
@@ -1770,6 +1809,7 @@ function renderHist(){
             <span class="h-datum">${dDE(e.date)}</span>
             <span class="h-km num">${e.km!=null?nKm(e.km)+" km":""}</span>
             ${delta?`<span class="tiny faint">+${nKm(delta)} km</span>`:""}
+            ${e.werkstatt?`<span class="tiny faint">· ${esc(e.werkstatt)}</span>`:""}
           </div>
           <div class="h-rechts">
             ${e.cost!=null?`<span class="h-kosten num">${eur(e.cost)}</span>`:""}
@@ -2987,7 +3027,7 @@ function fahrzeugAusPositionen(positionen){
       let teil = v.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
       if(!teil){
         teil = {id:uid("p"), name, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[],
-                photos:[], note:"Aus Markenprofil — Teilenummer beim ersten Kauf eintragen."};
+                photos:[], docs:[], note:"Aus Markenprofil — Teilenummer beim ersten Kauf eintragen."};
         v.parts.push(teil);
       }
       return {p:teil.id, q:1};
@@ -3426,10 +3466,28 @@ document.addEventListener("change", e=>{
         : "vom Telefon oder Rechner — wird gleich verknüpft";
     });
   }
+  if(e.target.classList && e.target.classList.contains("h-chk")){
+    const id = e.target.value;
+    heftAuswahl = e.target.checked
+      ? [...new Set([...heftAuswahl, id])]
+      : heftAuswahl.filter(x=>x!==id);
+  }
   if((e.target.id==="fotoInput"||e.target.id==="fotoCamInput") && e.target.files.length){
     const f=[...e.target.files]; e.target.value=""; fotosWaehlen(f);
   }
 });
+
+/* Ein Zahlenfeld mit Fokus aendert beim Scrollen seinen Wert. Wer den
+   Preis antippt und dann weiterrollt, verstellt ihn unbemerkt — und sieht
+   es erst, wenn im Katalog eine falsche Zahl steht. Fokus weg, dann rollt
+   die Seite und der Wert bleibt stehen.
+   Bewusst blur() statt preventDefault(): Letzteres braeuchte einen nicht
+   passiven Zuhoerer, wuerde das Scrollen ueber dem Feld blockieren und die
+   Seite auf dem Telefon klebrig machen. */
+document.addEventListener("wheel", e=>{
+  const el = document.activeElement;
+  if(el && el.type === "number" && el === e.target) el.blur();
+}, {passive:true});
 
 $("#dlgForm").addEventListener("submit", e=>{
   if(e.submitter && e.submitter.value==="cancel"){ dlgSave=null; return; }
@@ -3477,21 +3535,7 @@ function taskDialog(id){
         <div class="hint">${last&&last.src==="historie"?"Wird bereits aus der Historie bestimmt.":"Startwert, solange keine Historie existiert."}</div></div>
       <div class="field"><label>am</label><input type="date" id="f-ldt" value="${t.lastDate||""}"></div>
     </div>
-    <div class="field"><label>Anleitungen</label>
-      <div id="dokZuordnung"></div>
-      <div class="picker">
-        <input type="text" id="dokPicker" placeholder="Anleitung verknüpfen …" autocomplete="off">
-        <div class="picker-liste" id="dokTreffer" hidden></div>
-      </div>
-      ${mode==="server" ? `<div class="row" style="margin-top:8px">
-        <button type="button" class="btn sm" id="dokDlgAdd">＋ PDF hochladen</button>
-        <span class="tiny faint" id="dokDlgStatus">vom Telefon oder Rechner — wird gleich verknüpft</span>
-      </div>
-      <input type="file" id="dokDlgInput" accept="application/pdf,.pdf" multiple hidden>`
-      : `<div class="tiny faint" style="margin-top:6px">Anleitungen brauchen den Server —
-         im lokalen Dateimodus nicht verfügbar.</div>`}
-      <div class="hint">Öffnet sich später direkt an dieser Position.</div>
-    </div>
+    ${anleitungFeld("Öffnet sich später direkt an dieser Position.")}
     <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Drehmomente, Besonderheiten, Werkzeug…">${esc(t.note)}</textarea></div>
     ${fotoFeld(t.photos, "Zum Nachschlagen — wo sitzt was, welches Werkzeug, welche Menge.")}`,
   ()=>{
@@ -3516,6 +3560,26 @@ function taskDialog(id){
    irgendwann fünfzig Einträge hat.                               */
 let teileAuswahl = [];
 let dokAuswahl   = [];
+
+/** Anleitungsfeld fuer einen Dialog: verknuepfte PDF, Sucher, Hochladen.
+ *  Haelt seine Auswahl in dokAuswahl — es ist immer nur ein Dialog offen. */
+function anleitungFeld(hinweis){
+  return `<div class="field"><label>Anleitungen</label>
+    <div id="dokZuordnung"></div>
+    <div class="picker">
+      <input type="text" id="dokPicker" placeholder="Anleitung verknüpfen …" autocomplete="off">
+      <div class="picker-liste" id="dokTreffer" hidden></div>
+    </div>
+    ${mode==="server" ? `<div class="row" style="margin-top:8px">
+      <button type="button" class="btn sm" id="dokDlgAdd">＋ PDF hochladen</button>
+      <span class="tiny faint" id="dokDlgStatus">vom Telefon oder Rechner — wird gleich verknüpft</span>
+    </div>
+    <input type="file" id="dokDlgInput" accept="application/pdf,.pdf" multiple hidden>`
+    : `<div class="tiny faint" style="margin-top:6px">Anleitungen brauchen den Server —
+       im lokalen Dateimodus nicht verfügbar.</div>`}
+    <div class="hint">${esc(hinweis)}</div>
+  </div>`;
+}
 
 function zeichneDokZuordnung(){
   const box = $("#dokZuordnung"); if(!box) return;
@@ -3586,7 +3650,8 @@ function zeichneTreffer(){
 
 /* -- Teil -- */
 function partDialog(id){
-  const p = id?CAR.parts.find(x=>x.id===id):{id:uid("p"),name:"",oem:"",unit:"Stück",price:null,qty:0,spare:false,links:[],note:"",photos:[]};
+  const p = id?CAR.parts.find(x=>x.id===id):{id:uid("p"),name:"",oem:"",unit:"Stück",price:null,qty:0,spare:false,links:[],note:"",photos:[],docs:[]};
+  dokAuswahl = (p.docs||[]).map(x=>({d:x.d, p:x.p||1}));
   openDlg(id?"Teil bearbeiten":"Neues Teil",`
     <div class="field"><label>Bezeichnung</label><input id="f-name" value="${esc(p.name)}" required></div>
     <div class="grid2">
@@ -3605,6 +3670,7 @@ function partDialog(id){
       <button type="button" class="btn sm" id="addLink">+ Link hinzufügen</button>
       <div class="hint">Mehrere möglich — etwa Originalteil und günstigere Alternative.</div></div>
     <div class="field"><label>Notiz</label><textarea id="f-note">${esc(p.note)}</textarea></div>
+    ${anleitungFeld("Datenblatt, Einbauanleitung, Explosionszeichnung — steht später am Teil.")}
     ${fotoFeld(p.photos, "Zum Wiedererkennen — das Teil selbst, die Nummer auf der Verpackung, die Einbaustelle.")}
     ${id?`<button type="button" class="btn sm danger" id="delPart">Teil löschen</button>`:""}`,
   ()=>{
@@ -3613,6 +3679,7 @@ function partDialog(id){
     p.price=num(val("f-price")); p.qty=num(val("f-qty"))||0;
     p.spare=$("#f-spare").checked; p.note=$("#f-note").value.trim(); p.links=readLinks();
     const fotos = liesFotos(); if(fotos) p.photos = fotos;
+    if($("#dokZuordnung")) p.docs = dokAuswahl.map(x=>x.p>1?{d:x.d,p:x.p}:{d:x.d});
     if(!id) CAR.parts.push(p);
   });
 
@@ -3647,7 +3714,10 @@ function histDialog(id,preselect){
         <span>${esc(t.name)} <span class="tiny faint">${esc(t.cat)}</span></span></label>`).join("")}</div>
       <div class="hint">Setzt die Fälligkeit dieser Positionen auf diesen Stand zurück.</div></div>
     <div class="field"><label>Zusätzliche Arbeit (freier Text)</label><input id="f-title" value="${esc(h.title||"")}" placeholder="z. B. Türschloss geölt"></div>
-    <div class="field"><label>Kosten (€)</label><input type="number" step="0.01" id="f-cost" value="${h.cost??""}"></div>
+    <div class="grid2">
+      <div class="field"><label>Werkstatt / wer</label><input id="f-werk" value="${esc(h.werkstatt||"")}" placeholder="z. B. selbst, Autohaus Meier"></div>
+      <div class="field"><label>Kosten (€)</label><input type="number" step="0.01" id="f-cost" value="${h.cost??""}"></div>
+    </div>
     <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Auffälligkeiten, verbaute Marke, Restprofil…">${esc(h.note||"")}</textarea></div>
     ${fotoFeld(h.photos, "Beleg der Durchführung — altes Teil, Zählerstand, Auffälligkeiten.")}
     ${id?`<button type="button" class="btn sm danger" id="delHist">Eintrag löschen</button>`:""}`,
@@ -3655,6 +3725,7 @@ function histDialog(id,preselect){
     h.date=val("f-date"); h.km=num(val("f-km"));
     h.taskIds=$$(".ht-chk").filter(c=>c.checked).map(c=>c.value);
     h.title=val("f-title"); h.cost=num(val("f-cost")); h.note=$("#f-note").value.trim();
+    h.werkstatt=val("f-werk");
     const fotos = liesFotos(); if(fotos) h.photos = fotos;
     if(!id) CAR.history.push(h);
     if(h.km>(CAR.km||0)){ CAR.km=h.km; CAR.kmDate=h.date; $("#kmNow").value=h.km; }
@@ -3741,7 +3812,7 @@ function bibliothekDialog(){
         let teil = CAR.parts.find(p=>p.name.toLowerCase()===name.toLowerCase());
         if(!teil){
           teil = {id:uid("p"), name, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[],
-                  photos:[], note:"Aus Bibliothek — Teilenummer beim ersten Kauf eintragen."};
+                  photos:[], docs:[], note:"Aus Bibliothek — Teilenummer beim ersten Kauf eintragen."};
           CAR.parts.push(teil); neueTeile++;
         }
         return {p:teil.id, q:1};
@@ -3770,7 +3841,7 @@ function vehicleDialog(id){
   const isNew = !id;
   const v = isNew ? null : DB.vehicles.find(x=>x.id===id);
   if(!isNew && !v) return;
-  const d = v || {name:"",brand:"",model:"",year:null,vin:"",plate:"",firstReg:today(),note:""};
+  const d = v || {name:"",brand:"",model:"",year:null,vin:"",plate:"",firstReg:today(),note:"",photos:[]};
 
   const profilListe = art => {
     const teil = MARKENPROFILE.filter(p => (p.art||"auto") === art);
@@ -3893,6 +3964,7 @@ function vehicleDialog(id){
     </div>
     ${isNew?`<div class="field"><label>Kilometerstand</label><input type="number" id="f-km" placeholder="aktueller Stand"></div>`:""}
     <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Reifengröße, Schlüsselnummern, Besonderheiten…">${esc(d.note||"")}</textarea></div>
+    ${fotoFeld(d.photos, "Das erste Bild steht als Kopf auf der Fahrzeugkarte.")}
     ${tpl}${dataBlock}`,
   ()=>{
     if(!val("f-name")){ toast("Bezeichnung fehlt",true); return false; }
@@ -3907,6 +3979,7 @@ function vehicleDialog(id){
     // sonst sortiert die Bibliothek nach einem leeren Merkmal.
     if(val("f-art")) target.art = val("f-art"); else delete target.art;
     target.built=val("f-built"); target.firstReg=val("f-reg");
+    const fzFotos = liesFotos(); if(fzFotos) target.photos = fzFotos;
     target.note=$("#f-note").value.trim();
     if(isNew){
       const km=num(val("f-km"));
@@ -4182,6 +4255,238 @@ function buildVehicle(tpl, merkmale){
   return seedVehicle({});
 }
 
+
+/* ═══════════ Serviceheft nachtragen ════════════════════════════
+   Ein gefuehrtes Serviceheft hat zwanzig Stempel, und die meisten
+   betreffen dieselben Positionen. Zwanzigmal ein Fenster oeffnen,
+   zwanzigmal dieselben Haken setzen — das ist die falsche Form.
+   Deshalb eine Strecke: eintragen, Felder leeren, Auswahl behalten,
+   naechster Stempel. Jeder Eintrag wird sofort gespeichert, damit
+   nichts verloren geht, wenn das Telefon zwischendurch sperrt.     */
+
+let heftAuswahl = [];      // angehakte Positionen, ueberlebt den Eintrag
+let heftSitzung = [];      // IDs der in dieser Strecke erfassten Eintraege
+
+function serviceheftDialog(){
+  heftAuswahl = [];
+  heftSitzung = [];
+
+  openDlg("Serviceheft nachtragen", `
+    <p class="tiny muted" style="margin-top:0">
+      Stempel für Stempel. Nach jedem Eintrag bleiben Positionsauswahl und
+      Werkstatt stehen — beim nächsten Stempel tippst du nur noch Datum und
+      Kilometerstand.</p>
+    <div class="grid2">
+      <div class="field"><label>Datum</label><input type="date" id="h-datum"></div>
+      <div class="field"><label>Kilometerstand</label>
+        <input type="number" id="h-km" inputmode="numeric" placeholder="laut Heft"></div>
+    </div>
+    <div class="field"><label>Werkstatt / wer</label>
+      <input id="h-werk" placeholder="z. B. selbst, Autohaus Meier"></div>
+
+    <div class="field"><label>Durchgeführte Positionen</label>
+      <div id="h-pakete"></div>
+      <div id="h-liste" style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px 11px"></div>
+      <div class="row" style="margin-top:8px">
+        <button type="button" class="btn sm" id="h-merken">Auswahl als Paket merken</button>
+        <button type="button" class="btn sm" id="h-keine">Alle abwählen</button>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field"><label>Zusätzliche Arbeit (freier Text)</label>
+        <input id="h-titel" placeholder="z. B. Hauptuntersuchung"></div>
+      <div class="field"><label>Kosten (€)</label>
+        <input type="number" step="0.01" id="h-kosten"></div>
+    </div>
+
+    <div id="h-warnung"></div>
+    <div class="sec-head"><h2>In dieser Sitzung erfasst</h2><div class="line"></div>
+      <span class="pill flat" id="h-zaehler">0</span></div>
+    <div id="h-erfasst"></div>`,
+  null);
+
+  $("#dlgFoot").innerHTML =
+    `<button class="btn" value="cancel" formnovalidate>Fertig</button>
+     <button class="btn primary" type="button" id="h-weiter">Eintragen und nächster</button>`;
+
+  zeichneHeftPakete();
+  zeichneHeftListe();
+  zeichneHeftErfasst();
+  $("#h-datum").focus();
+
+  const pruefe = ()=>zeigeHeftWarnung();
+  $("#h-datum").addEventListener("input", pruefe);
+  $("#h-km").addEventListener("input", pruefe);
+
+  $("#h-weiter").onclick = heftEintragen;
+  $("#h-keine").onclick  = ()=>{ heftAuswahl = []; zeichneHeftListe(); };
+  $("#h-merken").onclick = heftPaketMerken;
+}
+
+/** Positionsliste mit Haken; die Auswahl lebt in heftAuswahl. */
+function zeichneHeftListe(){
+  const box = $("#h-liste"); if(!box) return;
+  box.innerHTML = CAR.tasks.map(t=>
+    `<label class="chk"><input type="checkbox" class="h-chk" value="${t.id}"
+        ${heftAuswahl.includes(t.id)?"checked":""}>
+      <span>${esc(t.name)} <span class="tiny faint">${esc(t.cat)}</span></span></label>`).join("")
+    || `<div class="tiny faint">Dieses Fahrzeug hat noch keine Positionen.</div>`;
+}
+
+function zeichneHeftPakete(){
+  const box = $("#h-pakete"); if(!box) return;
+  const pakete = CAR.pakete || [];
+  box.innerHTML = pakete.length
+    ? `<div class="row" style="margin-bottom:8px;flex-wrap:wrap">${pakete.map(pk=>
+        `<span class="paket">
+           <button type="button" class="paket-name" data-paket="${pk.id}"
+             title="${pk.taskIds.length} Positionen anhaken">${esc(pk.name)}</button>
+           <button type="button" class="paket-x" data-paket-weg="${pk.id}" title="Paket löschen">✕</button>
+         </span>`).join("")}</div>`
+    : `<div class="tiny faint" style="margin-bottom:8px">
+        Tipp: Häkchen für eine typische Inspektion setzen und als Paket merken —
+        ab dem nächsten Stempel ist es ein Klick.</div>`;
+}
+
+function zeichneHeftErfasst(){
+  const box = $("#h-erfasst"); if(!box) return;
+  const zaehler = $("#h-zaehler"); if(zaehler) zaehler.textContent = heftSitzung.length;
+  if(!heftSitzung.length){
+    box.innerHTML = `<div class="tiny faint">Noch nichts eingetragen.</div>`;
+    return;
+  }
+  box.innerHTML = [...heftSitzung].reverse().map(id=>{
+    const h = CAR.history.find(x=>x.id===id); if(!h) return "";
+    const n = (h.taskIds||[]).length;
+    return `<div class="teil-zeile">
+      <div class="teil-name">${dDE(h.date)}
+        <span class="tiny faint">${n?n+" Position"+(n>1?"en":""):"ohne Position"}${
+          h.werkstatt?" · "+esc(h.werkstatt):""}</span></div>
+      <span class="num tiny">${h.km!=null?nKm(h.km)+" km":"—"}</span>
+      <button type="button" class="btn icon" data-heft-weg="${h.id}" title="Wieder entfernen">✕</button>
+    </div>`;
+  }).join("");
+}
+
+/** Hinweise statt Sperren — im Heft steht manchmal Krummes. */
+function zeigeHeftWarnung(){
+  const box = $("#h-warnung"); if(!box) return;
+  const datum = val("h-datum"), km = num(val("h-km"));
+  const meldungen = [];
+
+  if(datum && datum > today())
+    meldungen.push("Das Datum liegt in der Zukunft.");
+
+  if(datum && km != null){
+    const frueher = CAR.history.filter(h=>h.date && h.date < datum && h.km != null);
+    const hoechster = frueher.reduce((a,h)=>Math.max(a, h.km), 0);
+    if(frueher.length && km < hoechster)
+      meldungen.push(`Bei einem früheren Datum steht schon ${nKm(hoechster)} km — hier sind es weniger.`);
+    if(CAR.history.some(h=>h.date === datum && h.km === km))
+      meldungen.push("Ein Eintrag mit genau diesem Datum und Stand existiert bereits.");
+  }
+
+  box.innerHTML = meldungen.length
+    ? `<div class="tiny" style="color:var(--warn);margin:-4px 0 12px">${
+        meldungen.map(esc).join("<br>")}</div>`
+    : "";
+}
+
+function heftEintragen(){
+  const datum = val("h-datum"), km = num(val("h-km"));
+  if(!datum){ toast("Datum fehlt", true); $("#h-datum").focus(); return; }
+  if(km == null){ toast("Kilometerstand fehlt", true); $("#h-km").focus(); return; }
+
+  const eintrag = {
+    id: uid("h"), date: datum, km: Math.round(km),
+    taskIds: [...heftAuswahl],
+    title: val("h-titel"), cost: num(val("h-kosten")),
+    werkstatt: val("h-werk"), note: "", photos: []
+  };
+  CAR.history.push(eintrag);
+  heftSitzung.push(eintrag.id);
+  // Ein nachgetragener alter Stand darf den aktuellen nie senken.
+  if(eintrag.km > (CAR.km||0)){ CAR.km = eintrag.km; CAR.kmDate = eintrag.date; $("#kmNow").value = eintrag.km; }
+  save(); renderAll();
+
+  // Datum, Stand und freier Text leeren — Auswahl und Werkstatt bleiben.
+  $("#h-datum").value = ""; $("#h-km").value = "";
+  $("#h-titel").value = ""; $("#h-kosten").value = "";
+  zeigeHeftWarnung();
+  zeichneHeftErfasst();
+  $("#h-datum").focus();
+  toast(`${dDE(eintrag.date)} eingetragen`);
+}
+
+function heftPaketMerken(){
+  if(!heftAuswahl.length){ toast("Erst Positionen anhaken", true); return; }
+  const name = (prompt('Name des Pakets, z. B. "Inspektion klein"') || "").trim();
+  if(!name) return;
+  CAR.pakete = CAR.pakete || [];
+  const vorhanden = CAR.pakete.find(p=>p.name.toLowerCase() === name.toLowerCase());
+  if(vorhanden) vorhanden.taskIds = [...heftAuswahl];
+  else CAR.pakete.push({id: uid("pk"), name, taskIds: [...heftAuswahl]});
+  save();
+  zeichneHeftPakete();
+  toast(vorhanden ? `Paket „${name}" aktualisiert` : `Paket „${name}" gemerkt`);
+}
+
+/* ═══════════ Startwerte nachtragen ═════════════════════════════
+   Fuer alles, wozu im Heft nichts steht — Reifen, Batterie,
+   Unterboden. Ein Wert je Position genuegt, damit die Faelligkeit
+   rechnet; einen Verlauf ergibt das nicht, und das steht auch so da. */
+
+function startwerteDialog(){
+  const offen = [], belegt = [];
+  for(const t of CAR.tasks){
+    if(!t.active) continue;
+    const l = lastDone(t);
+    (l && l.src === "historie" ? belegt : offen).push({t, l});
+  }
+  // Ohne jeden Wert zuerst — dort liegt die Arbeit.
+  offen.sort((a,b)=> (a.l?1:0) - (b.l?1:0));
+
+  const zeile = ({t, l}) => `<div class="teil-zeile sw">
+    <div class="teil-name">${esc(t.name)}
+      <span class="tiny faint">${esc(t.cat)}${l?" · Startwert vorhanden":""}</span></div>
+    <input class="sw-km" type="number" inputmode="numeric" data-task="${t.id}"
+           value="${t.lastKm??""}" placeholder="km" aria-label="zuletzt bei km">
+    <input class="sw-dt" type="date" data-task="${t.id}"
+           value="${t.lastDate||""}" aria-label="zuletzt am">
+  </div>`;
+
+  openDlg("Startwerte nachtragen", `
+    <p class="tiny muted" style="margin-top:0">
+      Wann wurde das zuletzt gemacht? Ein Stand genügt, damit die Fälligkeit
+      rechnet. Positionen ohne Angabe stehen oben.</p>
+    ${offen.length ? offen.map(zeile).join("")
+      : `<div class="tiny faint">Alle Positionen sind über die Historie erfasst.</div>`}
+    ${belegt.length ? `
+      <div class="sec-head"><h2>Aus der Historie</h2><div class="line"></div></div>
+      <p class="tiny muted" style="margin:-4px 0 10px">Hier zählt der Historieneintrag —
+        ein Startwert würde ohnehin überschrieben.</p>
+      ${belegt.map(({t,l})=>`<div class="teil-zeile">
+        <div class="teil-name">${esc(t.name)}
+          <span class="tiny faint">zuletzt ${l.km!=null?nKm(l.km)+" km":""}${
+            l.date?" · "+dDE(l.date):""}</span></div>
+      </div>`).join("")}` : ""}`,
+  ()=>{
+    let n = 0;
+    for(const feld of $$(".sw-km")){
+      const t = CAR.tasks.find(x=>x.id===feld.dataset.task); if(!t) continue;
+      const wert = num(feld.value);
+      if(wert !== t.lastKm){ t.lastKm = wert; n++; }
+    }
+    for(const feld of $$(".sw-dt")){
+      const t = CAR.tasks.find(x=>x.id===feld.dataset.task); if(!t) continue;
+      const wert = feld.value || null;
+      if(wert !== t.lastDate){ t.lastDate = wert; n++; }
+    }
+    if(n) toast("Startwerte übernommen");
+  }, "Übernehmen");
+}
+
 /* -- Excel-/CSV-Import -------------------------------------------
    Erwartet aus Excel kopierte Zeilen (Tab-getrennt) oder CSV.    */
 function importDialog(){
@@ -4195,7 +4500,8 @@ function importDialog(){
   ()=>{
     const rows=parseRows($("#f-paste").value);
     if(!rows.length){ toast("Keine verwertbaren Zeilen erkannt",true); return false; }
-    for(const r of rows) CAR.history.push({id:uid("h"),date:r.date,km:r.km,taskIds:[],title:r.text,cost:r.cost,note:""});
+    for(const r of rows) CAR.history.push({id:uid("h"), date:r.date, km:r.km,
+      taskIds:r.taskIds||[], title:r.text, cost:r.cost, werkstatt:"", note:""});
     const mx=rows.reduce((a,r)=>Math.max(a,r.km||0),0);
     if(mx>(CAR.km||0)){ CAR.km=mx; $("#kmNow").value=mx; }
     toast(rows.length+" Einträge importiert");
@@ -4203,12 +4509,89 @@ function importDialog(){
   $("#f-paste").addEventListener("input",()=>{
     const rows=parseRows($("#f-paste").value);
     $("#impPrev").innerHTML = rows.length
-      ? `<div class="tiny muted" style="margin-bottom:6px">${rows.length} Zeilen erkannt — Vorschau:</div>
-         <div class="tbl-wrap"><table><thead><tr><th>Datum</th><th class="r">km</th><th>Beschreibung</th><th class="r">Kosten</th></tr></thead>
+      ? `<div class="tiny muted" style="margin-bottom:6px">${rows.length} Zeilen erkannt${
+           rows.some(r=>r.taskIds.length)
+             ? ` · bei ${rows.filter(r=>r.taskIds.length).length} davon auch die Position`
+             : ""} — Vorschau:</div>
+         <div class="tbl-wrap"><table><thead><tr><th>Datum</th><th class="r">km</th><th>Beschreibung</th>
+         <th>Positionen</th><th class="r">Kosten</th></tr></thead>
          <tbody>${rows.slice(0,8).map(r=>`<tr><td class="num">${dDE(r.date)}</td><td class="r num">${nKm(r.km)}</td>
-         <td>${esc(r.text)}</td><td class="r num">${r.cost!=null?eur(r.cost):"—"}</td></tr>`).join("")}</tbody></table></div>`
+         <td>${esc(r.text)}</td>
+         <td class="tiny">${r.taskIds.length
+             ? r.taskIds.map(id=>esc((CAR.tasks.find(t=>t.id===id)||{}).name||"")).join(", ")
+             : '<span class="faint">—</span>'}</td>
+         <td class="r num">${r.cost!=null?eur(r.cost):"—"}</td></tr>`).join("")}</tbody></table></div>
+         <div class="tiny faint" style="margin-top:6px">Zeilen ohne erkannte Position landen als
+           reiner Zeitleisteneintrag — die Zuordnung lässt sich danach über ✎ nachtragen.</div>`
       : `<div class="tiny faint">Noch nichts erkannt.</div>`;
   });
+}
+
+/* Der Import hat bisher taskIds:[] geschrieben — die Zeilen standen in der
+   Zeitleiste und setzten trotzdem keine Faelligkeit zurueck, weil lastDone()
+   ueber taskIds sucht. Der Verlauf sah richtig aus und rechnete falsch.
+   Deshalb wird der Text jeder Zeile gegen die Positionsnamen gehalten,
+   normalisiert wie in import_docs.py. */
+const heftNorm = s => (s||"").normalize("NFC").toLowerCase()
+  .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+  .replace(/[^a-z0-9]+/g," ").trim();
+
+/* Im Serviceheft steht "Ölwechsel", im Plan heisst die Position
+   "Motoröl + Ölfilter" — ueber gemeinsame Woerter finden die beiden nicht
+   zusammen. Deshalb eine kleine Tabelle: was im Heft steht, links; womit
+   der Positionsname uebereinstimmen muss, rechts. Gleiche Bauart wie
+   REGELN in import_docs.py, nur dass hier nach Namensbestandteilen gesucht
+   wird statt nach festen Namen — die unterscheiden sich je Fahrzeug. */
+const HEFT_REGELN = [
+  [/oelwechsel|oelservice|motoroel|oelfilter|oel service/, ["motoroel","oel "]],
+  [/innenraumfilter|pollenfilter|mikrofilter|staubfilter/, ["innenraumfilter","mikrofilter"]],
+  [/luftfilter|luftfiltereinsatz/,                         ["luftfilter"]],
+  [/kraftstofffilter|dieselfilter|kraftstoff filter/,      ["kraftstofffilter"]],
+  [/bremsfluessigkeit|bremsfl/,                            ["bremsfluessigkeit"]],
+  [/bremsbelaege|bremsscheiben|bremsen|belaege/,           ["bremsen","bremsbel"]],
+  [/zahnriemen|steuerriemen|nassriemen/,                   ["zahnriemen","nassriemen"]],
+  [/steuerkette/,                                          ["steuerkette"]],
+  [/zuendkerzen|kerzen/,                                   ["zuendkerzen"]],
+  [/reifen|radwechsel|raeder/,                             ["reifen","raeder"]],
+  [/batterie/,                                             ["batterie"]],
+  [/klimaanlage|klimaservice|klima/,                       ["klima"]],
+  [/kuehlmittel|kuehlfluessigkeit|frostschutz/,            ["kuehl"]],
+  [/getriebeoel|getriebe oel|schaltgetriebe/,              ["getriebe"]],
+  [/differential|achsoel|hinterachse|vorderachse/,         ["differential"]],
+  [/verteilergetriebe/,                                    ["verteilergetriebe"]],
+  [/wischer|wischerblaetter/,                              ["wischer"]],
+  [/ventilspiel|ventile/,                                  ["ventil"]],
+  [/kette spannen|kettensatz|kettenpflege/,                ["kette"]],
+  [/gabeloel|gabel/,                                       ["gabel"]],
+  [/partikelfilter|dpf|russfilter/,                        ["partikelfilter"]],
+  [/adblue|harnstoff/,                                     ["adblue"]],
+  [/fahrwerk|stossdaempfer|achsmanschetten/,               ["fahrwerk"]],
+  [/unterboden|hohlraum|rostvorsorge/,                     ["unterboden"]],
+];
+
+function positionenAusText(text){
+  const t = heftNorm(text);
+  if(!t) return [];
+  const treffer = new Set();
+
+  for(const task of CAR.tasks){
+    const n = heftNorm(task.name);
+    if(!n) continue;
+    // Direkter Weg: der Positionsname steht so im Text, oder umgekehrt
+    if(t.includes(n) || n.includes(t)){ treffer.add(task.id); continue; }
+    /* Wortweise ab vier Zeichen, aber an Wortgrenzen. Ein reiner
+       Teilzeichenkettenvergleich haette "Ölservice" auf "Klimaanlage
+       Service" gezogen — das Wort "service" steckt in beidem. */
+    const textWorte = t.split(" ").filter(w=>w.length>=4);
+    if(n.split(" ").filter(w=>w.length>=4)
+        .some(w=>textWorte.some(tw=>tw.startsWith(w) || w.startsWith(tw)))){
+      treffer.add(task.id); continue;
+    }
+    // Ueber die Tabelle — faengt "Ölwechsel" → "Motoröl + Ölfilter"
+    for(const [muster, teile] of HEFT_REGELN)
+      if(muster.test(t) && teile.some(x=>n.includes(x.trim()))) treffer.add(task.id);
+  }
+  return [...treffer];
 }
 
 function parseRows(txt){
@@ -4231,7 +4614,9 @@ function parseRows(txt){
       text.push(c);
     }
     if(!date && km==null) continue;
-    out.push({date:date||today(),km,cost,text:text.join(" · ")});
+    const freitext = text.join(" · ");
+    out.push({date:date||today(), km, cost, text:freitext,
+              taskIds: positionenAusText(freitext)});
   }
   return out;
 }
@@ -4270,8 +4655,11 @@ function renderFahrzeuge(){
         : `${esc(z.naechste.task.name)} in ${z.naechste.lead==="km"
             ? nKm(z.naechste.remKm)+" km" : z.naechste.remDays+" Tagen"}`;
 
+    const bild = (v.photos||[]).find(id=>!istVideo(id));
     return `<div class="fz-karte ${stufe} ${v.id===CAR.id?"aktiv":""}" data-fahrzeug="${v.id}"
          role="button" tabindex="0" aria-label="${esc(titel)} auswählen">
+      ${bild && mode==="server" ? `<img class="fz-bild" src="${photoUrl(bild, true)}"
+         alt="${esc(titel)}" loading="lazy">` : ""}
       <div class="fz-kopf">
         <div class="fz-titel">${esc(titel)}
           ${v.id===CAR.id?`<span class="pill info">aktiv</span>`:""}</div>
@@ -4382,10 +4770,11 @@ document.addEventListener("click",e=>{
   const dweg = t.closest("[data-dok-weg]");
   if(dweg){
     const d = docById(dweg.dataset.dokWeg);
-    if(d && confirm(`„${d.name}" löschen? Verknüpfungen zu Positionen gehen mit verloren.`)){
+    if(d && confirm(`„${d.name}" löschen? Verknüpfungen zu Positionen und Teilen gehen mit verloren.`)){
       fetch(api("docs/"+d.id),{method:"DELETE"}).catch(()=>{});
       CAR.docs = CAR.docs.filter(x=>x.id!==d.id);
       CAR.tasks.forEach(x=>{ x.docs=(x.docs||[]).filter(y=>y.d!==d.id); });
+      CAR.parts.forEach(x=>{ x.docs=(x.docs||[]).filter(y=>y.d!==d.id); });
       save(); renderAll(); toast("Anleitung gelöscht");
     }
     return;
@@ -4458,7 +4847,7 @@ document.addEventListener("click",e=>{
   if(neu){
     // Teil sofort anlegen, ohne den Dialog zu verlassen
     const roh = $("#teileSuche").value.trim();
-    const teil = {id:uid("p"), name:roh, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[], photos:[], note:""};
+    const teil = {id:uid("p"), name:roh, oem:"", unit:"Stück", price:null, qty:0, spare:false, links:[], photos:[], docs:[], note:""};
     CAR.parts.push(teil);
     teileAuswahl.push({p:teil.id, q:1});
     $("#teileSuche").value=""; $("#teileTreffer").hidden=true;
@@ -4466,6 +4855,33 @@ document.addEventListener("click",e=>{
     toast(`„${roh}" angelegt — Nummer und Preis später im Teilekatalog`);
     return;
   }
+  // ---- Serviceheft-Strecke ----
+  const pk = t.closest("[data-paket]");
+  if(pk){
+    const paket = (CAR.pakete||[]).find(x=>x.id===pk.dataset.paket);
+    if(paket){
+      for(const id of paket.taskIds)
+        if(CAR.tasks.some(x=>x.id===id) && !heftAuswahl.includes(id)) heftAuswahl.push(id);
+      zeichneHeftListe();
+      toast(`„${paket.name}" angehakt`);
+    }
+  }
+  const pkw = t.closest("[data-paket-weg]");
+  if(pkw){
+    const paket = (CAR.pakete||[]).find(x=>x.id===pkw.dataset.paketWeg);
+    if(paket && confirm(`Paket „${paket.name}" löschen? Die Positionen selbst bleiben.`)){
+      CAR.pakete = CAR.pakete.filter(x=>x.id!==paket.id);
+      save(); zeichneHeftPakete();
+    }
+  }
+  const hw = t.closest("[data-heft-weg]");
+  if(hw){
+    const id = hw.dataset.heftWeg;
+    CAR.history = CAR.history.filter(x=>x.id!==id);
+    heftSitzung = heftSitzung.filter(x=>x!==id);
+    save(); renderAll(); zeichneHeftErfasst();
+  }
+
   if(t.id==="dokDlgAdd"){ $("#dokDlgInput").click(); }
   if(t.id==="fotoAdd"){ $("#fotoInput").click(); }
   if(t.id==="fotoCam"){ $("#fotoCamInput").click(); }
@@ -4489,6 +4905,8 @@ $("#btnAddPart").onclick =()=>partDialog();
 $("#btnAddHist").onclick =()=>histDialog();
 $("#btnAddMod").onclick  =()=>modDialog();
 $("#btnImport").onclick  =()=>importDialog();
+$("#btnHeft").onclick    =()=>serviceheftDialog();
+$("#btnStartwerte").onclick=()=>startwerteDialog();
 /* Menü öffnen, schließen, bedienen */
 function menueZu(){
   $("#menue").hidden = true;
