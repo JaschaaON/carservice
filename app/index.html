@@ -125,7 +125,9 @@ header{
 .sync.busy{color:var(--warn);border-color:rgba(245,182,66,.3)}
 .sync.err{color:var(--crit);border-color:rgba(255,95,86,.35)}
 
-nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.nav-zeile{display:flex;align-items:stretch;gap:2px}
+.nav-zeile[hidden]{display:none}
+nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
 nav[hidden]{display:none}
 nav::-webkit-scrollbar{display:none}
 nav > button, #btnMehr{
@@ -134,9 +136,9 @@ nav > button, #btnMehr{
   font-family:inherit;cursor:pointer;
 }
 nav > button.active, #btnMehr.active{color:var(--text);border-bottom-color:#c8ced4}
-/* Die Huelle darf nicht schrumpfen, sonst rutscht „Mehr" bei vollem
-   Reiterband aus dem Bild. */
-.mehr-huelle{position:relative;flex:none;display:flex}
+/* Steht neben der scrollenden Zeile, nicht darin — sonst schneidet deren
+   overflow das Menue ab. Bleibt dadurch immer sichtbar. */
+.mehr-huelle{position:relative;flex:none;display:flex;align-items:stretch}
 #mehrMenue{min-width:180px}
 
 main{padding:18px 16px 28px;max-width:1080px;margin:0 auto}
@@ -1114,14 +1116,21 @@ body.bericht-offen #bericht{
       </div>
     </div>
   </div>
-  <nav id="nav">
-    <button data-view="fuhr">Fahrzeuge</button>
-    <button data-view="dash" class="active">Wartung</button>
-    <button data-view="rep">Reparaturen</button>
-    <button data-view="parts">Teile</button>
-    <button data-view="hist">Historie</button>
-    <button data-view="papiere">Dokumente</button>
-    <button data-view="docs">Anleitungen</button>
+  <!-- Die Reiterzeile scrollt waagerecht. Das Mehr-Menue darf deshalb
+       NICHT in ihr liegen: overflow-x:auto schneidet absolut positionierte
+       Kinder ab — auch nach unten, denn sobald eine Achse nicht sichtbar
+       ist, wird die andere es auch. Das Menue haengt darum neben der
+       Zeile, und der Knopf scrollt nebenbei nicht mehr weg. -->
+  <div class="nav-zeile">
+    <nav id="nav">
+      <button data-view="fuhr">Fahrzeuge</button>
+      <button data-view="dash" class="active">Wartung</button>
+      <button data-view="rep">Reparaturen</button>
+      <button data-view="parts">Teile</button>
+      <button data-view="hist">Historie</button>
+      <button data-view="papiere">Dokumente</button>
+      <button data-view="docs">Anleitungen</button>
+    </nav>
     <div class="mehr-huelle">
       <button id="btnMehr" aria-haspopup="true" aria-expanded="false">Mehr ▾</button>
       <div class="menue" id="mehrMenue" hidden>
@@ -1133,7 +1142,7 @@ body.bericht-offen #bericht{
           <span class="menue-symbol">€</span> Kosten</button>
       </div>
     </div>
-  </nav>
+  </div>
 </header>
 
 <div id="fremdBalken" hidden>
@@ -5845,7 +5854,7 @@ function renderFahrzeuge(){
  *  gab. */
 function zeigeLeer(){
   const fremd = NUTZER && NUTZER.betrachtet && NUTZER.betrachtet.fremd;
-  $("#nav").hidden = true;
+  $(".nav-zeile").hidden = true;
   $$(".view").forEach(v=>v.classList.remove("active"));
   $("#carPick").innerHTML = `<option>—</option>`;
   $("#hdModel").textContent = "";
@@ -5875,7 +5884,7 @@ function renderCarPicker(){
 function renderAll(){
   if(!CAR) return zeigeLeer();
   $("#leerHinweis").hidden = true;
-  $("#nav").hidden = false;
+  $(".nav-zeile").hidden = false;
   renderCarPicker();
   const grund = kmAbfrageGrund();
   const feld  = $("#kmNow"), tage = kmAlterTage();
@@ -5929,7 +5938,7 @@ function mehrZu(){
   $("#btnMehr").setAttribute("aria-expanded","false");
 }
 
-$("#nav").addEventListener("click", e=>{
+$(".nav-zeile").addEventListener("click", e=>{
   if(e.target.closest("#btnMehr")){
     const m = $("#mehrMenue");
     m.hidden = !m.hidden;
@@ -5941,7 +5950,7 @@ $("#nav").addEventListener("click", e=>{
 });
 
 document.addEventListener("click", e=>{
-  if(!e.target.closest("#nav .mehr-huelle")) mehrZu();
+  if(!e.target.closest(".mehr-huelle")) mehrZu();
 });
 
 document.addEventListener("click",e=>{

@@ -105,8 +105,17 @@ Ansichten offen, nennt der Knopf sie: `Mehr · Kosten`. Sonst weiss man nicht,
 wo man ist.
 
 ```
-Fahrzeuge · Wartung · Reparaturen · Teile · Historie · Dokumente · Anleitungen · Mehr ▾
+Fahrzeuge · Wartung · Reparaturen · Teile · Historie · Dokumente · Anleitungen │ Mehr ▾
+└────────────── scrollt waagerecht ──────────────┘   └ steht fest
 ```
+
+> **Das Menue darf nicht in der Reiterzeile liegen.** Die scrollt
+> (`overflow-x:auto`), und ein Container mit `overflow-x:auto` schneidet
+> absolut positionierte Kinder ab — **auch nach unten**, denn sobald eine
+> Achse nicht `visible` ist, wird die andere es ebenfalls. Das Menue klappte
+> dadurch unsichtbar auf: am Telefon sah man einen Rest, wenn man die Zeile
+> schob, am Schreibtisch gar nichts. Es haengt deshalb **neben** der Zeile,
+> und der Knopf scrollt nebenbei nicht mehr weg.
 
 **Das Fahrzeugbild steht in der Statuskarte.** Auf breiten Bildschirmen fuellt
 es die rechte Haelfte und laeuft nach links aus, auf dem Telefon sitzt es als
