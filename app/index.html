@@ -659,6 +659,8 @@ body.bericht-offen #bericht{
 .b-kpi{background:var(--b-flaeche);border:1px solid var(--b-line);border-radius:10px;padding:12px 14px}
 .b-kpi b{display:block;font-size:19px;letter-spacing:-.01em;font-weight:650;font-variant-numeric:tabular-nums}
 .b-kpi span{font-size:10.5px;color:var(--b-dim)}
+.b-luecke{font-size:10.5px;color:var(--b-dim);margin:8px 0 0}
+.b-luecke b{font-weight:650;color:var(--b-text)}
 
 .b-block{margin-top:26px}
 .b-block>h2{
@@ -2283,14 +2285,33 @@ function berichtHtml(o){
   const jahre = eintraege.map(e=>(e.date||"").slice(0,4)).filter(Boolean);   // absteigend
   const zeitraum = !jahre.length ? "—"
     : jahre[0]===jahre[jahre.length-1] ? jahre[0] : jahre[jahre.length-1]+"–"+jahre[0];
+  /* Die Strecke ist die Spanne zwischen erstem und letztem Termin, nicht
+     die Laufleistung des Fahrzeugs. Wer das nicht weiss, rechnet sie gegen
+     den Tachostand und haelt den Bericht fuer falsch. Deshalb nennt die
+     Beschriftung die Spanne selbst. */
+  const vonKm = kmWerte.length ? Math.min(...kmWerte) : null;
+  const bisKm = kmWerte.length ? Math.max(...kmWerte) : null;
   const kacheln = [
     [gruppen.length, "Termine"],
     [eintraege.length, "Arbeiten"],
-    [strecke!=null ? nKm(strecke)+" km" : "—", "dokumentierte Strecke"],
+    [strecke!=null ? nKm(strecke)+" km" : "—",
+     strecke!=null ? `dokumentiert · ${nKm(vonKm)} → ${nKm(bisKm)} km` : "dokumentierte Strecke"],
     o.kosten ? [eur(kostenSumme), "erfasste Kosten"] : [zeitraum, "Zeitraum"],
   ];
+
+  /* Was der Bericht NICHT belegt, gehoert genauso hinein. Ein Nachweis,
+     der seine Luecken selbst nennt, ist glaubwuerdiger als einer, bei dem
+     der Leser die Differenz zum Tacho selbst ausrechnen muss. */
+  const LUECKE_AB = 500;                     // darunter ist es Rauschen
+  const luecken = [];
+  if(vonKm != null && vonKm >= LUECKE_AB)
+    luecken.push(`Vor dem ersten Eintrag sind <b class="num">${nKm(vonKm)} km</b> nicht dokumentiert.`);
+  if(bisKm != null && CAR.km != null && CAR.km - bisKm >= LUECKE_AB)
+    luecken.push(`Seit dem letzten Eintrag <b class="num">${nKm(CAR.km - bisKm)} km</b>.`);
+
   const kennzahlen = `<div class="b-kpis">${kacheln.map(([w,l])=>
-    `<div class="b-kpi"><b>${esc(w)}</b><span>${esc(l)}</span></div>`).join("")}</div>`;
+    `<div class="b-kpi"><b>${esc(w)}</b><span>${esc(l)}</span></div>`).join("")}</div>`
+    + (luecken.length ? `<p class="b-luecke">${luecken.join(" ")}</p>` : "");
 
   /* ── Auf einen Blick: zuletzt erledigt je Wartungsposition ── */
   const anzahl = new Map();

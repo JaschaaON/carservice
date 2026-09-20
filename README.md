@@ -679,6 +679,15 @@ Versicherung: Kopf mit Fahrzeugfoto, Fahrzeugdaten, Kennzahlen, eine Tabelle
 „zuletzt erledigt je Position" mit naechster Faelligkeit, offene Reparaturen,
 die Chronik (dieselbe Gruppierung wie die Historie), Umbauten.
 
+**Die Kennzahl „dokumentierte Strecke" ist eine Spanne, keine Laufleistung.**
+Gemessen wird `max(km) − min(km)` ueber alle Eintraege — also vom ersten bis
+zum letzten Termin. Wer den Wert gegen den Tachostand haelt, findet eine
+Differenz und haelt den Bericht fuer falsch; deshalb nennt die Beschriftung
+die Spanne selbst („dokumentiert · 20.398 → 77.196 km"), und darunter steht,
+was **nicht** belegt ist: die Kilometer vor dem ersten und seit dem letzten
+Eintrag. Erst ab 500 km, sonst waere es Rauschen. Ein Nachweis, der seine
+Luecken benennt, ist glaubwuerdiger als einer, bei dem der Leser rechnen muss.
+
 **Kein PDF-Generator.** Die App bleibt ohne Bibliotheken und offlinefaehig; der
 Bericht ist eine Seite im Vollbild (zugleich die Vorschau), die ueber den
 Druckdialog des Browsers als PDF gesichert wird. Schrift und Text bleiben
