@@ -125,6 +125,26 @@ haengt die Lesbarkeit der Zahlen davon ab, wie hell jemandes Foto zufaellig ist
 900 px und Telefonbreite bleibt das Bild weg, dort ist die Karte zu eng fuer
 beides und der Text hat Vorrang.
 
+**Auf dem Telefon ein Burgermenue statt eines Bandes.** Sieben Reiter, die man
+seitlich schieben muss, sind auf 375 px die falsche Form. Ab 560 px abwaerts
+steht dort eine Zeile — `☰ Wartung ▾` — und ein Tipp zeigt alle zehn Ansichten
+mit der aktuellen hervorgehoben. Reiterzeile, Mehr-Menue und Burgermenue
+entstehen alle drei aus **einer** Liste (`ANSICHTEN`); drei Listen von Hand
+driften auseinander, sobald eine Ansicht dazukommt.
+
+**Die Bedienelemente sitzen an der Naht.** *inaktive zeigen*, *Startwerte*,
+*Aus Bibliothek* und *+ Position* wirken nur auf die Positionsliste, standen
+aber ueber dem Lagebericht — ein Rest aus der Zeit getrennter Reiter. Sie
+haengen jetzt an einer Ueberschrift **Wartungsplan** mit Positionszaehler,
+genau dort, wo die Liste beginnt.
+
+> Das Markup dieser Zeile bleibt **fest stehen**, deshalb hat `renderDash()`
+> zwei Behaelter: `#dashLage` fuer Statuskarte, Zeitstrahl, Fristen und
+> Einkaufsliste, `#dashDue` fuer die Positionen. Wuerde `renderDash` die
+> Knopfzeile mitbauen, setzte der Haken „inaktive zeigen" sich selbst
+> zurueck — sein eigenes `change` loest den Neuaufbau aus, der ihn neu
+> erzeugt.
+
 **Uebersicht und Wartungsplan sind ein Reiter.** Vorher zeigten beide dieselben
 Positionskarten, die Uebersicht aber als `taskCard(s, false)` — das schaltet
 den aufklappbaren Teil ab. Dieselbe Komponente zweimal verschieden aufzurufen
@@ -149,6 +169,36 @@ einem 375-px-Telefon aber immer noch nicht am Stueck. Es scrollt weiter
 waagerecht — dafuer holt `zeigeAnsicht` den aktiven Reiter ins Bild, sodass die
 Markierung nie ausserhalb liegt. Wer es ganz ohne Schieben will, muesste auf
 kleinen Bildschirmen weitere Reiter ins Menue schieben.
+
+## Tabellen auf dem Telefon
+
+Eine Tabelle mit sieben Spalten ist auf 375 px keine Tabelle mehr, sondern ein
+Schiebepuzzle. Gemessen wurde vor dem Umbau:
+
+| Tabelle | Breite | sichtbar |
+|---|---|---|
+| Teilekatalog | 618 px | 349 px |
+| Einkaufsliste | 435 px | 349 px |
+| Alle Ausgaben | 392 px | 349 px |
+| Anleitungen | 436 px | 349 px |
+| Teile in der Positionskarte | 371 px | 315 px |
+
+Beim Teilekatalog lag die Schaltflaeche zum Bearbeiten bei **x = 621** — weit
+ausserhalb des Bildschirms, erreichbar nur durch seitliches Schieben der
+Tabelle. Zwei Mittel dagegen:
+
+**Karten statt Zeilen** (`.tbl-karten`): Der Teilekatalog wird auf schmalen
+Schirmen zur Kartenliste. Die Spaltennamen wandern als `data-l` an die Zellen
+und erscheinen ueber `::before` als Beschriftung; das Stiftsymbol sitzt oben
+rechts in der Karte. Kein zweiter Render-Pfad, nur CSS.
+
+**Spalten weglassen** (`.eng-weg`), wo eine Karte uebertrieben waere: die
+Einkaufsliste verliert *Wofuer*, die Ausgabenliste *km*, die Anleitungsliste
+*Seiten* und *Groesse*, die Teiletabelle in der Positionskarte die
+Einzelkosten — deren Summe steht ohnehin darunter. Dazu enger gesetzte
+Zellenpolster.
+
+Danach passt jede Tabelle der App ohne seitliches Schieben.
 
 ## Verlauf je Position
 

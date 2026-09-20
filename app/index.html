@@ -142,6 +142,22 @@ nav > button.active, #btnMehr.active{color:var(--text);border-bottom-color:#c8ce
 /* Steht neben der scrollenden Zeile, nicht darin — sonst schneidet deren
    overflow das Menue ab. Bleibt dadurch immer sichtbar. */
 .mehr-huelle{position:relative;flex:none;display:flex;align-items:stretch}
+
+/* Burger — nur auf dem Telefon. Ein Band, das man schieben muss, ist
+   dort die falsche Form; ein Knopf, der die aktuelle Ansicht nennt und
+   alle anderen auf einen Tipp zeigt, die richtige. */
+.burger-huelle{display:none;position:relative;flex:1;min-width:0}
+#btnBurger{
+  display:flex;align-items:center;gap:10px;width:100%;
+  background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--text);padding:10px 2px;font:inherit;font-size:15px;font-weight:600;
+  cursor:pointer;text-align:left;
+}
+#btnBurger::after{content:"▾";margin-left:auto;color:var(--text-faint);font-size:12px}
+.burger-zeichen{display:inline-flex;flex-direction:column;justify-content:center;gap:3.5px;width:17px;flex:none}
+.burger-zeichen i{display:block;height:2px;background:var(--accent-dim);border-radius:1px}
+#burgerMenue{left:0;right:auto;min-width:min(262px,calc(100vw - 32px))}
+.menue-punkt.aktiv{color:var(--text);background:var(--surface-2);font-weight:600}
 #mehrMenue{min-width:180px}
 
 main{padding:18px 16px 28px;max-width:1080px;margin:0 auto}
@@ -159,6 +175,14 @@ main{padding:18px 16px 28px;max-width:1080px;margin:0 auto}
 .sec-head{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
 .sec-head h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim)}
 .sec-head .line{flex:1;height:1px;background:var(--line)}
+.plan-kopf{flex-wrap:wrap;row-gap:8px}
+@media(max-width:560px){
+  /* Ueberschrift und Zaehler in Zeile eins, die Knoepfe darunter —
+     nebeneinander blieben von 343 px nichts Lesbares uebrig. */
+  .plan-kopf .line{flex:1 0 auto}
+  .plan-kopf .chk{flex:1 0 100%;margin-top:2px}
+  .plan-kopf .btn{flex:1 1 auto}
+}
 
 .btn{
   background:var(--mat-knopf);border:1px solid var(--line-hell);color:var(--text-dim);
@@ -780,6 +804,31 @@ body.bericht-offen #bericht{padding-bottom:env(safe-area-inset-bottom)}
 }
 
 @media screen and (max-width:640px){
+  /* Eine Tabelle mit sieben Spalten ist auf 375 px keine Tabelle mehr,
+     sondern ein Schiebepuzzle: 618 px breit bei 349 sichtbar, die
+     Schaltflaeche rechts bei x=621. Deshalb wird jede Zeile zur Karte.
+     Die Spaltennamen wandern als data-l an die Zellen. */
+  .tbl-karten thead{display:none}
+  .tbl-karten, .tbl-karten tbody, .tbl-karten tr, .tbl-karten td{display:block;width:auto}
+  .karten-wrap{border:none;background:none;box-shadow:none;overflow:visible}
+  .tbl-karten tr{
+    position:relative;background:var(--mat-flaeche);border:1px solid var(--line);
+    border-radius:12px;box-shadow:var(--kante);padding:12px 14px;margin-bottom:10px;
+  }
+  .tbl-karten td{border:none;padding:2px 0;text-align:left!important}
+  .tbl-karten td:first-child{padding-right:38px}      /* Platz fuer das Stiftsymbol */
+  .tbl-karten td[data-l]::before{
+    content:attr(data-l);display:inline-block;min-width:64px;
+    color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  }
+  .tbl-karten td.links{margin-top:6px}
+  .tbl-karten .zeile-tat{position:absolute;top:8px;right:10px;padding:0}
+
+  /* Auf 349 px zaehlt jeder Millimeter: zehn Pixel Zellenpolster mal vier
+     Spalten sind achtzig, und die kosten die letzte Spalte. */
+  th, td{padding:8px 7px}
+  .links a{font-size:12px;padding:3px 7px;margin-right:2px}
+
   .eng-weg{display:none}
   .b-nur-breit{display:none}
   .b-blatt{padding:20px 15px;margin:10px auto 30px}
@@ -1077,7 +1126,8 @@ body.bericht-offen #bericht{padding-bottom:env(safe-area-inset-bottom)}
   .hd-km{gap:5px}
   .hd-km input{width:92px;padding:7px 8px}
   .task-hd{flex-direction:column;align-items:flex-start;gap:3px}
-  nav > button, #btnMehr{padding:9px 8px;font-size:13px}
+  nav, .mehr-huelle{display:none}
+  .burger-huelle{display:flex}
   .teil-zeile{gap:7px;padding:7px 9px}
   .teil-zeile .pt-q{width:58px}
   .teil-zeile .dok-seite{width:52px}
@@ -1134,26 +1184,24 @@ body.bericht-offen #bericht{padding-bottom:env(safe-area-inset-bottom)}
        Kinder ab — auch nach unten, denn sobald eine Achse nicht sichtbar
        ist, wird die andere es auch. Das Menue haengt darum neben der
        Zeile, und der Knopf scrollt nebenbei nicht mehr weg. -->
+  <!-- Reiterzeile, Mehr-Menue und das Burgermenue entstehen alle drei aus
+       ANSICHTEN. Drei Listen von Hand zu pflegen heisst, dass sie
+       auseinanderdriften, sobald eine Ansicht dazukommt. -->
   <div class="nav-zeile">
-    <nav id="nav">
-      <button data-view="fuhr">Fahrzeuge</button>
-      <button data-view="dash" class="active">Wartung</button>
-      <button data-view="rep">Reparaturen</button>
-      <button data-view="parts">Teile</button>
-      <button data-view="hist">Historie</button>
-      <button data-view="papiere">Dokumente</button>
-      <button data-view="docs">Anleitungen</button>
-    </nav>
+    <nav id="nav"></nav>
     <div class="mehr-huelle">
       <button id="btnMehr" aria-haspopup="true" aria-expanded="false">Mehr ▾</button>
-      <div class="menue" id="mehrMenue" hidden>
-        <button type="button" class="menue-punkt" data-view="mods">
-          <span class="menue-symbol">◆</span> Umbauten</button>
-        <button type="button" class="menue-punkt" data-view="trip">
-          <span class="menue-symbol">➔</span> Tour</button>
-        <button type="button" class="menue-punkt" data-view="cost">
-          <span class="menue-symbol">€</span> Kosten</button>
-      </div>
+      <div class="menue" id="mehrMenue" hidden></div>
+    </div>
+    <!-- Nur auf dem Telefon: eine Schaltflaeche statt eines Bandes, das
+         man schieben muss. Sie nennt die aktuelle Ansicht, damit man
+         trotzdem weiss, wo man ist. -->
+    <div class="burger-huelle">
+      <button id="btnBurger" aria-haspopup="true" aria-expanded="false">
+        <span class="burger-zeichen" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span id="burgerTitel">Wartung</span>
+      </button>
+      <div class="menue" id="burgerMenue" hidden></div>
     </div>
   </div>
 </header>
@@ -1186,16 +1234,25 @@ body.bericht-offen #bericht{padding-bottom:env(safe-area-inset-bottom)}
 
   <!-- ══════════ WARTUNG (Übersicht + Plan) ══════════ -->
   <section class="view active" id="view-dash">
-    <div class="spread" style="margin-bottom:14px">
-      <div class="muted tiny">Klick auf eine Position öffnet Details, Teile und „erledigt"-Eintrag.</div>
-      <div class="row">
-        <label class="chk tiny"><input type="checkbox" id="showInactive"> inaktive zeigen</label>
-        <button class="btn sm" id="btnStartwerte">Startwerte</button>
-        <button class="btn sm" id="btnBib">Aus Bibliothek</button>
-        <button class="btn sm primary" id="btnAddTask">+ Position</button>
-      </div>
-    </div>
+    <!-- Erst die Lage: Statuskarte, Zeitstrahl, Fristen, Einkaufsliste.
+         Dann die Naht mit den Bedienelementen — sie wirken nur auf die
+         Positionsliste darunter, nicht auf den Lagebericht darueber.
+         Das Markup bleibt fest stehen: Wuerde renderDash es neu bauen,
+         setzte der Haken „inaktive zeigen" sich selbst zurueck — sein
+         eigenes change loest den Neuaufbau aus. -->
     <div class="stats" id="dashStats"></div>
+    <div id="dashLage"></div>
+
+    <div class="sec-head plan-kopf" id="planKopf">
+      <h2>Wartungsplan</h2><div class="line"></div>
+      <span class="pill flat" id="planZahl">0</span>
+      <label class="chk tiny"><input type="checkbox" id="showInactive"> inaktive zeigen</label>
+      <button class="btn sm" id="btnStartwerte">Startwerte</button>
+      <button class="btn sm" id="btnBib">Aus Bibliothek</button>
+      <button class="btn sm primary" id="btnAddTask">+ Position</button>
+    </div>
+    <p class="tiny muted" style="margin:-6px 0 12px">Klick auf eine Position öffnet Details,
+      Teile und „erledigt"-Eintrag.</p>
     <div id="dashDue"></div>
   </section>
 
@@ -1709,7 +1766,7 @@ function einkaufsliste(liste){
     <p class="tiny muted" style="margin:-4px 0 12px">
       Alles für das, was überfällig ist oder demnächst ansteht — rechtzeitig bestellen.</p>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th><th>Wofür</th></tr></thead>
+      <thead><tr><th>Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th><th class="eng-weg">Wofür</th></tr></thead>
       <tbody>${posten.map(e=>`<tr>
         <td><button type="button" class="teil-sprung" data-edit-part="${e.p.id}"
               title="Teil bearbeiten — Nummer, Preis, Kauflinks">${esc(e.p.name)}</button>
@@ -1721,7 +1778,7 @@ function einkaufsliste(liste){
         <td class="links">${(e.p.links||[]).map(l=>
           `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||"Shop")} ↗</a>`).join("")
           || `<button class="btn sm" data-edit-part="${e.p.id}" style="white-space:nowrap">+ Link</button>`}</td>
-        <td class="tiny faint">${esc([...new Set(e.wofuer)].join(", "))}</td></tr>`).join("")}
+        <td class="tiny faint eng-weg">${esc([...new Set(e.wofuer)].join(", "))}</td></tr>`).join("")}
       </tbody></table></div>
     <div class="spread tiny muted" style="margin-top:8px">
       <span>${ohnePreis?`Bei ${ohnePreis} Teil${ohnePreis>1?"en":""} fehlt noch der Preis.`:""}</span>
@@ -1793,7 +1850,8 @@ function renderDash(){
     ["Nicht fällig", ruhig, "ok"],
     ["Ohne Intervall", ohneIntervall, "flat"]
   ];
-  let h = "";
+
+  let h = "";        // Lagebericht
 
   if(echt.length)
     h += `<div class="sec-head"><h2>Die nächsten zwölf Monate</h2><div class="line"></div></div>
@@ -1825,6 +1883,13 @@ function renderDash(){
             <div><strong>Alles im grünen Bereich.</strong>
             <div class="tiny faint">Keine Position ist überfällig oder in Kürze fällig.</div></div></div></div>`;
 
+  $("#dashLage").innerHTML = h;
+  const zp = $("#btnZuPapieren");
+  if(zp) zp.onclick = ()=>zeigeAnsicht("papiere");
+
+  // Ab hier die Positionsliste — eigener Behaelter unter den Bedienelementen.
+  $("#planZahl").textContent = st.length;
+  h = "";
   for(const [titel,liste,lvl] of gruppen){
     if(!liste.length) continue;
     h += `<div class="sec-head"><h2>${titel}</h2><div class="line"></div>
@@ -1840,7 +1905,6 @@ function renderDash(){
 
   $("#dashDue").innerHTML = h;
   const sw = $("#btnStartwerte2"); if(sw) sw.onclick = ()=>startwerteDialog();
-  const zp = $("#btnZuPapieren"); if(zp) zp.onclick = ()=>zeigeAnsicht("papiere");
 }
 
 /** Verlauf einer Wartungsposition: wann wurde sie gemacht, und in
@@ -1950,7 +2014,7 @@ function taskCard(s,expandable){
     return `<tr><td><button type="button" class="teil-sprung" data-edit-part="${p.id}"
               title="Teil bearbeiten">${esc(p.name)}</button>${p.oem?`<div class="tiny faint num">${esc(p.oem)}</div>`:""}</td>
             <td class="r num">${x.q} ${p.unit==="Stück"?"×":esc(p.unit)}</td>
-            <td class="r num">${p.price!=null?eur(p.price*x.q):"—"}</td>
+            <td class="r num eng-weg">${p.price!=null?eur(p.price*x.q):"—"}</td>
             <td class="links">${links||'<span class="tiny faint">kein Link</span>'}</td></tr>`;
   }).join("");
   const total = (t.parts||[]).reduce((a,x)=>{const p=partById(x.p);return a+(p&&p.price!=null?p.price*x.q:0);},0);
@@ -1964,7 +2028,7 @@ function taskCard(s,expandable){
         ${fotoStreifen(t.photos)}</div>` : ""}
       ${verlaufBlock(t)}
       ${plist?`<div class="tbl-wrap" style="margin-bottom:12px"><table>
-        <thead><tr><th>Benötigtes Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th></tr></thead>
+        <thead><tr><th>Benötigtes Teil</th><th class="r">Menge</th><th class="r eng-weg">Kosten</th><th>Bezug</th></tr></thead>
         <tbody>${plist}</tbody></table></div>
         ${total>0?`<div class="tiny muted" style="text-align:right;margin-bottom:12px">Materialkosten ca. <strong>${eur(total)}</strong></div>`:""}`
        :`<p class="tiny faint">Keine Teile hinterlegt.</p>`}
@@ -1990,7 +2054,7 @@ function renderParts(){
   const list = CAR.parts.filter(p=>!q|| (p.name+" "+p.oem+" "+p.note).toLowerCase().includes(q));
   if(!list.length){ $("#partList").innerHTML=`<div class="empty"><p>Kein Teil gefunden.</p></div>`; return; }
   const used = id=>CAR.tasks.filter(t=>(t.parts||[]).some(x=>x.p===id));
-  $("#partList").innerHTML = `<div class="tbl-wrap"><table>
+  $("#partList").innerHTML = `<div class="tbl-wrap karten-wrap"><table class="tbl-karten">
     <thead><tr><th>Teil</th><th>Teilenummer</th><th class="r">Vorrat</th><th class="r">Preis</th>
     <th>Kauflinks</th><th>Verwendung</th><th></th></tr></thead><tbody>${
     list.map(p=>{
@@ -2002,12 +2066,12 @@ function renderParts(){
             ${p.spare?`<span class="pill info">Bordvorrat</span>`:""}
             ${anleitungStreifen(p.docs)}
             ${fotoStreifen(p.photos)}</td>
-        <td class="num tiny">${p.oem?esc(p.oem):'<span class="faint">—</span>'}</td>
-        <td class="r num">${p.qty||0} ${esc(p.unit)}</td>
-        <td class="r num">${p.price!=null?eur(p.price):"—"}</td>
+        <td class="num tiny" data-l="Nummer">${p.oem?esc(p.oem):'<span class="faint">—</span>'}</td>
+        <td class="r num" data-l="Vorrat">${p.qty||0} ${esc(p.unit)}</td>
+        <td class="r num" data-l="Preis">${p.price!=null?eur(p.price):"—"}</td>
         <td class="links">${links}</td>
-        <td class="tiny faint">${u.length?u.map(t=>esc(t.name)).join("<br>"):"—"}</td>
-        <td class="r"><button class="btn icon" data-edit-part="${p.id}">✎</button></td></tr>`;
+        <td class="tiny faint" data-l="Für">${u.length?u.map(t=>esc(t.name)).join("<br>"):"—"}</td>
+        <td class="r zeile-tat"><button class="btn icon" data-edit-part="${p.id}">✎</button></td></tr>`;
     }).join("")}</tbody></table></div>`;
 }
 
@@ -3135,9 +3199,9 @@ function renderCost(){
        <span><span style="display:inline-block;width:9px;height:9px;background:var(--warn);border-radius:2px"></span> Reparaturen</span>
        <span><span style="display:inline-block;width:9px;height:9px;background:var(--info);border-radius:2px"></span> Umbauten</span></div></div>
      <div class="sec-head"><h2>Alle Ausgaben</h2><div class="line"></div></div>
-     <div class="tbl-wrap"><table><thead><tr><th>Datum</th><th class="r">km</th><th>Art</th><th>Was</th><th class="r">Kosten</th></tr></thead>
+     <div class="tbl-wrap"><table><thead><tr><th>Datum</th><th class="r eng-weg">km</th><th>Art</th><th>Was</th><th class="r">Kosten</th></tr></thead>
      <tbody>${rows.sort((a,b)=>a.date<b.date?1:-1).map(r=>`<tr>
-       <td class="num">${dDE(r.date)}</td><td class="r num">${nKm(r.km)}</td>
+       <td class="num">${dDE(r.date)}</td><td class="r num eng-weg">${nKm(r.km)}</td>
        <td><span class="pill ${r.art==="Umbau"?"info":"flat"}">${r.art}</span></td>
        <td>${esc(r.label)}</td><td class="r num">${eur(r.cost)}</td></tr>`).join("")}</tbody></table></div>`;
 }
@@ -6001,10 +6065,34 @@ function renderAll(){
   renderPapiere(); renderRepairs(); renderMods(); renderTrip(); renderCost();
 }
 
-/* Ansicht wechseln — eine Stelle fuer alle. Vorher machten das drei
-   Stellen jede auf ihre Art; mit dem Mehr-Menue muesste jede zusaetzlich
-   wissen, wann der Menueknopf als aktiv gilt. Das geht nur an einem Ort. */
-const MEHR_ANSICHTEN = ["mods", "trip", "cost"];
+/* Alle Ansichten an einer Stelle. Daraus entstehen die Reiterzeile, das
+   Mehr-Menue und das Burgermenue — sonst pflegt man dieselbe Liste
+   dreimal und vergisst beim naechsten Reiter zwei davon.
+   mehr:true heisst „gehoert auf dem Schreibtisch hinter Mehr". */
+const ANSICHTEN = [
+  {v:"fuhr",    n:"Fahrzeuge",    z:"▤"},
+  {v:"dash",    n:"Wartung",      z:"✓"},
+  {v:"rep",     n:"Reparaturen",  z:"⚑"},
+  {v:"parts",   n:"Teile",        z:"◈"},
+  {v:"hist",    n:"Historie",     z:"↻"},
+  {v:"papiere", n:"Dokumente",    z:"▣"},
+  {v:"docs",    n:"Anleitungen",  z:"❏"},
+  {v:"mods",    n:"Umbauten",     z:"◆", mehr:true},
+  {v:"trip",    n:"Tour",         z:"➔", mehr:true},
+  {v:"cost",    n:"Kosten",       z:"€", mehr:true},
+];
+const MEHR_ANSICHTEN = ANSICHTEN.filter(a=>a.mehr).map(a=>a.v);
+const ansichtName = v => (ANSICHTEN.find(a=>a.v===v)||{}).n || "";
+
+function baueNavigation(){
+  const punkt = a => `<button type="button" class="menue-punkt" data-view="${a.v}">
+      <span class="menue-symbol">${a.z}</span> ${esc(a.n)}</button>`;
+
+  $("#nav").innerHTML = ANSICHTEN.filter(a=>!a.mehr)
+    .map(a=>`<button data-view="${a.v}">${esc(a.n)}</button>`).join("");
+  $("#mehrMenue").innerHTML  = ANSICHTEN.filter(a=>a.mehr).map(punkt).join("");
+  $("#burgerMenue").innerHTML = ANSICHTEN.map(punkt).join("");
+}
 
 function zeigeAnsicht(name){
   $$(".view").forEach(v=>v.classList.toggle("active", v.id === "view-"+name));
@@ -6022,6 +6110,11 @@ function zeigeAnsicht(name){
       ? "Mehr · " + eintrag.textContent.trim().replace(/^\S+\s+/, "")
       : "Mehr ▾";
   }
+  const bt = $("#burgerTitel");
+  if(bt) bt.textContent = ansichtName(name) || "Menü";
+  $$("#burgerMenue .menue-punkt").forEach(b=>
+    b.classList.toggle("aktiv", b.dataset.view === name));
+
   mehrZu();
   const aktiv = $("#nav > button.active") || $("#btnMehr");
   if(aktiv && aktiv.scrollIntoView)
@@ -6030,24 +6123,32 @@ function zeigeAnsicht(name){
 }
 
 function mehrZu(){
-  const m = $("#mehrMenue"); if(!m) return;
-  m.hidden = true;
-  $("#btnMehr").setAttribute("aria-expanded","false");
+  for(const [menue, knopf] of [["#mehrMenue","#btnMehr"], ["#burgerMenue","#btnBurger"]]){
+    const m = $(menue); if(!m) continue;
+    m.hidden = true;
+    $(knopf).setAttribute("aria-expanded","false");
+  }
 }
 
+baueNavigation();
+zeigeAnsicht("dash");
+
 $(".nav-zeile").addEventListener("click", e=>{
-  if(e.target.closest("#btnMehr")){
-    const m = $("#mehrMenue");
-    m.hidden = !m.hidden;
-    $("#btnMehr").setAttribute("aria-expanded", String(!m.hidden));
-    return;
+  for(const [knopf, menue] of [["#btnMehr","#mehrMenue"], ["#btnBurger","#burgerMenue"]]){
+    if(e.target.closest(knopf)){
+      const m = $(menue), auf = m.hidden;
+      mehrZu();                       // immer nur eines offen
+      m.hidden = !auf;
+      $(knopf).setAttribute("aria-expanded", String(auf));
+      return;
+    }
   }
   const b = e.target.closest("button[data-view]");
   if(b) zeigeAnsicht(b.dataset.view);
 });
 
 document.addEventListener("click", e=>{
-  if(!e.target.closest(".mehr-huelle")) mehrZu();
+  if(!e.target.closest(".mehr-huelle") && !e.target.closest(".burger-huelle")) mehrZu();
 });
 
 document.addEventListener("click",e=>{
