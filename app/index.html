@@ -127,7 +127,10 @@ header{
 
 .nav-zeile{display:flex;align-items:stretch;gap:2px}
 .nav-zeile[hidden]{display:none}
-nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+/* flex:0 1 auto — die Zeile ist so breit wie ihr Inhalt und schrumpft erst,
+   wenn der Platz nicht reicht. Mit flex:1 stuende „Mehr" auch auf breiten
+   Schirmen am aeussersten Rand, mit einer Luecke dazwischen. */
+nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:0 1 auto;min-width:0}
 nav[hidden]{display:none}
 nav::-webkit-scrollbar{display:none}
 nav > button, #btnMehr{
@@ -658,10 +661,19 @@ body.bericht-offen #bericht{
   background:#0b0c0e;-webkit-overflow-scrolling:touch;
 }
 .b-leiste{
-  position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:10px 16px;background:rgba(11,12,14,.92);-webkit-backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  /* Die Vorschau liegt als position:fixed ueber allem — ohne diesen Abstand
+     verschwindet die Leiste in der installierten App unter dem Statusbalken
+     des iPhones, und damit der einzige Weg zurueck. */
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background:rgba(11,12,14,.92);-webkit-backdrop-filter:blur(8px);
   backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
 }
+.b-leiste .btn{flex:none}
+body.bericht-offen #bericht{padding-bottom:env(safe-area-inset-bottom)}
+/* Der Hinweis fuer iOS steht in einer eigenen Zeile unter den Knoepfen —
+   in der Zeile gedraengt schiebt er sie aus dem Bild. */
+.b-leiste-hinweis{flex:1 0 100%;order:9;font-size:11.5px;color:var(--text-faint);margin-top:-2px}
 .b-leiste-titel{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .b-blatt{
@@ -2503,8 +2515,11 @@ function oeffneBericht(o){
   $("#bericht").innerHTML = `<div class="b-leiste">
       <button type="button" class="btn" id="bZu">← Schließen</button>
       <span class="b-leiste-titel">Vorschau<span class="b-nur-breit"> Servicebericht</span><span class="tiny faint b-nur-breit"> · ${n} Termin${n===1?"":"e"}</span></span>
-      ${istIOS()?`<span class="tiny faint">Am iPhone: Teilen → Drucken → PDF sichern</span>`:""}
       <button type="button" class="btn primary" id="bDruck">Als PDF speichern</button>
+      ${istIOS() ? `<span class="b-leiste-hinweis">${
+        navigator.standalone
+          ? "In der installierten App kennt iOS keinen Druckdialog — tippe den Knopf, dann erkläre ich den Weg."
+          : "Am iPhone: Teilen → Drucken → mit zwei Fingern aufziehen → PDF sichern."}</span>` : ""}
     </div>
     <article class="b-blatt">${berichtHtml(o)}</article>`;
   document.body.classList.add("bericht-offen");
@@ -2520,8 +2535,40 @@ function schliesseBericht(){
   if(berichtTitelVorher!==null){ document.title = berichtTitelVorher; berichtTitelVorher = null; }
 }
 
+/* Warum eine Kontrolle noetig ist: window.print() ist auf manchen Geraeten
+   einfach wirkungslos — in der installierten App auf iOS gibt es keinen
+   Druckdialog, und der Aufruf meldet das nicht. Ein Knopf, der stumm nichts
+   tut, ist schlimmer als keiner. Also: aufrufen, und wenn der Browser sich
+   nicht meldet, den Weg von Hand erklaeren. */
+function druckHilfe(){
+  const imApp = typeof navigator.standalone !== "undefined" && navigator.standalone;
+  openDlg("So wird der Bericht zum PDF", imApp ? `
+    <p class="tiny muted" style="margin-top:0">In der <strong>installierten App</strong> bietet iOS
+      keinen Druckdialog an. Das ist eine Einschränkung von iOS, nicht der App.</p>
+    <ol class="install-schritte">
+      <li><b>service.villalife.de</b> in <b>Safari</b> öffnen — nicht über das Symbol
+        auf dem Startbildschirm</li>
+      <li>Dort <b>Historie → Bericht (PDF) → Vorschau öffnen</b></li>
+      <li>Unten auf <b>Teilen</b>, dann <b>Drucken</b></li>
+      <li>Auf der Druckvorschau <b>mit zwei Fingern aufziehen</b></li>
+      <li>Oben rechts <b>Teilen → In Dateien sichern</b></li>
+    </ol>` : `
+    <p class="tiny muted" style="margin-top:0">Dein Browser hat den Druckdialog nicht geöffnet.
+      Am iPhone führt der Weg über das Teilen-Menü.</p>
+    <ol class="install-schritte">
+      <li>Unten in Safari auf <b>Teilen</b> tippen</li>
+      <li><b>Drucken</b> wählen</li>
+      <li>Auf der Vorschau <b>mit zwei Fingern aufziehen</b></li>
+      <li>Oben rechts <b>Teilen → In Dateien sichern</b></li>
+    </ol>
+    <p class="tiny faint" style="margin:14px 0 0">Am Rechner: <b>Strg/Cmd + P</b>,
+      dann als Ziel „Als PDF sichern" wählen.</p>`, null);
+  $("#dlgFoot").innerHTML =
+    `<button class="btn primary" value="cancel" formnovalidate>Alles klar</button>`;
+}
+
 async function berichtDrucken(){
-  if(typeof window.print !== "function"){ toast("Drucken wird hier nicht unterstützt", true); return; }
+  if(typeof window.print !== "function"){ druckHilfe(); return; }
   const titelVorher = berichtTitelVorher ?? document.title;
   berichtTitelVorher = titelVorher;
   const name = [CAR.brand, CAR.name].filter(Boolean).join(" ")
@@ -2537,7 +2584,23 @@ async function berichtDrucken(){
     window.removeEventListener("afterprint", zurueck);
   };
   window.addEventListener("afterprint", zurueck);
+
+  // Hat sich der Browser ueberhaupt geruehrt? beforeprint feuert, sobald der
+  // Dialog aufgeht. Bleibt es still, war der Aufruf wirkungslos.
+  let geoeffnet = false;
+  const gemerkt = ()=>{ geoeffnet = true; };
+  window.addEventListener("beforeprint", gemerkt, {once:true});
+  const mq = window.matchMedia && window.matchMedia("print");
+  const mqHorcher = e => { if(e.matches) geoeffnet = true; };
+  if(mq && mq.addEventListener) mq.addEventListener("change", mqHorcher);
+
   window.print();
+
+  setTimeout(()=>{
+    window.removeEventListener("beforeprint", gemerkt);
+    if(mq && mq.removeEventListener) mq.removeEventListener("change", mqHorcher);
+    if(!geoeffnet){ zurueck(); druckHilfe(); }
+  }, 1200);
 }
 
 document.addEventListener("keydown", e=>{

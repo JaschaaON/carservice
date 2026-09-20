@@ -750,6 +750,20 @@ Seitenrand, den nur Chromium/Brave kennt — Safari laesst sie weg.
 **Am iPhone** laeuft der Weg ueber Teilen → Drucken → mit zwei Fingern auf die
 Vorschau aufziehen → PDF sichern; die Vorschau nennt das ausdruecklich.
 
+> **In der installierten App gibt es keinen Druckdialog.** Das ist eine
+> Einschraenkung von iOS: `window.print()` bleibt dort wirkungslos, und eine
+> Teilen-Schaltflaeche hat eine App ohne Browserleiste nicht. Ein Knopf, der
+> stumm nichts tut, ist schlimmer als keiner — deshalb prueft die App, ob sich
+> der Browser ueberhaupt ruehrt (`beforeprint` bzw. `matchMedia("print")`).
+> Bleibt es 1,2 Sekunden still, erscheint stattdessen die Anleitung: die
+> Adresse in **Safari** oeffnen, nicht ueber das Symbol auf dem
+> Startbildschirm.
+
+Die Leiste der Vorschau traegt `padding-top: calc(10px + env(safe-area-inset-top))`.
+Ohne das verschwindet sie in der installierten App unter dem Statusbalken des
+iPhones — die Vorschau liegt als `position:fixed; inset:0` ueber allem, und
+damit waere der einzige Weg zurueck unerreichbar.
+
 Vor dem Erzeugen laesst sich waehlen: Kosten, Belegfotos, Umbauten, Offenes und
 Faelligkeiten, Kennzeichen und FIN (bei Weitergabe im Netz abschalten). Die
 Auswahl merkt sich der Browser. **Nie enthalten:** Fahrzeugpapiere und
