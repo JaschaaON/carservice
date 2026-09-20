@@ -240,6 +240,36 @@ main{padding:18px 16px 28px;max-width:1080px;margin:0 auto}
   content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(120% 90% at 0% 50%, var(--hauch) 0%, transparent 62%);
 }
+.status-foto{
+  position:absolute;right:0;top:0;height:100%;width:min(42%,440px);
+  object-fit:cover;object-position:center;
+  /* Nach links auslaufen lassen, damit das Bild zur Flaeche wird statt
+     danebenzuliegen. */
+  -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.35) 40%, #000 82%);
+  mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.35) 40%, #000 82%);
+}
+/* Ein Schleier ueber dem Bild. Ohne ihn haengt die Lesbarkeit der Zahlen
+   davon ab, wie hell jemandes Fahrzeugfoto zufaellig ist — ein heller
+   Himmel rechts, und „überfällig" verschwindet darin. */
+.statuskarte.mit-bild::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,
+    rgba(16,18,21,.92) 0%, rgba(16,18,21,.72) 42%, rgba(16,18,21,.18) 74%, transparent 100%);
+}
+/* Zeichen und Text gehoeren ueber Bild und Schleier. */
+.statuskarte .statuszeichen, .statuskarte .status-text{position:relative;z-index:1}
+/* Der Text bleibt links vom deckenden Teil des Bildes — sonst laeuft eine
+   lange Unterzeile („Als Nächstes … in 18.062 km · etwa 16. Dez. 2027")
+   hinein. */
+.statuskarte.mit-bild .status-text{max-width:62%}
+
+/* Zwischen Telefon und Schreibtisch ist die Karte zu eng fuer beides —
+   dort hat der Text Vorrang. */
+@media(max-width:899px){
+  .statuskarte .status-foto{display:none}
+  .statuskarte.mit-bild::after{display:none}
+}
+
 .statuskarte.ok  {--hauch:rgba(62,207,142,.10); border-color:rgba(62,207,142,.22)}
 .statuskarte.warn{--hauch:rgba(245,182,66,.11); border-color:rgba(245,182,66,.24)}
 .statuskarte.crit{--hauch:rgba(255,95,86,.11); border-color:rgba(255,95,86,.26)}
@@ -294,6 +324,15 @@ main{padding:18px 16px 28px;max-width:1080px;margin:0 auto}
 
 @media(max-width:560px){
   .statuskarte{flex-direction:column;align-items:center;text-align:center;gap:18px;padding:24px 18px}
+  .statuskarte.mit-bild{padding-top:146px}
+  .statuskarte .status-foto{display:block}
+  /* Als Streifen oben statt an der Kante — die Spalte laesst rechts
+     keinen Platz, und unter dem Text laege es im Weg. */
+  .status-foto{
+    top:0;right:0;left:0;width:100%;height:130px;
+    -webkit-mask-image:linear-gradient(180deg, #000 0%, rgba(0,0,0,.6) 62%, transparent 100%);
+    mask-image:linear-gradient(180deg, #000 0%, rgba(0,0,0,.6) 62%, transparent 100%);
+  }
   .statuszeichen,.statuszeichen svg{width:88px;height:88px}
   .status-titel{font-size:21px}
   .status-zahlen{justify-content:center;gap:16px;width:100%}
@@ -1699,8 +1738,15 @@ function renderDash(){
             naechste.forecast?` · etwa ${dDE(naechste.forecast)}`:""}`)
     : "Für keine Position lässt sich eine Fälligkeit berechnen.";
 
+  /* Das Fahrzeugbild fuellt die rechte Haelfte der Statuskarte. Es steht
+     als erstes im Markup, damit Zeichen und Text darueber liegen, und wird
+     nach links ausgeblendet — eine harte Kante mitten in der Karte saehe
+     nach Collage aus, nicht nach einer Flaeche. */
+  const kopfBild = mode==="server" ? (CAR.photos||[]).find(id=>!istVideo(id)) : null;
+
   $("#dashStats").innerHTML = `
-    <div class="statuskarte ${stufe}">
+    <div class="statuskarte ${stufe}${kopfBild?" mit-bild":""}">
+      ${kopfBild?`<img class="status-foto" src="${photoUrl(kopfBild)}" alt="" loading="lazy">`:""}
       ${statusSymbol(stufe)}
       <div class="status-text">
         <h2 class="status-titel">${ueberschrift}</h2>

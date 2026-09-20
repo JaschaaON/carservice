@@ -108,6 +108,14 @@ wo man ist.
 Fahrzeuge · Wartung · Reparaturen · Teile · Historie · Dokumente · Anleitungen · Mehr ▾
 ```
 
+**Das Fahrzeugbild steht in der Statuskarte.** Auf breiten Bildschirmen fuellt
+es die rechte Haelfte und laeuft nach links aus, auf dem Telefon sitzt es als
+Streifen ueber dem Statuszeichen. Darunter liegt ein dunkler Schleier: Ohne ihn
+haengt die Lesbarkeit der Zahlen davon ab, wie hell jemandes Foto zufaellig ist
+— ein weisser Himmel rechts, und „überfällig" verschwindet darin. Zwischen
+900 px und Telefonbreite bleibt das Bild weg, dort ist die Karte zu eng fuer
+beides und der Text hat Vorrang.
+
 **Uebersicht und Wartungsplan sind ein Reiter.** Vorher zeigten beide dieselben
 Positionskarten, die Uebersicht aber als `taskCard(s, false)` — das schaltet
 den aufklappbaren Teil ab. Dieselbe Komponente zweimal verschieden aufzurufen
