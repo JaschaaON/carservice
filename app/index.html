@@ -128,11 +128,16 @@ header{
 nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 nav[hidden]{display:none}
 nav::-webkit-scrollbar{display:none}
-nav button{
+nav > button, #btnMehr{
   background:none;border:none;border-bottom:2px solid transparent;
   color:var(--text-faint);padding:9px 12px;white-space:nowrap;font-size:14px;font-weight:500;
+  font-family:inherit;cursor:pointer;
 }
-nav button.active{color:var(--text);border-bottom-color:#c8ced4}
+nav > button.active, #btnMehr.active{color:var(--text);border-bottom-color:#c8ced4}
+/* Die Huelle darf nicht schrumpfen, sonst rutscht „Mehr" bei vollem
+   Reiterband aus dem Bild. */
+.mehr-huelle{position:relative;flex:none;display:flex}
+#mehrMenue{min-width:180px}
 
 main{padding:18px 16px 28px;max-width:1080px;margin:0 auto}
 .view{display:none}
@@ -1018,6 +1023,7 @@ body.bericht-offen #bericht{
   .hd-km{gap:5px}
   .hd-km input{width:92px;padding:7px 8px}
   .task-hd{flex-direction:column;align-items:flex-start;gap:3px}
+  nav > button, #btnMehr{padding:9px 8px;font-size:13px}
   .teil-zeile{gap:7px;padding:7px 9px}
   .teil-zeile .pt-q{width:58px}
   .teil-zeile .dok-seite{width:52px}
@@ -1071,16 +1077,23 @@ body.bericht-offen #bericht{
   </div>
   <nav id="nav">
     <button data-view="fuhr">Fahrzeuge</button>
-    <button data-view="dash" class="active">Übersicht</button>
-    <button data-view="plan">Wartungsplan</button>
+    <button data-view="dash" class="active">Wartung</button>
     <button data-view="rep">Reparaturen</button>
-    <button data-view="parts">Teilekatalog</button>
+    <button data-view="parts">Teile</button>
     <button data-view="hist">Historie</button>
     <button data-view="papiere">Dokumente</button>
     <button data-view="docs">Anleitungen</button>
-    <button data-view="mods">Umbauten</button>
-    <button data-view="trip">Tour</button>
-    <button data-view="cost">Kosten</button>
+    <div class="mehr-huelle">
+      <button id="btnMehr" aria-haspopup="true" aria-expanded="false">Mehr ▾</button>
+      <div class="menue" id="mehrMenue" hidden>
+        <button type="button" class="menue-punkt" data-view="mods">
+          <span class="menue-symbol">◆</span> Umbauten</button>
+        <button type="button" class="menue-punkt" data-view="trip">
+          <span class="menue-symbol">➔</span> Tour</button>
+        <button type="button" class="menue-punkt" data-view="cost">
+          <span class="menue-symbol">€</span> Kosten</button>
+      </div>
+    </div>
   </nav>
 </header>
 
@@ -1110,14 +1123,8 @@ body.bericht-offen #bericht{
     <div id="fuhrparkListe"></div>
   </section>
 
-  <!-- ══════════ ÜBERSICHT ══════════ -->
+  <!-- ══════════ WARTUNG (Übersicht + Plan) ══════════ -->
   <section class="view active" id="view-dash">
-    <div class="stats" id="dashStats"></div>
-    <div id="dashDue"></div>
-  </section>
-
-  <!-- ══════════ WARTUNGSPLAN ══════════ -->
-  <section class="view" id="view-plan">
     <div class="spread" style="margin-bottom:14px">
       <div class="muted tiny">Klick auf eine Position öffnet Details, Teile und „erledigt"-Eintrag.</div>
       <div class="row">
@@ -1127,7 +1134,8 @@ body.bericht-offen #bericht{
         <button class="btn sm primary" id="btnAddTask">+ Position</button>
       </div>
     </div>
-    <div id="planList"></div>
+    <div class="stats" id="dashStats"></div>
+    <div id="dashDue"></div>
   </section>
 
   <!-- ══════════ REPARATUREN ══════════ -->
@@ -1660,11 +1668,18 @@ function einkaufsliste(liste){
     </div>`;
 }
 
+/* Uebersicht und Wartungsplan sind ein Reiter. Vorher gab es die
+   Positionskarte in zwei Fassungen — hier stumm (taskCard(s,false)),
+   dort aufklappbar. Dieselbe Komponente zweimal verschieden aufzurufen
+   war der Fehler; jetzt gibt es sie nur noch aufklappbar. */
 function renderDash(){
-  const st = allStatus(false);
+  const inc = $("#showInactive") ? $("#showInactive").checked : false;
+  const st = allStatus(inc);
   const echt = st.filter(s=>s.level!=="none" && s.level!=="unknown");
   const crit = echt.filter(s=>s.level==="crit"), warn = echt.filter(s=>s.level==="warn");
   const unbekannt = st.filter(s=>s.level==="unknown");
+  const ruhig = echt.filter(s=>s.level==="ok");
+  const ohneIntervall = st.filter(s=>s.level==="none");
   const kpd = kmPerDay();
   const naechste = crit[0] || echt[0] || null;
 
@@ -1699,11 +1714,16 @@ function renderDash(){
       </div>
     </div>`;
 
+  /* Alle Positionen, keine Auswahl. Frueher zeigte die Uebersicht nur
+     die ersten vier unkritischen und liess Positionen ohne Intervall ganz
+     weg — sichtbar waren die nur im Plan. Da der Plan aufgeht, muss hier
+     alles stehen, sonst verschwindet es. */
   const gruppen = [
     ["Überfällig", crit, "crit"],
     ["Demnächst fällig", warn, "warn"],
-    ["Als Nächstes in Reichweite", echt.filter(s=>s.level==="ok").slice(0,4), "ok"],
-    ["Noch nie erfasst", unbekannt, "info"]
+    ["Noch nie erfasst", unbekannt, "info"],
+    ["Nicht fällig", ruhig, "ok"],
+    ["Ohne Intervall", ohneIntervall, "flat"]
   ];
   let h = "";
 
@@ -1745,20 +1765,14 @@ function renderDash(){
       Für diese Positionen fehlt der Startwert — wann wurde das zuletzt gemacht?
       <button type="button" class="btn sm" id="btnStartwerte2"
         style="margin-left:6px">Alle auf einmal nachtragen</button></p>`;
-    h += liste.map(s=>taskCard(s,false)).join("");
+    h += liste.map(s=>taskCard(s,true)).join("");
   }
+  if(!st.length)
+    h += `<div class="empty"><p>Noch keine Wartungspositionen.</p></div>`;
+
   $("#dashDue").innerHTML = h;
   const sw = $("#btnStartwerte2"); if(sw) sw.onclick = ()=>startwerteDialog();
-  const zp = $("#btnZuPapieren");
-  if(zp) zp.onclick = ()=>$('#nav button[data-view="papiere"]').click();
-}
-
-/* ═══════════ Wartungsplan ═══════════ */
-function renderPlan(){
-  const inc = $("#showInactive").checked;
-  const st = allStatus(inc);
-  $("#planList").innerHTML = st.length ? st.map(s=>taskCard(s,true)).join("")
-    : `<div class="empty"><p>Noch keine Wartungspositionen.</p></div>`;
+  const zp = $("#btnZuPapieren"); if(zp) zp.onclick = ()=>zeigeAnsicht("papiere");
 }
 
 /** Verlauf einer Wartungsposition: wann wurde sie gemacht, und in
@@ -3154,7 +3168,7 @@ function anleitungImFenster(d, url, seite){
   };
 }
 
-const aktiveAnsicht = () => ($("#nav button.active")||{dataset:{}}).dataset.view;
+const aktiveAnsicht = () => ($(".view.active")||{id:""}).id.replace(/^view-/, "");
 
 /** Nach der Rueckkehr von einer Anleitung wieder dieselbe Ansicht zeigen. */
 function rueckwegGehen(){
@@ -3164,8 +3178,7 @@ function rueckwegGehen(){
     sessionStorage.removeItem("rueckweg");
   }catch(e){}
   if(!merk || !merk.ansicht) return;
-  const knopf = $(`#nav button[data-view="${merk.ansicht}"]`);
-  if(knopf) knopf.click();
+  if($("#view-" + merk.ansicht)) zeigeAnsicht(merk.ansicht);
 }
 
 /** Kompakte Liste verknüpfter Anleitungen, für Positionskarten. */
@@ -5077,8 +5090,7 @@ function vehicleDialog(id){
       DB.vehicles.push(target);
       useCar(target.id);
       const lh = $("#leerHinweis"); if(lh) lh.hidden = true;
-      $$("#nav button").forEach((b,i)=>b.classList.toggle("active", b.dataset.view==="dash"));
-      $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-dash"));
+      zeigeAnsicht("dash");
       $("#kmNow").value = target.km||"";
       toast("Fahrzeug angelegt");
     }
@@ -5833,15 +5845,57 @@ function renderAll(){
   renderFahrzeuge();
   $("#hdModel").textContent = [CAR.model, CAR.plate].filter(Boolean).join(" · ");
   document.title = ([CAR.brand,CAR.name].filter(Boolean).join(" ")||"Fahrzeug") + " — Wartung";
-  renderDash(); renderPlan(); renderParts(); renderDocs(); renderHist();
+  renderDash(); renderParts(); renderDocs(); renderHist();
   renderPapiere(); renderRepairs(); renderMods(); renderTrip(); renderCost();
 }
 
-$("#nav").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-view]"); if(!b) return;
-  $$("#nav button").forEach(x=>x.classList.toggle("active",x===b));
-  $$(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+b.dataset.view));
+/* Ansicht wechseln — eine Stelle fuer alle. Vorher machten das drei
+   Stellen jede auf ihre Art; mit dem Mehr-Menue muesste jede zusaetzlich
+   wissen, wann der Menueknopf als aktiv gilt. Das geht nur an einem Ort. */
+const MEHR_ANSICHTEN = ["mods", "trip", "cost"];
+
+function zeigeAnsicht(name){
+  $$(".view").forEach(v=>v.classList.toggle("active", v.id === "view-"+name));
+
+  // Nur die Knoepfe der Reiterzeile selbst — die Menueeintraege liegen
+  // ebenfalls in #nav und wuerden die Markierung sonst durcheinanderbringen.
+  $$("#nav > button").forEach(b=>b.classList.toggle("active", b.dataset.view === name));
+
+  const mehr = $("#btnMehr");
+  if(mehr){
+    const drin = MEHR_ANSICHTEN.includes(name);
+    mehr.classList.toggle("active", drin);
+    const eintrag = drin && $(`#mehrMenue [data-view="${name}"]`);
+    mehr.textContent = drin && eintrag
+      ? "Mehr · " + eintrag.textContent.trim().replace(/^\S+\s+/, "")
+      : "Mehr ▾";
+  }
+  mehrZu();
+  const aktiv = $("#nav > button.active") || $("#btnMehr");
+  if(aktiv && aktiv.scrollIntoView)
+    aktiv.scrollIntoView({block:"nearest", inline:"nearest"});
   window.scrollTo(0,0);
+}
+
+function mehrZu(){
+  const m = $("#mehrMenue"); if(!m) return;
+  m.hidden = true;
+  $("#btnMehr").setAttribute("aria-expanded","false");
+}
+
+$("#nav").addEventListener("click", e=>{
+  if(e.target.closest("#btnMehr")){
+    const m = $("#mehrMenue");
+    m.hidden = !m.hidden;
+    $("#btnMehr").setAttribute("aria-expanded", String(!m.hidden));
+    return;
+  }
+  const b = e.target.closest("button[data-view]");
+  if(b) zeigeAnsicht(b.dataset.view);
+});
+
+document.addEventListener("click", e=>{
+  if(!e.target.closest("#nav .mehr-huelle")) mehrZu();
 });
 
 document.addEventListener("click",e=>{
@@ -5884,9 +5938,7 @@ document.addEventListener("click",e=>{
       $("#tripKm").value=""; $("#tripDays").value="";
       save(); renderAll();
     }
-    $$("#nav button").forEach(b=>b.classList.toggle("active", b.dataset.view==="dash"));
-    $$(".view").forEach(v=>v.classList.toggle("active", v.id==="view-dash"));
-    window.scrollTo(0,0);
+    zeigeAnsicht("dash");
     return;
   }
   const dzu = t.closest("[data-dok-zu]");
@@ -6144,7 +6196,7 @@ function installHinweis(){
   $("#dlgFoot").innerHTML =
     `<button class="btn primary" value="cancel" formnovalidate>Alles klar</button>`;
 }
-$("#showInactive").onchange=renderPlan;
+$("#showInactive").onchange=renderDash;
 $("#partSearch").oninput  =renderParts;
 $("#dokSuche").oninput    =renderDocs;
 $("#btnDokAdd").onclick   =()=>$("#dokInput").click();

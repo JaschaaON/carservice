@@ -10,8 +10,7 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 | Bereich | Zweck |
 |---|---|
 | **Fahrzeuge** | Alle Fahrzeuge mit Statuszeichen, Halter und nächster Fälligkeit |
-| **Übersicht** | Statusring, Zeitstrahl der nächsten zwölf Monate, Einkaufsliste |
-| **Wartungsplan** | Positionen mit Intervall nach km *und* Zeit, Teilebedarf, Verlauf, „erledigt"-Eintrag |
+| **Wartung** | Statusring, Zeitstrahl, Einkaufsliste — und darunter alle Positionen nach Dringlichkeit, mit Intervall nach km *und* Zeit, Teilebedarf, Verlauf, „erledigt"-Eintrag |
 | **Teilekatalog** | Teilenummern, Preise, Vorrat und **eigene Kauflinks** pro Teil |
 | **Historie** | Zeitachse nach Jahren, mit Abstand zum Vortermin und Nachweisfotos |
 | **Fotos und Videos** | Belege an jedem Historieneintrag, Referenzmaterial an jeder Wartungsposition |
@@ -97,6 +96,42 @@ Zeitleisteneintraege.
 Der Vergleich laeuft bewusst an **Wortgrenzen**: ein reiner
 Teilzeichenkettenvergleich hat „Ölservice" auf „Klimaanlage Service" gezogen,
 weil das Wort „service" in beidem steckt.
+
+## Die Reiterzeile
+
+Acht Eintraege, nicht elf. Was selten gebraucht wird — **Umbauten, Tour,
+Kosten** — haengt hinter einem letzten Eintrag **„Mehr ▾"**. Ist eine dieser
+Ansichten offen, nennt der Knopf sie: `Mehr · Kosten`. Sonst weiss man nicht,
+wo man ist.
+
+```
+Fahrzeuge · Wartung · Reparaturen · Teile · Historie · Dokumente · Anleitungen · Mehr ▾
+```
+
+**Uebersicht und Wartungsplan sind ein Reiter.** Vorher zeigten beide dieselben
+Positionskarten, die Uebersicht aber als `taskCard(s, false)` — das schaltet
+den aufklappbaren Teil ab. Dieselbe Komponente zweimal verschieden aufzurufen
+war der Fehler; wer auf der Uebersicht eine faellige Position antippte, bekam
+nichts. Jetzt gibt es die Karte nur noch in einer Fassung.
+
+Beim Zusammenlegen durfte nichts verlorengehen: Die Uebersicht zeigte nur die
+ersten vier unkritischen Positionen (`.slice(0,4)`) und liess solche **ohne
+Intervall** ganz weg — sichtbar waren die nur im Plan. Dafuer gibt es jetzt die
+Gruppen *Nicht faellig* und *Ohne Intervall*, und der Haken „inaktive zeigen"
+wirkt endlich auch hier (`allStatus(inc)` statt `allStatus(false)`).
+
+> **Eine Funktion fuer den Ansichtswechsel.** Vorher schalteten drei Stellen
+> die Ansicht von Hand um, jede mit eigener Kopie von
+> `$$(".view").forEach(...)`. Mit dem Mehr-Menue muesste jede zusaetzlich
+> wissen, wann der Menueknopf als aktiv gilt — das geht nur an einem Ort,
+> deshalb `zeigeAnsicht(name)`. Wichtig dabei: Die Markierung greift auf
+> `#nav > button` zu, denn die Menueeintraege liegen ebenfalls in `#nav`.
+
+**Ehrlich zur Breite:** Das Band ist von 1015 auf 592 px geschrumpft, passt auf
+einem 375-px-Telefon aber immer noch nicht am Stueck. Es scrollt weiter
+waagerecht — dafuer holt `zeigeAnsicht` den aktiven Reiter ins Bild, sodass die
+Markierung nie ausserhalb liegt. Wer es ganz ohne Schieben will, muesste auf
+kleinen Bildschirmen weitere Reiter ins Menue schieben.
 
 ## Verlauf je Position
 
