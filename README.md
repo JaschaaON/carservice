@@ -843,6 +843,20 @@ Ausgeliefert wird mit Bereichsabfragen, damit Betrachter einzelne Seiten
 nachladen koennen statt ein 10-MB-Dokument am Stueck zu ziehen. Beim Hochladen
 prueft der Server die PDF-Signatur, nicht den mitgeschickten Dateityp.
 
+**Umbenennen:** Das ✎ in der Liste oeffnet Name und Notiz. Der Name kommt beim
+Hochladen aus dem Dateinamen — „201506-201603" sagt einem nach einem halben
+Jahr nichts mehr. Er wirkt ueberall zugleich, auch an den verknuepften
+Positionen und Teilen, weil die ihn ueber `docById()` lesen.
+
+Die **Notiz** gab es im Datensatz laengst: Sie wurde angezeigt und
+mitdurchsucht, war aber nirgends einzugeben. Jetzt steht sie im selben Dialog.
+
+> Auf schmalen Schirmen blendet die Liste **Seiten** und **Groesse** aus. Ohne
+> das ist die Tabelle 436 px breit bei 349 sichtbar, und die drei
+> Schaltflaechen rechts liegen ausserhalb des Bildes — erreichbar nur durch
+> seitliches Schieben der Tabelle. Beide Angaben stehen weiterhin in der
+> Fusszeile und im Umbenennen-Dialog.
+
 **Vorhandene Unterlagen einlesen:**
 
 ```bash

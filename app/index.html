@@ -780,6 +780,7 @@ body.bericht-offen #bericht{padding-bottom:env(safe-area-inset-bottom)}
 }
 
 @media screen and (max-width:640px){
+  .eng-weg{display:none}
   .b-nur-breit{display:none}
   .b-blatt{padding:20px 15px;margin:10px auto 30px}
   .b-kopf{flex-direction:column-reverse}
@@ -2090,24 +2091,57 @@ function renderDocs(){
   const summe = alle.reduce((a,d)=>a+(d.bytes||0),0);
 
   $("#dokListe").innerHTML = `<div class="tbl-wrap"><table>
-    <thead><tr><th>Anleitung</th><th class="r">Seiten</th><th class="r">Größe</th>
+    <thead><tr><th>Anleitung</th><th class="r eng-weg">Seiten</th><th class="r eng-weg">Größe</th>
       <th>Verknüpft mit</th><th></th></tr></thead>
     <tbody>${liste.map(d=>{
       const v = verwendung(d);
       return `<tr>
         <td><button type="button" class="dok-link" data-pdf="${d.id}">${esc(d.name)}</button>
             ${d.note?`<div class="tiny faint">${esc(d.note)}</div>`:""}</td>
-        <td class="r num">${d.seiten||"—"}</td>
-        <td class="r num">${mb(d.bytes)}</td>
+        <td class="r num eng-weg">${d.seiten||"—"}</td>
+        <td class="r num eng-weg">${mb(d.bytes)}</td>
         <td class="tiny faint">${v.length ? v.map(t=>esc(t.name)).join("<br>")
           : `<span style="color:var(--warn)">keiner Position zugeordnet</span>`}</td>
         <td class="r" style="white-space:nowrap">
           <a class="btn icon" href="${docUrl(d.id)}" target="_blank" rel="noopener" title="Im Vollbild öffnen">↗</a>
+          <button class="btn icon" data-dok-edit="${d.id}" title="Umbenennen">✎</button>
           <button class="btn icon" data-dok-weg="${d.id}" title="Anleitung löschen">✕</button></td></tr>`;
     }).join("")}</tbody></table></div>
     <div class="spread tiny muted" style="margin-top:10px">
       <span>${alle.length} Anleitungen, ${alle.reduce((a,d)=>a+(d.seiten||0),0)} Seiten</span>
       <span>Belegt ${mb(summe)}</span></div>`;
+}
+
+/** Anleitung umbenennen. Der Name kommt beim Hochladen aus dem
+ *  Dateinamen — „201506-201603" sagt einem nach einem halben Jahr nichts
+ *  mehr. Die Notiz gab es im Datensatz laengst: sie wird angezeigt und
+ *  durchsucht, war aber nirgends einzugeben. */
+function dokDialog(id){
+  const d = docById(id);
+  if(!d){ toast("Anleitung nicht gefunden", true); return; }
+  const verknuepft = [
+    ...CAR.tasks.filter(t=>(t.docs||[]).some(x=>x.d===d.id)),
+    ...CAR.parts.filter(t=>(t.docs||[]).some(x=>x.d===d.id)),
+  ];
+
+  openDlg("Anleitung umbenennen", `
+    <div class="field"><label>Name</label>
+      <input id="f-name" value="${esc(d.name)}" required
+             placeholder="z. B. Ölwechsel 1GD-FTV">
+      <div class="hint">So steht sie in der Liste und an den verknüpften Positionen.</div></div>
+    <div class="field"><label>Notiz</label>
+      <textarea id="f-note" placeholder="Worum geht es? Ab welcher Seite steht das Wesentliche?">${esc(d.note||"")}</textarea>
+      <div class="hint">Wird mitdurchsucht.</div></div>
+    <p class="tiny faint" style="margin:0">
+      ${d.seiten?d.seiten+(d.seiten===1?" Seite":" Seiten")+" · ":""}${mb(d.bytes)}${
+        verknuepft.length
+          ? " · verknüpft mit " + verknuepft.map(t=>esc(t.name)).join(", ")
+          : " · keiner Position zugeordnet"}</p>`,
+  ()=>{
+    if(!val("f-name")){ toast("Name fehlt", true); return false; }
+    d.name = val("f-name");
+    d.note = $("#f-note").value.trim();
+  });
 }
 
 /* ═══════════ Historie ═══════════
@@ -6031,6 +6065,8 @@ document.addEventListener("click",e=>{
   }
   const pdf = t.closest("[data-pdf]");
   if(pdf){ zeigeAnleitung(pdf.dataset.pdf, +pdf.dataset.seite||1); return; }
+  const dedit = t.closest("[data-dok-edit]");
+  if(dedit){ dokDialog(dedit.dataset.dokEdit); return; }
   const dweg = t.closest("[data-dok-weg]");
   if(dweg){
     const d = docById(dweg.dataset.dokWeg);
