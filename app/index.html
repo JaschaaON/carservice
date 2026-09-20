@@ -601,6 +601,146 @@ details.h-notiz[open] p::after{
   .h-summe{padding-left:0}
 }
 
+/* ---------- Servicebericht: Vorschau am Bildschirm, Papier beim Druck ----------
+   Der Bericht ist absichtlich hell und ruhig — er wird gedruckt oder
+   weitergegeben, nicht am Armaturenbrett gelesen. Nur der Kopf trägt das
+   Silber-auf-Schwarz der App. */
+#bericht{display:none}
+body.bericht-offen{overflow:hidden}
+body.bericht-offen #bericht{
+  display:block;position:fixed;inset:0;z-index:90;overflow:auto;
+  background:#0b0c0e;-webkit-overflow-scrolling:touch;
+}
+.b-leiste{
+  position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:10px 16px;background:rgba(11,12,14,.92);-webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+}
+.b-leiste-titel{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.b-blatt{
+  --b-text:#15181b; --b-dim:#5b636b; --b-faint:#8a929a; --b-line:#e3e6e9; --b-flaeche:#f5f6f8;
+  --b-ok:#2f9e63; --b-warn:#c98a10; --b-crit:#d64536;
+  width:min(100%,794px);margin:18px auto 40px;padding:34px 38px 28px;
+  background:#fff;color:var(--b-text);font:12.5px/1.5 var(--schrift);
+  border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.6);
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.b-blatt *{box-sizing:border-box}
+.b-blatt .num{font-family:var(--schrift-zahl);font-variant-numeric:tabular-nums}
+.b-dim{color:var(--b-dim);font-size:11.5px}
+
+.b-kopf{
+  display:flex;align-items:stretch;min-height:190px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(160deg,#1d1f23,#0f1113);color:#f0f1f3;margin-bottom:20px;
+  break-inside:avoid;
+}
+.b-kopf-text{flex:1;min-width:0;padding:22px 26px;display:flex;flex-direction:column}
+.b-marke{
+  display:flex;align-items:center;gap:8px;margin-bottom:auto;
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#aeb4ba;
+}
+.b-marke svg{width:22px;height:22px;flex:none}
+.b-kopf h1{font-size:27px;line-height:1.1;letter-spacing:-.02em;margin:22px 0 4px;color:#fff;font-weight:650}
+.b-sub{margin:0;color:#c3c8cd;font-size:13px}
+.b-stand{margin:10px 0 0;color:#9ea4aa;font-size:11.5px}
+.b-stand b{color:#f0f1f3;font-weight:600}
+.b-foto{flex:0 0 46%;width:46%;object-fit:cover;display:block}
+
+.b-daten{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px 22px;
+  margin:0;padding:4px 2px 18px;border-bottom:1px solid var(--b-line);
+}
+.b-daten div{min-width:0}
+.b-daten dt{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--b-faint);margin:0 0 2px}
+.b-daten dd{margin:0;font-weight:600;font-size:13px;overflow-wrap:anywhere}
+
+.b-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 4px}
+.b-kpi{background:var(--b-flaeche);border:1px solid var(--b-line);border-radius:10px;padding:12px 14px}
+.b-kpi b{display:block;font-size:19px;letter-spacing:-.01em;font-weight:650;font-variant-numeric:tabular-nums}
+.b-kpi span{font-size:10.5px;color:var(--b-dim)}
+
+.b-block{margin-top:26px}
+.b-block>h2{
+  font-size:14px;margin:0 0 10px;display:flex;align-items:baseline;gap:10px;
+  break-after:avoid;color:var(--b-text);
+}
+.b-block>h2 small{font-weight:400;color:var(--b-faint);font-size:11px}
+
+.b-tab{width:100%;border-collapse:collapse;font-size:12px}
+.b-tab thead th{
+  text-align:left;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--b-faint);font-weight:600;padding:0 8px 6px 0;border-bottom:1.5px solid var(--b-text);
+}
+.b-tab td{padding:6px 8px 6px 0;border-bottom:1px solid var(--b-line);vertical-align:top}
+.b-tab tr{break-inside:avoid}
+.b-tab .r{text-align:right;padding-right:0}
+.b-tab thead th.r{padding-right:0}
+.b-tab .n{padding-left:22px}
+.b-kat th{
+  text-align:left;padding:14px 0 4px;font-size:10.5px;color:var(--b-dim);
+  font-weight:600;letter-spacing:.04em;break-after:avoid;
+}
+.b-summe td{border-bottom:0;padding-top:9px}
+.b-punkt{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--b-faint)}
+.b-punkt.ok{background:var(--b-ok)} .b-punkt.warn{background:var(--b-warn)} .b-punkt.crit{background:var(--b-crit)}
+
+.b-jahr{
+  display:flex;align-items:center;gap:10px;margin:18px 0 8px;break-after:avoid;
+  font-weight:700;font-size:12px;color:var(--b-dim);
+}
+.b-jahr:first-of-type{margin-top:4px}
+.b-jahr i{flex:1;height:1px;background:var(--b-line)}
+.b-jahr small{font-weight:400;font-size:10.5px;color:var(--b-faint)}
+.b-termin{
+  position:relative;overflow:hidden;margin:0 0 9px;padding:10px 12px 10px 15px;
+  border:1px solid var(--b-line);border-radius:8px;break-inside:avoid;background:#fff;
+}
+.b-termin::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--b-text)}
+.b-t-kopf{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.b-t-kopf b{font-size:13px}
+.b-t-kopf .num{color:var(--b-dim)}
+.b-t-kopf .dim{color:var(--b-faint);font-size:11px}
+.b-kosten{margin-left:auto;font-style:normal;font-weight:700}
+.b-arbeit{margin-top:8px;padding-top:8px;border-top:1px dashed var(--b-line);display:flex;gap:12px;align-items:flex-start}
+.b-arbeit-inhalt{flex:1;min-width:0}
+.b-arbeit:first-of-type{border-top:0;padding-top:0}
+.b-chips{display:flex;flex-wrap:wrap;gap:5px}
+.b-chip{border:1px solid var(--b-line);background:var(--b-flaeche);border-radius:99px;padding:1.5px 9px;font-size:11.5px}
+.b-chip.frei{border-style:dashed}
+.b-chip.rep{background:#fdf1e0;border-color:#efd3a5;color:#8a5a06}
+.b-notiz{margin:6px 0 0;color:var(--b-dim);font-size:11.5px;white-space:pre-line}
+.b-fotos{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.b-fotos img{width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid var(--b-line)}
+.b-zeilenkosten{flex:none;font-size:11.5px;font-weight:600;white-space:nowrap}
+
+.b-fuss{
+  margin-top:28px;padding-top:10px;border-top:1px solid var(--b-line);
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--b-faint);font-size:10.5px;
+}
+
+@media screen and (max-width:640px){
+  .b-nur-breit{display:none}
+  .b-blatt{padding:20px 15px;margin:10px auto 30px}
+  .b-kopf{flex-direction:column-reverse}
+  .b-foto{flex:none;width:100%;height:180px}
+  .b-kpis{grid-template-columns:1fr 1fr}
+}
+
+/* Papier: A4 mit Rand, Fußzeile im Seitenrand (Seitenzahl nur in Chromium) */
+@page{
+  size:A4;margin:14mm 14mm 18mm;
+  @bottom-left{content:var(--b-fuss,"");font:8pt Geist,sans-serif;color:#8a929a}
+  @bottom-right{content:counter(page) " / " counter(pages);font:8pt Geist,sans-serif;color:#8a929a}
+}
+@media print{
+  html,body{background:#fff!important;overflow:visible!important;height:auto!important}
+  body.bericht-offen>*:not(#bericht){display:none!important}
+  body.bericht-offen #bericht{position:static;overflow:visible;background:#fff;display:block}
+  .b-leiste{display:none}
+  .b-blatt{width:auto;margin:0;padding:0;box-shadow:none;border-radius:0}
+}
+
 /* ---------- Signatur in der Fußzeile ----------
    Das Zeichen stammt aus dem Schwesterprojekt overlandvibe.com und ist
    inline eingebettet: bei 400 Byte lohnt kein eigener Request, und so
@@ -1015,6 +1155,7 @@ details.h-notiz[open] p::after{
     <div class="spread" style="margin-bottom:14px">
       <div class="muted tiny">Jeder Eintrag setzt die Fälligkeit der zugehörigen Positionen zurück.</div>
       <div class="row">
+        <button class="btn sm" id="btnBericht">Bericht (PDF)</button>
         <button class="btn sm" id="btnImport">Excel importieren</button>
         <button class="btn sm" id="btnHeft">Serviceheft nachtragen</button>
         <button class="btn sm primary" id="btnAddHist">+ Eintrag</button>
@@ -1094,6 +1235,7 @@ details.h-notiz[open] p::after{
   <span class="ov-zusatz">carservice</span>
 </footer>
 
+<div id="bericht" aria-label="Servicebericht"></div>
 <div class="toast" id="toast"></div>
 <dialog id="dlg"><form method="dialog" id="dlgForm">
   <div class="dlg-hd"><h3 id="dlgTitle"></h3><button class="btn icon" value="cancel" formnovalidate>✕</button></div>
@@ -2042,6 +2184,276 @@ function renderHist(){
 
   $("#histList").innerHTML = html;
 }
+
+/* ═══════════ Servicebericht ═════════════════════════════════════
+   Fahrzeugdaten plus alles, was erledigt wurde, auf wenigen Seiten —
+   zum Weitergeben an Käufer, Werkstatt oder Versicherung.
+
+   Bewusst kein PDF-Generator: Die App bleibt ohne Bibliotheken und
+   offlinefähig. Der Bericht entsteht als Seite im Vollbild und wird
+   über den Druckdialog des Browsers als PDF gesichert. So kommen Schrift
+   und Vektortext ohne Umweg hinein, und die Vorschau ist dieselbe Seite.
+
+   Nie enthalten: Fahrzeugpapiere (CAR.papiere) und Anleitungen — das
+   sind die empfindlichsten Daten der App. Die Chronik kommt aus
+   derselben Quelle und Gruppierung wie die Historie am Bildschirm.   */
+
+const BERICHT_KEY = "carservice-bericht";
+const BERICHT_STANDARD = {kosten:true, fotos:true, umbauten:true, offen:true, kennung:true};
+const KRAFTSTOFF = {diesel:"Diesel", benzin:"Benzin", hybrid:"Hybrid / Elektro"};
+const GETRIEBE   = {schalt:"Schaltgetriebe", automatik:"Automatik", dsg:"Doppelkupplung", cvt:"CVT"};
+const ANTRIEB    = {"2wd":"Zweiradantrieb", "4x4":"Allrad zuschaltbar", haldex:"Allrad (Haldex)",
+                    kette:"Kette", kardan:"Kardan", riemen:"Zahnriemen"};
+const BERICHT_MARKE = `<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+  <circle cx="32" cy="32" r="32" fill="#111413"/>
+  <path d="M10 43 L21.5 25 L29 35 L37 22.5 L54 43 Z" fill="#F2EFE9"/>
+  <path d="M10 51 C17.5 47, 24 54, 32 50.5 C40 47, 46.5 54, 54 50"
+        fill="none" stroke="#E0872A" stroke-width="4.2" stroke-linecap="round"/></svg>`;
+
+function berichtOptionen(){
+  try{ return {...BERICHT_STANDARD, ...JSON.parse(localStorage.getItem(BERICHT_KEY)||"{}")}; }
+  catch(e){ return {...BERICHT_STANDARD}; }
+}
+
+function berichtDialog(){
+  if(!CAR) return;
+  const o = berichtOptionen();
+  const zeile = (k, titel, hinweis)=>`<label class="chk" style="align-items:flex-start">
+    <input type="checkbox" class="bo-chk" value="${k}" ${o[k]?"checked":""}>
+    <span>${titel}<span class="tiny faint" style="display:block">${hinweis}</span></span></label>`;
+  openDlg("Servicebericht als PDF", `
+    <p class="tiny muted" style="margin-top:0">Fahrzeugdaten und alle erledigten Arbeiten
+      auf einen Blick. Du siehst zuerst eine Vorschau und sicherst sie dann über den
+      Druckdialog als PDF. Fahrzeugpapiere sind nie enthalten.</p>
+    ${zeile("kosten","Kosten","Je Termin und als Summe.")}
+    ${zeile("fotos","Belegfotos","Miniaturen der Fotos je Termin – das PDF wird dadurch größer."
+        +(mode==="local"?" Nur mit Server verfügbar.":""))}
+    ${zeile("umbauten","Umbauten und Zubehör","Eigener Abschnitt mit Einbaudatum.")}
+    ${zeile("offen","Offene Reparaturen und Fälligkeiten","Zeigt zusätzlich, was noch ansteht.")}
+    ${zeile("kennung","Kennzeichen und FIN","Bei Weitergabe im Netz besser abschalten.")}`,
+  ()=>{
+    const neu = {};
+    for(const c of $$(".bo-chk")) neu[c.value] = c.checked;
+    try{ localStorage.setItem(BERICHT_KEY, JSON.stringify(neu)); }catch(_){}
+    setTimeout(()=>oeffneBericht(neu), 0);   // erst nach dem Schließen des Dialogs
+  }, "Vorschau öffnen");
+}
+
+/** Baut den Bericht als HTML. Reine Darstellung — liest nur, ändert nichts. */
+function berichtHtml(o){
+  const eintraege = historieEintraege();
+  const gruppen   = gruppiereTermine(eintraege);
+  const titel     = [CAR.brand, CAR.name].filter(Boolean).join(" ") || "Fahrzeug";
+  const bild      = mode==="server" ? (CAR.photos||[]).find(id=>!istVideo(id)) : null;
+  const monat     = s => /^\d{4}-\d{2}$/.test(s||"") ? s.slice(5)+"/"+s.slice(0,4) : (s||"");
+
+  /* ── Kopf ── */
+  const kopf = `<div class="b-kopf">
+    <div class="b-kopf-text">
+      <div class="b-marke">${BERICHT_MARKE}<span>Servicehistorie</span></div>
+      <h1>${esc(titel)}</h1>
+      ${CAR.model?`<p class="b-sub">${esc(CAR.model)}</p>`:""}
+      <p class="b-stand">Kilometerstand <b class="num">${nKm(CAR.km)} km</b>${
+        CAR.kmDate?" · "+dDE(CAR.kmDate):""}</p>
+    </div>
+    ${bild?`<img class="b-foto" src="${photoUrl(bild)}" alt="">`:""}
+  </div>`;
+
+  /* ── Fahrzeugdaten ── */
+  const hsnTsn = CAR.hsn&&CAR.tsn ? CAR.hsn+" / "+CAR.tsn : (CAR.hsn||CAR.tsn||"");
+  const felder = [
+    o.kennung && ["Kennzeichen", CAR.plate],
+    o.kennung && ["Fahrgestellnummer", CAR.vin],
+    ["HSN / TSN", hsnTsn],
+    ["Erstzulassung", CAR.firstReg ? dDE(CAR.firstReg) : ""],
+    ["Baujahr", CAR.year],
+    ["Hergestellt", monat(CAR.built)],
+    ["Kraftstoff", KRAFTSTOFF[CAR.fuel]],
+    ["Getriebe", GETRIEBE[CAR.gearbox]],
+    ["Antrieb", ANTRIEB[CAR.drive]],
+    ["Halter", CAR.owner],
+  ].filter(f=>f && f[1]!=null && String(f[1]).trim()!=="");
+  const daten = felder.length ? `<dl class="b-daten">${felder.map(([k,v])=>
+    `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : "";
+
+  /* ── Kennzahlen ── */
+  const kmWerte = eintraege.map(e=>e.km).filter(k=>k!=null);
+  const strecke = kmWerte.length>1 ? Math.max(...kmWerte)-Math.min(...kmWerte) : null;
+  const kostenSumme = eintraege.reduce((a,e)=>a+(e.cost||0),0);
+  const jahre = eintraege.map(e=>(e.date||"").slice(0,4)).filter(Boolean);   // absteigend
+  const zeitraum = !jahre.length ? "—"
+    : jahre[0]===jahre[jahre.length-1] ? jahre[0] : jahre[jahre.length-1]+"–"+jahre[0];
+  const kacheln = [
+    [gruppen.length, "Termine"],
+    [eintraege.length, "Arbeiten"],
+    [strecke!=null ? nKm(strecke)+" km" : "—", "dokumentierte Strecke"],
+    o.kosten ? [eur(kostenSumme), "erfasste Kosten"] : [zeitraum, "Zeitraum"],
+  ];
+  const kennzahlen = `<div class="b-kpis">${kacheln.map(([w,l])=>
+    `<div class="b-kpi"><b>${esc(w)}</b><span>${esc(l)}</span></div>`).join("")}</div>`;
+
+  /* ── Auf einen Blick: zuletzt erledigt je Wartungsposition ── */
+  const anzahl = new Map();
+  for(const e of eintraege) for(const id of e.taskIds||[]) anzahl.set(id,(anzahl.get(id)||0)+1);
+  const zeilen = CAR.tasks
+    .map(t=>({t, last:lastDone(t), s:status(t), n:anzahl.get(t.id)||0}))
+    .filter(x=>x.last && (x.last.km!=null || x.last.date));
+  const faellig = s => {
+    if(s.level==="unknown"||s.level==="none") return "–";
+    const teile = [];
+    if(s.dueKm!=null)  teile.push("bei "+nKm(s.dueKm)+" km");
+    if(s.dueDate)      teile.push("bis "+dDE(s.dueDate));
+    return (s.level==="crit" ? "überfällig · " : "") + teile.join(" · ");
+  };
+  const spalten = 3 + (o.offen?1:0);
+  const kategorien = [...new Set(zeilen.map(x=>x.t.cat||"Sonstiges"))];
+  const uebersicht = zeilen.length ? `<section class="b-block">
+    <h2>Auf einen Blick <small>zuletzt erledigt je Position</small></h2>
+    <table class="b-tab"><thead><tr>
+      <th>Position</th><th>Zuletzt</th><th class="r">Anzahl</th>${o.offen?`<th class="n">Nächste Fälligkeit</th>`:""}
+    </tr></thead><tbody>${kategorien.map(kat=>
+      `<tr class="b-kat"><th colspan="${spalten}">${esc(kat)}</th></tr>`
+      + zeilen.filter(x=>(x.t.cat||"Sonstiges")===kat).map(({t,last,s,n})=>`<tr>
+        <td><b>${esc(t.name)}</b></td>
+        <td>${last.date?dDE(last.date):"—"}${last.km!=null?` · <span class="num">${nKm(last.km)} km</span>`:""}${
+          last.src==="manuell"?` <span class="b-dim">(Startwert)</span>`:""}</td>
+        <td class="r num">${n||"–"}</td>
+        ${o.offen?`<td class="n">${["ok","warn","crit"].includes(s.level)?`<i class="b-punkt ${s.level}"></i>`:""}${esc(faellig(s))}</td>`:""}
+      </tr>`).join("")).join("")}</tbody></table></section>` : "";
+
+  /* ── Offene Reparaturen ── */
+  const offene = (CAR.repairs||[]).filter(r=>r.status!=="erledigt")
+    .sort((a,b)=>(a.date||"")<(b.date||"")?-1:1);
+  const offen = o.offen && offene.length ? `<section class="b-block">
+    <h2>Offene Reparaturen <small>${offene.length} noch nicht erledigt</small></h2>
+    <table class="b-tab"><tbody>${offene.map(r=>`<tr>
+      <td style="width:26%">${r.date?dDE(r.date):"—"}${r.km!=null?` · <span class="num">${nKm(r.km)} km</span>`:""}</td>
+      <td><b>${esc(r.titel||"Reparatur")}</b>${r.note?`<div class="b-dim">${esc(r.note)}</div>`:""}</td>
+    </tr>`).join("")}</tbody></table></section>` : "";
+
+  /* ── Chronik ── */
+  const abstand = new Map();
+  for(let i=gruppen.length-2;i>=0;i--){
+    const neu = gruppen[i], alt = gruppen[i+1];
+    if(neu.km!=null && alt.km!=null && neu.km>alt.km) abstand.set(neu, neu.km-alt.km);
+  }
+  let chronik = "", jahrZuvor = null;
+  for(const g of gruppen){
+    const jahr = (g.date||"").slice(0,4);
+    if(jahr !== jahrZuvor){
+      const imJahr = gruppen.filter(x=>(x.date||"").slice(0,4)===jahr);
+      const kJahr = imJahr.reduce((a,x)=>a+(x.cost||0),0);
+      chronik += `<div class="b-jahr"><span>${esc(jahr||"Ohne Datum")}</span><i></i><small>${
+        imJahr.length} Termin${imJahr.length>1?"e":""}${o.kosten&&kJahr?" · "+eur(kJahr):""}</small></div>`;
+      jahrZuvor = jahr;
+    }
+    const mehrere = g.items.length > 1;
+    const kmText  = g.km==null ? "" :
+      (g.kmMin!==g.kmMax ? nKm(g.kmMin)+"–"+nKm(g.kmMax) : nKm(g.km)) + " km";
+    const arbeiten = g.items.map(e=>{
+      const positionen = (e.taskIds||[]).map(id=>CAR.tasks.find(t=>t.id===id)).filter(Boolean);
+      const notiz = (e.note||"").trim();
+      const fotos = o.fotos && mode==="server" ? (e.photos||[]).filter(id=>!istVideo(id)).slice(0,8) : [];
+      const chips = positionen.map(t=>`<span class="b-chip">${esc(t.name)}</span>`).join("")
+        + (e.title?`<span class="b-chip frei">${esc(e.title)}</span>`:"")
+        + (e.art==="reparatur"?`<span class="b-chip rep">Reparatur</span>`:"");
+      return `<div class="b-arbeit">
+        <div class="b-arbeit-inhalt">
+          ${chips||notiz||fotos.length ? "" : `<span class="b-dim">Eintrag ohne Beschreibung</span>`}
+          ${chips?`<div class="b-chips">${chips}</div>`:""}
+          ${g.werkProZeile&&e.werkstatt?`<div class="b-dim">${esc(e.werkstatt)}</div>`:""}
+          ${notiz?`<p class="b-notiz">${esc(notiz)}</p>`:""}
+          ${fotos.length?`<div class="b-fotos">${fotos.map(id=>`<img src="${photoUrl(id,true)}" alt="">`).join("")}</div>`:""}
+        </div>
+        ${o.kosten&&mehrere&&g.mehrfachKosten&&e.cost!=null?`<span class="b-zeilenkosten num">${eur(e.cost)}</span>`:""}
+      </div>`;
+    }).join("");
+    chronik += `<article class="b-termin">
+      <div class="b-t-kopf">
+        <b>${g.date ? dDE(g.date) : "Datum unbekannt"}</b>
+        ${kmText?`<span class="num">${kmText}</span>`:""}
+        ${abstand.get(g)?`<span class="dim">+${nKm(abstand.get(g))} km</span>`:""}
+        ${g.werkstatt?`<span class="dim">· ${esc(g.werkstatt)}</span>`:""}
+        ${mehrere?`<span class="dim">· ${g.items.length} Arbeiten</span>`:""}
+        ${o.kosten&&g.cost!=null?`<em class="b-kosten num">${eur(g.cost)}</em>`:""}
+      </div>${arbeiten}</article>`;
+  }
+  const chronikBlock = eintraege.length ? `<section class="b-block">
+    <h2>Erledigte Arbeiten <small>${gruppen.length} Termine</small></h2>${chronik}</section>`
+    : `<section class="b-block"><h2>Erledigte Arbeiten</h2>
+       <p class="b-dim">Noch keine Einträge erfasst.</p></section>`;
+
+  /* ── Umbauten ── */
+  const mods = [...(CAR.mods||[])].sort((a,b)=>(a.date||"")<(b.date||"")?1:-1);
+  const modSumme = mods.reduce((a,m)=>a+(m.cost||0),0);
+  const umbauten = o.umbauten && mods.length ? `<section class="b-block">
+    <h2>Umbauten und Zubehör <small>${mods.length} Positionen</small></h2>
+    <table class="b-tab"><thead><tr><th>Eingebaut</th><th>Bezeichnung</th><th class="r">Stand</th>${
+      o.kosten?`<th class="r">Kosten</th>`:""}</tr></thead><tbody>${mods.map(m=>`<tr>
+      <td>${m.date?dDE(m.date):"—"}</td>
+      <td><b>${esc(m.name)}</b> <span class="b-dim">${esc([m.cat, m.brand].filter(Boolean).join(" · "))}</span>${
+        m.note?`<div class="b-dim">${esc(m.note)}</div>`:""}</td>
+      <td class="r num">${m.km!=null?nKm(m.km)+" km":"–"}</td>
+      ${o.kosten?`<td class="r num">${m.cost!=null?eur(m.cost):"–"}</td>`:""}
+    </tr>`).join("")}${o.kosten&&modSumme?`<tr class="b-summe"><td colspan="3"><b>Summe</b></td><td class="r num"><b>${eur(modSumme)}</b></td></tr>`:""}
+    </tbody></table></section>` : "";
+
+  const fuss = `<div class="b-fuss"><span>Erstellt am ${dDE(today())} mit overlandvibe carservice</span>
+    <span>${esc(titel)}${CAR.km?" · "+nKm(CAR.km)+" km":""}</span></div>`;
+
+  return kopf + daten + kennzahlen + uebersicht + offen + chronikBlock + umbauten + fuss;
+}
+
+function oeffneBericht(o){
+  if(!CAR) return;
+  const titel = [CAR.brand, CAR.name].filter(Boolean).join(" ") || "Fahrzeug";
+  // Fußzeile im Seitenrand (Chromium/Brave); Safari kennt keine Randfelder
+  document.documentElement.style.setProperty("--b-fuss", JSON.stringify("Servicehistorie · "+titel));
+  const n = gruppiereTermine(historieEintraege()).length;
+  $("#bericht").innerHTML = `<div class="b-leiste">
+      <button type="button" class="btn" id="bZu">← Schließen</button>
+      <span class="b-leiste-titel">Vorschau<span class="b-nur-breit"> Servicebericht</span><span class="tiny faint b-nur-breit"> · ${n} Termin${n===1?"":"e"}</span></span>
+      ${istIOS()?`<span class="tiny faint">Am iPhone: Teilen → Drucken → PDF sichern</span>`:""}
+      <button type="button" class="btn primary" id="bDruck">Als PDF speichern</button>
+    </div>
+    <article class="b-blatt">${berichtHtml(o)}</article>`;
+  document.body.classList.add("bericht-offen");
+  $("#bericht").scrollTop = 0;
+  $("#bZu").onclick = schliesseBericht;
+  $("#bDruck").onclick = berichtDrucken;
+}
+
+let berichtTitelVorher = null;
+function schliesseBericht(){
+  document.body.classList.remove("bericht-offen");
+  $("#bericht").innerHTML = "";
+  if(berichtTitelVorher!==null){ document.title = berichtTitelVorher; berichtTitelVorher = null; }
+}
+
+async function berichtDrucken(){
+  if(typeof window.print !== "function"){ toast("Drucken wird hier nicht unterstützt", true); return; }
+  const titelVorher = berichtTitelVorher ?? document.title;
+  berichtTitelVorher = titelVorher;
+  const name = [CAR.brand, CAR.name].filter(Boolean).join(" ")
+    .replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "") || "Fahrzeug";
+  document.title = `Servicehistorie_${name}_${today()}`;   // Vorschlag für den Dateinamen
+  try{
+    await document.fonts.ready;
+    // Fehlende Fotos im PDF vermeiden: alles laden, bevor gedruckt wird
+    await Promise.all([...$("#bericht").querySelectorAll("img")].map(i=>i.decode().catch(()=>{})));
+  }catch(e){}
+  const zurueck = ()=>{
+    document.title = titelVorher; berichtTitelVorher = null;
+    window.removeEventListener("afterprint", zurueck);
+  };
+  window.addEventListener("afterprint", zurueck);
+  window.print();
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && document.body.classList.contains("bericht-offen") && !$("#dlg").open)
+    schliesseBericht();
+});
 
 /* ═══════════ Umbauten ═══════════ */
 function renderMods(){
@@ -5602,6 +6014,7 @@ $("#repNurOffen").onchange=renderRepairs;
 $("#btnAddMod").onclick  =()=>modDialog();
 $("#btnImport").onclick  =()=>importDialog();
 $("#btnHeft").onclick    =()=>serviceheftDialog();
+$("#btnBericht").onclick =()=>berichtDialog();
 $("#btnStartwerte").onclick=()=>startwerteDialog();
 /* Menü öffnen, schließen, bedienen */
 function menueZu(){
@@ -5748,6 +6161,7 @@ $("#kmNow").onchange=()=>{
   await loadDB();
   $("#kmNow").value = CAR ? (CAR.km || "") : "";
   renderAll();
+  if(location.hash==="#bericht" && CAR) oeffneBericht(berichtOptionen());
   rueckwegGehen();
   kmPruefen();
   if("serviceWorker" in navigator && !isFile)

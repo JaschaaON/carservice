@@ -658,6 +658,45 @@ Reparaturen die dritte Kategorie neben Wartung und Umbauten.
 Bilder, Videos, PDF und Teile aus dem Katalog haengen an der Reparatur wie
 ueberall sonst — es sind dieselben Bausteine.
 
+## Historie: ein Werkstatttag, eine Karte
+
+Wer am selben Tag Oel wechselt und die Batterie prueft, legt zwei Eintraege an
+(oder einen je „Eintragen und naechster"). In der Historie erscheint das als
+**eine Karte je Kalendertag**: Kopf mit Datum, Stand, Abstand zum vorigen Termin,
+Werkstatt und Kostensumme, darunter eine Zeile je Arbeit — jede mit eigenem
+Stiftsymbol, eigener Notiz und eigenen Fotos.
+
+Das ist **nur die Darstellung** (`gruppiereTermine()` in `index.html`). Die
+Eintraege selbst bleiben einzeln, ebenso `lastDone()` und der Wartungsplan; es
+gibt keine Migration. Weichen die Staende innerhalb eines Tages ab, steht
+„von–bis km" im Kopf. Eintraege ohne Datum bleiben einzeln.
+
+## Servicebericht als PDF
+
+Der Knopf **Bericht (PDF)** in der Historie fasst Fahrzeugdaten und alle
+erledigten Arbeiten auf wenigen Seiten zusammen — fuer Kaeufer, Werkstatt oder
+Versicherung: Kopf mit Fahrzeugfoto, Fahrzeugdaten, Kennzahlen, eine Tabelle
+„zuletzt erledigt je Position" mit naechster Faelligkeit, offene Reparaturen,
+die Chronik (dieselbe Gruppierung wie die Historie), Umbauten.
+
+**Kein PDF-Generator.** Die App bleibt ohne Bibliotheken und offlinefaehig; der
+Bericht ist eine Seite im Vollbild (zugleich die Vorschau), die ueber den
+Druckdialog des Browsers als PDF gesichert wird. Schrift und Text bleiben
+Vektor, die Datei klein. Der Dateiname wird als
+`Servicehistorie_<Fahrzeug>_<Datum>` vorgeschlagen. Seitenzahlen stehen im
+Seitenrand, den nur Chromium/Brave kennt — Safari laesst sie weg.
+
+**Am iPhone** laeuft der Weg ueber Teilen → Drucken → mit zwei Fingern auf die
+Vorschau aufziehen → PDF sichern; die Vorschau nennt das ausdruecklich.
+
+Vor dem Erzeugen laesst sich waehlen: Kosten, Belegfotos, Umbauten, Offenes und
+Faelligkeiten, Kennzeichen und FIN (bei Weitergabe im Netz abschalten). Die
+Auswahl merkt sich der Browser. **Nie enthalten:** Fahrzeugpapiere und
+Anleitungen. Fotos erscheinen nur mit Server, Videos gar nicht.
+
+`…/#bericht` oeffnet die Vorschau direkt — praktisch fuer automatische Tests
+(Headless-Browser, `Page.printToPDF`).
+
 ## Dokumente
 
 Fahrzeugpapiere sind etwas anderes als Werkstattanleitungen: Sie haengen an
