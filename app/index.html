@@ -558,6 +558,16 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 }
 .h-chip.frei{border-style:dashed;color:var(--text-dim)}
 
+/* Mehrere Arbeiten am selben Tag: eine Karte, je Arbeit eine Zeile */
+.h-arbeit{display:flex;gap:12px;align-items:flex-start}
+.h-arbeit-inhalt{flex:1;min-width:0}
+.h-arbeit-rechts{display:flex;align-items:center;gap:8px;flex:none}
+.h-arbeiten.mehrere{margin-top:12px}
+.h-arbeiten.mehrere .h-arbeit{padding-top:12px;margin-top:12px;border-top:1px solid var(--line)}
+.h-arbeiten.mehrere .h-arbeit:first-child{padding-top:0;margin-top:0;border-top:0}
+.h-arbeiten.mehrere .h-positionen{margin-top:0}
+.h-arbeit-werk{margin-top:6px}
+
 .h-notiz{margin:10px 0 0;font-size:12.5px;color:var(--text-faint);line-height:1.5}
 .h-notiz.kurz{margin-bottom:0}
 details.h-notiz summary{
@@ -1883,11 +1893,11 @@ function renderDocs(){
 
 const KURZ = 150;   // ab dieser Laenge wird die Notiz eingeklappt
 
-function renderHist(){
-  /* Eine Datenquelle, zwei Ansichten: Der Reparaturreiter zeigt nur
-     Reparaturen, hier stehen sie zwischen den Wartungen nach Datum.
-     Nichts wird doppelt eingetragen. */
-  const eintraege = [
+/** Alles, was in die Historie gehoert: Wartungen plus erledigte Reparaturen,
+ *  nach Datum absteigend. Eine Datenquelle — auch der Servicebericht liest
+ *  hier, damit Bildschirm und PDF nie auseinanderlaufen. */
+function historieEintraege(){
+  return [
     ...CAR.history.map(h=>({...h, art:"wartung"})),
     ...(CAR.repairs||[]).filter(r=>r.status==="erledigt").map(r=>({
       id:r.id, art:"reparatur", date:repDatum(r), km:repKm(r),
@@ -1895,6 +1905,38 @@ function renderHist(){
       werkstatt:r.werkstatt, note:r.note, photos:r.photos||[],
     })),
   ].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+}
+
+/** Fasst Arbeiten desselben Kalendertags zu einem Termin zusammen.
+ *  Nur die Darstellung: die Eintraege selbst bleiben unveraendert, jede
+ *  Arbeit behaelt Notiz, Fotos, Kosten und Werkstatt. Erwartet die Liste
+ *  nach Datum sortiert (gleiche Tage stehen dann nebeneinander). Eintraege
+ *  ohne Datum bleiben einzeln — sie gehoeren nicht zusammen. */
+function gruppiereTermine(eintraege){
+  const gruppen = [];
+  for(const e of eintraege){
+    const g = gruppen[gruppen.length-1];
+    if(g && e.date && g.date === e.date) g.items.push(e);
+    else gruppen.push({date:e.date, items:[e]});
+  }
+  for(const g of gruppen){
+    const kms = g.items.map(i=>i.km).filter(k=>k!=null);
+    g.kmMin = kms.length ? Math.min(...kms) : null;
+    g.kmMax = kms.length ? Math.max(...kms) : null;
+    g.km    = g.kmMax;
+    const kosten = g.items.map(i=>i.cost).filter(c=>c!=null);
+    g.cost = kosten.length ? kosten.reduce((a,c)=>a+c,0) : null;
+    g.mehrfachKosten = kosten.length > 1;
+    // Einheitliche Werkstatt steht einmal im Kopf, sonst je Zeile
+    const werk = [...new Set(g.items.map(i=>(i.werkstatt||"").trim()))];
+    g.werkstatt = werk.length === 1 ? werk[0] : "";
+    g.werkProZeile = werk.length > 1;
+  }
+  return gruppen;
+}
+
+function renderHist(){
+  const eintraege = historieEintraege();
 
   if(!eintraege.length){
     $("#histList").innerHTML =
@@ -1910,19 +1952,23 @@ function renderHist(){
     return;
   }
 
+  const gruppen = gruppiereTermine(eintraege);
+
   // Abstand zum jeweils vorigen Termin — zeigt den Rhythmus
-  const sortiert = [...eintraege].reverse();
   const abstand = new Map();
-  for(let i=1;i<sortiert.length;i++){
-    const a = sortiert[i-1], b = sortiert[i];
-    if(a.km!=null && b.km!=null && b.km>a.km) abstand.set(b.id, b.km-a.km);
+  for(let i=gruppen.length-2;i>=0;i--){
+    const neu = gruppen[i], alt = gruppen[i+1];
+    if(neu.km!=null && alt.km!=null && neu.km>alt.km) abstand.set(neu, neu.km-alt.km);
   }
 
+  const kmText = g => g.km==null ? "" :
+    (g.kmMin!==g.kmMax ? nKm(g.kmMin)+"–"+nKm(g.kmMax) : nKm(g.km)) + " km";
+
   let html = "", jahrZuvor = null;
-  for(const e of eintraege){
-    const jahr = (e.date||"").slice(0,4);
+  for(const g of gruppen){
+    const jahr = (g.date||"").slice(0,4);
     if(jahr !== jahrZuvor){
-      const imJahr = eintraege.filter(x=>(x.date||"").slice(0,4)===jahr);
+      const imJahr = gruppen.filter(x=>(x.date||"").slice(0,4)===jahr);
       const kostenJahr = imJahr.reduce((a,x)=>a+(x.cost||0),0);
       html += `<div class="jahr-trenner">
         <span class="jahr-zahl">${esc(jahr)}</span><span class="line"></span>
@@ -1931,48 +1977,66 @@ function renderHist(){
       jahrZuvor = jahr;
     }
 
-    const positionen = (e.taskIds||[])
-      .map(id=>CAR.tasks.find(t=>t.id===id)).filter(Boolean);
-    const notiz = (e.note||"").trim();
-    const lang  = notiz.length > KURZ;
-    const delta = abstand.get(e.id);
+    const mehrere = g.items.length > 1;
+    const delta = abstand.get(g);
 
+    /* Eine Arbeit = eine Zeile. Bei einer einzigen Arbeit sitzen Kosten,
+       Reparatur-Marke und Stift im Kopf (wie bisher), bei mehreren je Zeile,
+       damit jeder Eintrag einzeln bearbeitbar bleibt. */
+    const zeile = e => {
+      const positionen = (e.taskIds||[])
+        .map(id=>CAR.tasks.find(t=>t.id===id)).filter(Boolean);
+      const notiz = (e.note||"").trim();
+      const lang  = notiz.length > KURZ;
+      const attr  = e.art==="reparatur" ? "edit-rep" : "edit-hist";
+      const rechts = mehrere ? `<div class="h-arbeit-rechts">
+          ${e.art==="reparatur"?`<span class="pill warn">Reparatur</span>`:""}
+          ${g.mehrfachKosten && e.cost!=null?`<span class="h-kosten num">${eur(e.cost)}</span>`:""}
+          <button class="btn icon" data-${attr}="${e.id}" title="Eintrag bearbeiten">✎</button>
+        </div>` : "";
+      return `<div class="h-arbeit">
+        <div class="h-arbeit-inhalt">
+          ${positionen.length||e.title ? `<div class="h-positionen">
+            ${positionen.map(t=>`<span class="h-chip">${esc(t.name)}</span>`).join("")}
+            ${e.title?`<span class="h-chip frei">${esc(e.title)}</span>`:""}
+          </div>` : ""}
+          ${g.werkProZeile && e.werkstatt?`<div class="tiny faint h-arbeit-werk">${esc(e.werkstatt)}</div>`:""}
+          ${notiz ? (lang
+            ? `<details class="h-notiz"><summary>${esc(notiz.slice(0,KURZ))}…</summary>
+               <p>${esc(notiz)}</p></details>`
+            : `<p class="h-notiz kurz">${esc(notiz)}</p>`) : ""}
+          ${fotoStreifen(e.photos)}
+        </div>${rechts}
+      </div>`;
+    };
+
+    const einzel = g.items[0];
     html += `<article class="h-karte">
       <div class="h-strang"><span class="h-punkt"></span></div>
       <div class="h-inhalt">
         <div class="h-kopf">
           <div class="h-wann">
-            <span class="h-datum">${dDE(e.date)}</span>
-            <span class="h-km num">${e.km!=null?nKm(e.km)+" km":""}</span>
+            <span class="h-datum">${dDE(g.date)}</span>
+            <span class="h-km num">${kmText(g)}</span>
             ${delta?`<span class="tiny faint">+${nKm(delta)} km</span>`:""}
-            ${e.werkstatt?`<span class="tiny faint">· ${esc(e.werkstatt)}</span>`:""}
+            ${g.werkstatt?`<span class="tiny faint">· ${esc(g.werkstatt)}</span>`:""}
+            ${mehrere?`<span class="tiny faint">· ${g.items.length} Arbeiten</span>`:""}
           </div>
           <div class="h-rechts">
-            ${e.art==="reparatur"?`<span class="pill warn">Reparatur</span>`:""}
-            ${e.cost!=null?`<span class="h-kosten num">${eur(e.cost)}</span>`:""}
-            <button class="btn icon" data-${e.art==="reparatur"?"edit-rep":"edit-hist"}="${e.id}"
-              title="Eintrag bearbeiten">✎</button>
+            ${!mehrere && einzel.art==="reparatur"?`<span class="pill warn">Reparatur</span>`:""}
+            ${g.cost!=null?`<span class="h-kosten num">${eur(g.cost)}</span>`:""}
+            ${mehrere?"":`<button class="btn icon" data-${einzel.art==="reparatur"?"edit-rep":"edit-hist"}="${einzel.id}"
+              title="Eintrag bearbeiten">✎</button>`}
           </div>
         </div>
-
-        ${positionen.length||e.title ? `<div class="h-positionen">
-          ${positionen.map(t=>`<span class="h-chip">${esc(t.name)}</span>`).join("")}
-          ${e.title?`<span class="h-chip frei">${esc(e.title)}</span>`:""}
-        </div>` : ""}
-
-        ${notiz ? (lang
-          ? `<details class="h-notiz"><summary>${esc(notiz.slice(0,KURZ))}…</summary>
-             <p>${esc(notiz)}</p></details>`
-          : `<p class="h-notiz kurz">${esc(notiz)}</p>`) : ""}
-
-        ${fotoStreifen(e.photos)}
+        <div class="h-arbeiten${mehrere?" mehrere":""}">${g.items.map(zeile).join("")}</div>
       </div></article>`;
   }
 
   const gesamt = eintraege.reduce((a,e)=>a+(e.cost||0),0);
   const kmSpanne = eintraege.filter(e=>e.km!=null);
   html += `<div class="h-summe tiny muted">
-    <span>${eintraege.length} Termine${kmSpanne.length>1
+    <span>${gruppen.length} Termine${kmSpanne.length>1
       ? ` über ${nKm(kmSpanne[0].km - kmSpanne[kmSpanne.length-1].km)} km` : ""}</span>
     ${gesamt?`<span>Erfasste Kosten <strong>${eur(gesamt)}</strong></span>`:""}</div>`;
 
