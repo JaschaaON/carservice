@@ -960,6 +960,25 @@ Nur Bordmittel, keine Abhaengigkeiten.
 > Datei, die niemand liest. `import_docs.py` bleibt fuer den Erstbestand vor
 > der Benutzerverwaltung und liefert die Zuordnungsregeln.
 
+Der Probelauf nennt auch die Gesamtgroesse und die Dateien ueber der
+Serverschranke von 60 MB je Anleitung (`MAX_DOC` in `server.js`) — die
+ueberspringt der Lauf mit einer Meldung, statt daran zu scheitern.
+
+**Bei grossen Bestaenden** — ein Werkstatthandbuch sind schnell mehrere
+hundert PDF:
+
+- `--ohne-zuordnung` laesst die Verknuepfungen weg. Die Stichwortregeln
+  treffen bei vielen Dateien zu grob: dann haengen an *Bremsfluessigkeit
+  wechseln* vierzig Handbuecher vom Lenkwinkelsensor bis zum VSC-Schalter.
+  Lieber leer einlesen und die paar wichtigen in der App verknuepfen.
+- Das Verzeichnis wird **alle 20 Dateien gesichert** (`--block N`). Bricht
+  der Lauf ab — Netz weg, Rechner schlaeft ein —, kostet das hoechstens
+  einen Block; ein neuer Lauf setzt dort auf. Ohne das laegen im
+  schlimmsten Fall hunderte PDF auf dem Server, von denen die App nichts
+  weiss.
+- Nach fuenf Fehlern hintereinander bricht der Lauf von selbst ab, statt
+  sich durch den Rest zu arbeiten, waehrend die Verbindung weg ist.
+
 Die PDF bleiben, wo sie liegen — sie wandern nie ins Repository. `.gitignore`
 sperrt `*.pdf` und die ueblichen Ordnernamen.
 

@@ -50,6 +50,9 @@ class Client:
             roh = e.read()
             try:    return e.code, json.loads(roh)
             except Exception: return e.code, roh.decode("utf-8", "replace")
+        except (urllib.error.URLError, OSError, TimeoutError) as e:
+            # Kein Absturz mitten in 688 Dateien: als Fehler melden, weitermachen.
+            return 0, f"Verbindung: {e}"
 
     def anmelden(self, login, passwort):
         code, antwort = self._ruf("/api/login",
@@ -73,6 +76,12 @@ class Client:
                          "application/json", "PUT", {"If-Match": str(rev)})
 
 
+# Der Server nimmt hoechstens so viel je Anleitung an (MAX_DOC in server.js).
+# Er kappt die Verbindung beim Ueberschreiten, statt sauber mit 413 zu
+# antworten — der Client muss die Grenze deshalb selbst kennen.
+MAX_DOC = 60 * 1024 * 1024
+
+
 def pdfs(ordner):
     """Auch Unterordner — ein Werkstatthandbuch ist selten flach."""
     raus = []
@@ -92,6 +101,10 @@ def main():
     p.add_argument("--fahrzeug", help="Name des Fahrzeugs (sonst das aktive)")
     p.add_argument("--probe", action="store_true",
                    help="nur zeigen, was passieren wuerde — nichts aendern")
+    p.add_argument("--ohne-zuordnung", action="store_true", dest="ohne",
+                   help="nur einlesen, keine Positionen verknuepfen")
+    p.add_argument("--block", type=int, default=20, metavar="N",
+                   help="Verzeichnis alle N Dateien sichern (Vorgabe 20)")
     a = p.parse_args()
 
     if not os.path.isdir(a.ordner):
@@ -123,9 +136,31 @@ def main():
     print(f"Gefunden: {len(dateien)} PDF in {a.ordner}\n")
 
     neu = uebersprungen = zugeordnet = 0
+    bytes_neu = 0
     fehler = []
+    seit_sicherung = 0
+    hintereinander = 0
 
-    for rel, voll in dateien:
+    def sichern():
+        """Verzeichnis zwischenspeichern und die neue Revision merken.
+
+        Ohne das steht der ganze Lauf auf einer einzigen Schreiboperation am
+        Ende: bricht er bei Datei 500 ab, liegen 500 PDF auf dem Server, von
+        denen die App nichts weiss — und der naechste Versuch laedt alles
+        erneut hoch. Mit Zwischenspeichern kostet ein Abbruch hoechstens
+        einen Block."""
+        nonlocal rev, seit_sicherung
+        code, antwort = c.daten_schreiben(db, rev)
+        if code == 409:
+            sys.exit("\nKonflikt: Jemand hat die Daten waehrend des Imports "
+                     "geaendert. Bereits gesicherte Anleitungen bleiben — "
+                     "einfach neu starten, sie werden uebersprungen.")
+        if code != 200:
+            sys.exit(f"\nSchreiben fehlgeschlagen ({code}): {antwort}")
+        rev = antwort.get("rev", rev + 1) if isinstance(antwort, dict) else rev + 1
+        seit_sicherung = 0
+
+    for nr, (rel, voll) in enumerate(dateien, 1):
         did  = doc_id(rel)
         name = anzeigename(rel)
         if did in vorhanden:
@@ -133,19 +168,32 @@ def main():
             continue
 
         groesse = os.path.getsize(voll)
-        ziele   = passende_positionen(name, fz["tasks"])
+        ziele   = [] if a.ohne else passende_positionen(name, fz["tasks"])
         zunamen = [next(t["name"] for t in fz["tasks"] if t["id"] == z) for z in ziele]
 
         if a.probe:
             print(f"  + {name}  ({groesse/1048576:.1f} MB)"
                   + (f"  →  {', '.join(zunamen)}" if zunamen else "  →  ohne Zuordnung"))
-            neu += 1; zugeordnet += len(ziele)
+            neu += 1; zugeordnet += len(ziele); bytes_neu += groesse
+            continue
+
+        if groesse > MAX_DOC:
+            fehler.append(f"{rel}: {groesse/1048576:.0f} MB — der Server nimmt "
+                          f"hoechstens {MAX_DOC//1048576} MB je Anleitung")
+            print(f"  [{nr}/{len(dateien)}] uebersprungen, zu gross: {name}")
             continue
 
         code, antwort = c.pdf_hoch(did, voll)
         if code != 200:
             fehler.append(f"{rel}: HTTP {code} {antwort}")
+            hintereinander += 1
+            if hintereinander >= 5:
+                if seit_sicherung: sichern()
+                sys.exit(f"\nFuenf Fehler hintereinander — zuletzt: {antwort}\n"
+                         "Abgebrochen. Das bisher Geschaffte ist gesichert, "
+                         "ein neuer Lauf setzt dort auf.")
             continue
+        hintereinander = 0
 
         fz["docs"].append({"id": did, "name": name, "seiten": seitenzahl(voll),
                            "bytes": groesse, "note": ""})
@@ -154,21 +202,28 @@ def main():
             t = next(t for t in fz["tasks"] if t["id"] == tid)
             if not any(x.get("d") == did for x in t["docs"]):
                 t["docs"].append({"d": did}); zugeordnet += 1
-        print(f"  + {name}" + (f"  →  {', '.join(zunamen)}" if zunamen else ""))
+        print(f"  [{nr}/{len(dateien)}] {name}"
+              + (f"  →  {', '.join(zunamen)}" if zunamen else ""))
+
+        seit_sicherung += 1
+        if seit_sicherung >= max(1, a.block):
+            sichern()
 
     if a.probe:
-        print(f"\nProbelauf: {neu} neu, {uebersprungen} schon vorhanden, "
-              f"{zugeordnet} Zuordnungen. Nichts geaendert.")
+        print(f"\nProbelauf: {neu} neu ({bytes_neu/1073741824:.2f} GB), "
+              f"{uebersprungen} schon vorhanden, {zugeordnet} Zuordnungen. "
+              "Nichts geaendert.")
+        zu_gross = [(r, os.path.getsize(v)) for r, v in dateien
+                    if doc_id(r) not in vorhanden and os.path.getsize(v) > MAX_DOC]
+        if zu_gross:
+            print(f"\n{len(zu_gross)} Datei(en) ueber {MAX_DOC//1048576} MB — "
+                  "die nimmt der Server nicht an und der Lauf ueberspringt sie:")
+            for r, g in zu_gross:
+                print(f"  ! {r}  ({g/1048576:.0f} MB)")
         return
 
-    if neu:
-        code, antwort = c.daten_schreiben(db, rev)
-        if code == 409:
-            sys.exit("\nKonflikt: Jemand hat die Daten waehrend des Imports geaendert. "
-                     "Die PDF liegen bereits auf dem Server — einfach neu starten, "
-                     "schon vorhandene werden uebersprungen.")
-        if code != 200:
-            sys.exit(f"\nSchreiben fehlgeschlagen ({code}): {antwort}")
+    if seit_sicherung:
+        sichern()
 
     print(f"\n{neu} Anleitungen neu, {uebersprungen} schon vorhanden, "
           f"{zugeordnet} Zuordnungen, {len(fz['docs'])} insgesamt.")
