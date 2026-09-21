@@ -190,6 +190,19 @@ Auf dem Telefon wird die Liste zur Kartenansicht (`.tbl-karten`), damit alle
 vier Angaben nebeneinander Platz haben statt in einer Tabelle, die man
 schieben muss.
 
+**Aufgenommen wird nur, was ueberfaellig ist oder demnaechst ansteht**
+(`einkaufsliste([...crit, ...warn])`). Nicht faellige Positionen tauchen dort
+nie auf, auch wenn Teile an ihnen haengen.
+
+> **Positionen ohne Teil werden genannt.** Die Liste entsteht aus den Teilen,
+> die an einer Position haengen — eine faellige Position ohne hinterlegtes Teil
+> trug frueher stillschweigend nichts bei, und man suchte dann nach einem
+> Luftfilter, der nie darin auftauchen konnte. Hatte keine einzige faellige
+> Position Teile, verschwand sogar der ganze Abschnitt kommentarlos. Jetzt
+> steht darunter ein Kasten „Ohne hinterlegte Teile" mit den betroffenen
+> Positionen als Schaltflaechen; ein Klick oeffnet sie zum Zuordnen. Dasselbe
+> gilt fuer Verweise auf ein Teil, das inzwischen geloescht wurde.
+
 ## Tabellen auf dem Telefon
 
 Eine Tabelle mit sieben Spalten ist auf 375 px keine Tabelle mehr, sondern ein
