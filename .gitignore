@@ -11,6 +11,8 @@ fahrzeuge-*.json
 Toyota Anleitungen/
 Anleitungen/
 docs-import/
+*Werkstatthandbuch*/
+Hilux_*/
 
 .DS_Store
 __pycache__/

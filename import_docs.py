@@ -124,4 +124,8 @@ def main():
         if len(ohne) > 8:
             print(f"      … und {len(ohne)-8} weitere")
 
-main()
+
+# Ohne diesen Schutz laeuft der Import mit, sobald ein anderes Skript die
+# Regeln von hier holt — import_server.py tut das.
+if __name__ == "__main__":
+    main()

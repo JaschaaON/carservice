@@ -940,15 +940,31 @@ mitdurchsucht, war aber nirgends einzugeben. Jetzt steht sie im selben Dialog.
 > seitliches Schieben der Tabelle. Beide Angaben stehen weiterhin in der
 > Fusszeile und im Umbenennen-Dialog.
 
-**Vorhandene Unterlagen einlesen:**
+**Viele PDF auf einmal einlesen** — in die laufende App, ueber die API:
 
 ```bash
-python3 import_docs.py "Toyota Anleitungen"
+python3 import_server.py ~/Downloads/Werkstatthandbuch --benutzer <anmeldename> --probe
 ```
 
-Das Skript kopiert die PDFs, ermittelt Seitenzahlen und schlaegt anhand der
-Dateinamen Zuordnungen zu den Wartungspositionen vor (Tabelle `REGELN`).
-Einzelne PDFs lassen sich jederzeit ueber die App nachtragen.
+`--probe` zeigt nur, was passieren wuerde. Ohne den Schalter laedt das Skript
+jede PDF hoch, traegt sie als Anleitung ein und schlaegt anhand des
+Dateinamens Zuordnungen zu den Wartungspositionen vor (Tabelle `REGELN` in
+`import_docs.py`). Unterordner werden mitgenommen und im Namen abgebildet
+(„Bremsen · Feststellbremse"). Die Dokument-ID entsteht aus dem Pfad, der
+Lauf ist dadurch **wiederholbar**: Schon vorhandene PDF werden uebersprungen.
+Nur Bordmittel, keine Abhaengigkeiten.
+
+> **Warum nicht `import_docs.py`?** Das schreibt in ein lokales
+> `data/data.json`. Seit es Benutzerkonten gibt, liegen die echten Daten auf
+> dem Server unter `data/users/<id>/` — ein lokaler Lauf schriebe in eine
+> Datei, die niemand liest. `import_docs.py` bleibt fuer den Erstbestand vor
+> der Benutzerverwaltung und liefert die Zuordnungsregeln.
+
+Die PDF bleiben, wo sie liegen — sie wandern nie ins Repository. `.gitignore`
+sperrt `*.pdf` und die ueblichen Ordnernamen.
+
+Einzelne PDF lassen sich jederzeit ueber die App nachtragen: unter
+*Anleitungen* oder direkt im Positions- und Teiledialog.
 
 > **Werkstattunterlagen sind urheberrechtlich geschuetzt** und gehoeren nicht in
 > ein oeffentliches Repository. `.gitignore` schliesst `*.pdf` und die
