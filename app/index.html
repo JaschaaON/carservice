@@ -475,6 +475,9 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .links a{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;background:var(--surface-2);
   padding:3px 9px;border-radius:99px;margin:2px 4px 2px 0;border:1px solid var(--line)}
 .links a:hover{border-color:var(--accent);text-decoration:none}
+/* Was schon im Regal liegt, tritt zurueck — es steht nur noch da, damit
+   man weiss, wo man es findet. */
+tr.gedeckt .teil-sprung{color:var(--text-dim)}
 
 .toast{
   position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:200;
@@ -818,9 +821,15 @@ body.bericht-offen #bericht{padding-bottom:env(safe-area-inset-bottom)}
   .tbl-karten td{border:none;padding:2px 0;text-align:left!important}
   .tbl-karten td:first-child{padding-right:38px}      /* Platz fuer das Stiftsymbol */
   .tbl-karten td[data-l]::before{
-    content:attr(data-l);display:inline-block;min-width:64px;
+    content:attr(data-l);display:inline-block;min-width:82px;padding-right:8px;
     color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;
   }
+  /* Leere Zellen erzeugen sonst Luecken in der Karte — etwa die
+     Bezugsquelle bei einem Teil, das schon im Regal liegt. */
+  .tbl-karten td:empty{display:none}
+  /* Zweite Zeile einer beschrifteten Zelle unter den Wert ruecken,
+     nicht unter die Beschriftung (82 px Mindestbreite + 8 px Abstand). */
+  .tbl-karten td[data-l] > div{margin-left:90px}
   .tbl-karten td.links{margin-top:6px}
   .tbl-karten .zeile-tat{position:absolute;top:8px;right:10px;padding:0}
 
@@ -1757,32 +1766,50 @@ function einkaufsliste(liste){
     }
   }
   if(!bedarf.size) return "";
-  const posten = [...bedarf.values()];
-  const summe = posten.reduce((a,e)=>a + (e.p.price!=null ? e.p.price*e.menge : 0), 0);
-  const ohnePreis = posten.filter(e=>e.p.price==null).length;
+
+  /* Was tatsaechlich zu kaufen ist, ist der Bedarf minus dem, was im
+     Regal liegt. Eine Liste, die „7,5 Liter kaufen" sagt, waehrend
+     fuenfzehn im Keller stehen, schickt einen unnoetig los. */
+  const posten = [...bedarf.values()].map(e=>{
+    const lager  = e.p.qty || 0;
+    const fehlt  = Math.max(0, e.menge - lager);
+    return {...e, lager, fehlt, gedeckt: fehlt === 0};
+  });
+  const summe = posten.reduce((a,e)=>a + (e.p.price!=null ? e.p.price*e.fehlt : 0), 0);
+  const ohnePreis = posten.filter(e=>e.p.price==null && !e.gedeckt).length;
+  const gedeckt = posten.filter(e=>e.gedeckt).length;
 
   return `<div class="sec-head"><h2>Einkaufsliste</h2><div class="line"></div>
       <span class="pill flat">${posten.length} Positionen</span></div>
     <p class="tiny muted" style="margin:-4px 0 12px">
       Alles für das, was überfällig ist oder demnächst ansteht — rechtzeitig bestellen.</p>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Teil</th><th class="r">Menge</th><th class="r">Kosten</th><th>Bezug</th><th class="eng-weg">Wofür</th></tr></thead>
-      <tbody>${posten.map(e=>`<tr>
+    <div class="tbl-wrap karten-wrap"><table class="tbl-karten">
+      <thead><tr><th>Teil</th><th class="r">Benötigt</th><th class="r">Auf Lager</th>
+        <th class="r">Zu kaufen</th><th>Bezug</th><th>Wofür</th></tr></thead>
+      <tbody>${posten.map(e=>`<tr class="${e.gedeckt?"gedeckt":""}">
         <td><button type="button" class="teil-sprung" data-edit-part="${e.p.id}"
               title="Teil bearbeiten — Nummer, Preis, Kauflinks">${esc(e.p.name)}</button>
           ${e.p.oem?`<div class="tiny faint num">${esc(e.p.oem)}</div>`:""}
-          ${e.p.qty>0?`<div class="tiny" style="color:var(--ok)">${e.p.qty} ${esc(e.p.unit)} im Regal</div>`:""}
           ${fotoStreifen(e.p.photos)}</td>
-        <td class="r num">${Math.round(e.menge*100)/100} ${e.p.unit==="Stück"?"×":esc(e.p.unit)}</td>
-        <td class="r num">${e.p.price!=null?eur(e.p.price*e.menge):"—"}</td>
-        <td class="links">${(e.p.links||[]).map(l=>
-          `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||"Shop")} ↗</a>`).join("")
+        <td class="r num" data-l="Benötigt">${menge(e.menge, e.p.unit)}</td>
+        <td class="r num" data-l="Auf Lager" style="color:var(--${e.gedeckt?"ok":e.lager?"text":"text-faint"})">${
+          menge(e.lager, e.p.unit)}</td>
+        <td class="r num" data-l="Zu kaufen">${e.gedeckt
+          ? `<span style="color:var(--ok)">gedeckt</span>`
+          : `<b>${menge(e.fehlt, e.p.unit)}</b>${
+              e.p.price!=null ? `<div class="tiny faint">${eur(e.p.price*e.fehlt)}</div>` : ""}`}</td>
+        <td class="links">${e.gedeckt ? ""
+          : (e.p.links||[]).map(l=>
+            `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||"Shop")} ↗</a>`).join("")
           || `<button class="btn sm" data-edit-part="${e.p.id}" style="white-space:nowrap">+ Link</button>`}</td>
-        <td class="tiny faint eng-weg">${esc([...new Set(e.wofuer)].join(", "))}</td></tr>`).join("")}
+        <td class="tiny faint" data-l="Wofür">${esc([...new Set(e.wofuer)].join(", "))}</td></tr>`).join("")}
       </tbody></table></div>
     <div class="spread tiny muted" style="margin-top:8px">
-      <span>${ohnePreis?`Bei ${ohnePreis} Teil${ohnePreis>1?"en":""} fehlt noch der Preis.`:""}</span>
-      <span>Materialkosten ca. <strong style="color:var(--text);font-size:14px">${eur(summe)}</strong></span>
+      <span>${[
+        gedeckt ? `${gedeckt} ${gedeckt===1?"Teil liegt":"Teile liegen"} schon im Regal.` : "",
+        ohnePreis ? `Bei ${ohnePreis} zu kaufenden Teil${ohnePreis>1?"en":""} fehlt der Preis.` : "",
+      ].filter(Boolean).join(" ")}</span>
+      <span>Noch zu kaufen ca. <strong style="color:var(--text);font-size:14px">${eur(summe)}</strong></span>
     </div>`;
 }
 
@@ -3328,6 +3355,12 @@ const docUrl  = (id,seite)=> api("docs/" + id) + (seite>1?`#page=${seite}`:"");
    kommt. Deshalb sucht docById in beiden Bestaenden. */
 const docById = id => (CAR.docs||[]).find(d=>d.id===id)
   || (CAR.papiere||[]).flatMap(p=>p.pdfs||[]).find(d=>d.id===id);
+/** Menge mit Einheit: „7,5 L", „2 ×". Nachkommastellen nur, wenn noetig —
+ *  „1,00 Stück" liest sich falsch. */
+const menge = (n, einheit) =>
+  (Math.round((n||0)*100)/100).toLocaleString("de-DE")
+  + " " + (einheit === "Stück" ? "×" : esc(einheit || ""));
+
 /** Groesse lesbar: unter einem Megabyte in Kilobyte, sonst in MB. */
 const mb = n => n==null ? "—"
   : n < 1048576 ? Math.round(n/1024).toLocaleString("de-DE")+" KB"

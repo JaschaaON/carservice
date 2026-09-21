@@ -170,6 +170,26 @@ waagerecht — dafuer holt `zeigeAnsicht` den aktiven Reiter ins Bild, sodass di
 Markierung nie ausserhalb liegt. Wer es ganz ohne Schieben will, muesste auf
 kleinen Bildschirmen weitere Reiter ins Menue schieben.
 
+## Einkaufsliste
+
+Vier Zahlen je Teil: **Benoetigt**, **Auf Lager**, **Zu kaufen** und der Preis
+dafuer.
+
+Was gebraucht wird, steht an der Wartungsposition — dort wird je Teil die Menge
+eingetragen (`t.parts[].q`, Kommazahlen erlaubt: 7,5 Liter Oel). Die
+Einkaufsliste summiert das ueber alle faelligen Positionen. Was im Regal liegt,
+steht am Teil selbst (`p.qty`, Feld *Vorrat im Regal*).
+
+> **Zu kaufen ist die Differenz, nicht der Bedarf.** Eine Liste, die „7,5 Liter
+> kaufen" sagt, waehrend fuenfzehn im Keller stehen, schickt einen unnoetig
+> los. Gedeckte Teile stehen weiter in der Liste — man muss sie ja aus dem
+> Regal holen —, aber als *gedeckt* markiert, ohne Bezugsquelle und ohne
+> Anteil an der Summe. Die Fusszeile nennt sie: „1 Teil liegt schon im Regal."
+
+Auf dem Telefon wird die Liste zur Kartenansicht (`.tbl-karten`), damit alle
+vier Angaben nebeneinander Platz haben statt in einer Tabelle, die man
+schieben muss.
+
 ## Tabellen auf dem Telefon
 
 Eine Tabelle mit sieben Spalten ist auf 375 px keine Tabelle mehr, sondern ein
