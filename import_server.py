@@ -79,7 +79,7 @@ class Client:
 # Der Server nimmt hoechstens so viel je Anleitung an (MAX_DOC in server.js).
 # Er kappt die Verbindung beim Ueberschreiten, statt sauber mit 413 zu
 # antworten — der Client muss die Grenze deshalb selbst kennen.
-MAX_DOC = 60 * 1024 * 1024
+MAX_DOC = 100 * 1024 * 1024
 
 
 def pdfs(ordner):

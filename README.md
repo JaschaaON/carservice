@@ -961,7 +961,7 @@ Nur Bordmittel, keine Abhaengigkeiten.
 > der Benutzerverwaltung und liefert die Zuordnungsregeln.
 
 Der Probelauf nennt auch die Gesamtgroesse und die Dateien ueber der
-Serverschranke von 60 MB je Anleitung (`MAX_DOC` in `server.js`) — die
+Serverschranke von 100 MB je Anleitung (`MAX_DOC` in `server.js`) — die
 ueberspringt der Lauf mit einer Meldung, statt daran zu scheitern.
 
 **Bei grossen Bestaenden** — ein Werkstatthandbuch sind schnell mehrere

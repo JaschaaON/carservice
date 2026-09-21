@@ -33,7 +33,7 @@ function pfade(userId){
 const KEEP      = 40;                       // so viele Versionen bleiben liegen
 const MAX_PHOTO = 8   * 1024 * 1024;        // 8 MB je Bild
 const MAX_VIDEO = 150 * 1024 * 1024;        // 150 MB je Video
-const MAX_DOC   = 60  * 1024 * 1024;        // 60 MB je Anleitung
+const MAX_DOC   = 100 * 1024 * 1024;        // 100 MB je Anleitung
 
 /* Medien-IDs kommen aus dem Browser und landen als Dateiname auf der
    Platte — deshalb streng pruefen, sonst ist Pfad-Traversal moeglich.
@@ -56,6 +56,60 @@ function erkenneTyp(buf){
   return null;
 }
 const EXTS = {jpg:"image/jpeg", mp4:"video/mp4", mov:"video/quicktime", webm:"video/webm"};
+
+const KOPF_BYTES = 32;   // mehr braucht keine der geprueften Signaturen
+
+/** Nimmt den Koerper einer PUT-Anfrage entgegen und schreibt ihn laufend nach
+ *  `tmp`, statt ihn im Speicher zu sammeln. Vorher belegte ein 150-MB-Video
+ *  beim abschliessenden Buffer.concat kurzzeitig das Doppelte. Gepuffert
+ *  werden nur die ersten Bytes — genug fuer die Signaturpruefung, bevor die
+ *  temporaere Datei an ihren Platz rueckt.
+ *
+ *  fertig(fehler, {kopf, groesse}) — fehler ist {code, text} oder null.
+ *  Im Fehlerfall ist die temporaere Datei bereits weggeraeumt. */
+function koerperInDatei(req, tmp, grenze, fertig){
+  const strom = fs.createWriteStream(tmp);
+  const kopfTeile = [];
+  let groesse = 0, kopfLaenge = 0, zuGross = false, erledigt = false;
+
+  const schluss = (fehler, wert)=>{
+    if(erledigt) return;
+    erledigt = true;
+    if(fehler){ try{ fs.unlinkSync(tmp); }catch(e){} }
+    fertig(fehler, wert);
+  };
+  const zuGrossFehler = ()=>
+    ({code:413, text:`zu groß — höchstens ${Math.round(grenze/1048576)} MB`});
+
+  strom.on("error", e=>{ console.error(e); schluss({code:500, text:"Schreibfehler"}); });
+
+  req.on("data", c=>{
+    groesse += c.length;
+    if(zuGross){
+      /* Weiterlesen und wegwerfen. Nur so erreicht die 413 den Client —
+         bricht man die Verbindung ab, sieht er bloss einen Broken Pipe.
+         Weit jenseits der Grenze lohnt der harte Abbruch dann doch. */
+      if(groesse > grenze * 2) req.destroy();
+      return;
+    }
+    if(groesse > grenze){ zuGross = true; strom.destroy(); return; }
+    if(kopfLaenge < KOPF_BYTES){
+      const teil = c.subarray(0, KOPF_BYTES - kopfLaenge);
+      kopfTeile.push(teil); kopfLaenge += teil.length;
+    }
+    if(!strom.write(c)){ req.pause(); strom.once("drain", ()=>req.resume()); }
+  });
+
+  const abbruch = ()=> schluss(zuGross ? zuGrossFehler()
+                                       : {code:400, text:"Übertragung abgebrochen"});
+  req.on("error", abbruch);
+  req.on("aborted", abbruch);
+
+  req.on("end", ()=>{
+    if(zuGross) return schluss(zuGrossFehler());
+    strom.end(()=> schluss(null, {kopf:Buffer.concat(kopfTeile), groesse}));
+  });
+}
 
 /** Liefert den tatsaechlich abgelegten Dateinamen zu einer ID. */
 function findeDatei(pf, id){
@@ -621,39 +675,25 @@ const server = http.createServer((req,res)=>{
     if(req.method === "PUT"){
       if(!canWrite()) return send(res, 507, JSON.stringify({error:"Datenverzeichnis nicht beschreibbar"}));
       const grenze = istVideo ? MAX_VIDEO : MAX_PHOTO;
-      const chunks = []; let size = 0, zuGross = false;
-      req.on("data", c=>{
-        size += c.length;
-        if(size > grenze){ zuGross = true; req.destroy(); return; }
-        chunks.push(c);
-      });
-      req.on("end", ()=>{
-        if(zuGross) return;
-        const buf = Buffer.concat(chunks);
-        const typ = erkenneTyp(buf);
-        if(!typ) return send(res, 415, JSON.stringify({error:"unbekanntes Dateiformat"}));
+      const tmp = path.join(pf.fotos, id + ".tmp");
+      const weg = ()=>{ try{ fs.unlinkSync(tmp); }catch(e){} };
+      return koerperInDatei(req, tmp, grenze, (fehler, wert)=>{
+        if(fehler) return send(res, fehler.code, JSON.stringify({error:fehler.text}));
+        const typ = erkenneTyp(wert.kopf);
+        if(!typ){ weg(); return send(res, 415, JSON.stringify({error:"unbekanntes Dateiformat"})); }
         // Vorschaubilder und Fotos muessen JPEG sein, v_ muss Video sein
-        const willVideo = istVideo;
-        const istVideoDatei = typ.mime.startsWith("video/");
-        if(willVideo !== istVideoDatei)
+        if(istVideo !== typ.mime.startsWith("video/")){
+          weg();
           return send(res, 415, JSON.stringify({error:"Dateityp passt nicht zur ID"}));
+        }
         try{
-          const ziel = path.join(pf.fotos, id + "." + typ.ext);
-          const tmp  = ziel + ".tmp";
-          fs.writeFileSync(tmp, buf);
-          fs.renameSync(tmp, ziel);
+          fs.renameSync(tmp, path.join(pf.fotos, id + "." + typ.ext));
         }catch(e){
-          console.error(e);
+          console.error(e); weg();
           return send(res, 500, JSON.stringify({error:"Schreibfehler"}));
         }
-        send(res, 200, JSON.stringify({ok:true, id, bytes:buf.length, typ:typ.mime}));
+        send(res, 200, JSON.stringify({ok:true, id, bytes:wert.groesse, typ:typ.mime}));
       });
-      req.on("aborted", ()=>{});
-      req.on("close", ()=>{
-        if(zuGross && !res.headersSent)
-          send(res, 413, JSON.stringify({error:`zu groß — höchstens ${Math.round(grenze/1048576)} MB`}));
-      });
-      return;
     }
 
     if(req.method === "DELETE"){
@@ -709,33 +749,22 @@ const server = http.createServer((req,res)=>{
 
     if(req.method === "PUT"){
       if(!canWrite()) return send(res, 507, JSON.stringify({error:"Datenverzeichnis nicht beschreibbar"}));
-      const brocken = []; let groesse = 0, zuGross = false;
-      req.on("data", c=>{
-        groesse += c.length;
-        if(groesse > MAX_DOC){ zuGross = true; req.destroy(); return; }
-        brocken.push(c);
-      });
-      req.on("end", ()=>{
-        if(zuGross) return;
-        const buf = Buffer.concat(brocken);
+      const tmp = datei + ".tmp";
+      const weg = ()=>{ try{ fs.unlinkSync(tmp); }catch(e){} };
+      return koerperInDatei(req, tmp, MAX_DOC, (fehler, wert)=>{
+        if(fehler) return send(res, fehler.code, JSON.stringify({error:fehler.text}));
         // PDF-Signatur pruefen statt dem Content-Type zu glauben
-        if(buf.length < 5 || buf.toString("ascii",0,5) !== "%PDF-")
+        if(wert.kopf.length < 5 || wert.kopf.toString("ascii",0,5) !== "%PDF-"){
+          weg();
           return send(res, 415, JSON.stringify({error:"kein PDF"}));
-        try{
-          const tmp = datei + ".tmp";
-          fs.writeFileSync(tmp, buf);
-          fs.renameSync(tmp, datei);
-        }catch(e){
-          console.error(e);
+        }
+        try{ fs.renameSync(tmp, datei); }
+        catch(e){
+          console.error(e); weg();
           return send(res, 500, JSON.stringify({error:"Schreibfehler"}));
         }
-        send(res, 200, JSON.stringify({ok:true, id, bytes:buf.length}));
+        send(res, 200, JSON.stringify({ok:true, id, bytes:wert.groesse}));
       });
-      req.on("close", ()=>{
-        if(zuGross && !res.headersSent)
-          send(res, 413, JSON.stringify({error:`zu groß — höchstens ${MAX_DOC/1048576} MB`}));
-      });
-      return;
     }
 
     if(req.method === "DELETE"){
