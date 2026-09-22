@@ -982,6 +982,15 @@ hundert PDF:
 Die PDF bleiben, wo sie liegen — sie wandern nie ins Repository. `.gitignore`
 sperrt `*.pdf` und die ueblichen Ordnernamen.
 
+**Den Plan als Text ansehen** — zum Vergleichen gegen einen Herstellerplan:
+
+```bash
+python3 plan_zeigen.py --benutzer <anmeldename>
+```
+
+Gibt die Positionen nach Kategorie mit ihren Intervallen aus, `--csv` fuer
+die Tabellenkalkulation. Historie, Papiere und Fotos bleiben aussen vor.
+
 Einzelne PDF lassen sich jederzeit ueber die App nachtragen: unter
 *Anleitungen* oder direkt im Positions- und Teiledialog.
 
