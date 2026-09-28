@@ -1,6 +1,11 @@
-/* Hält die App offline verfügbar. Die Daten selbst laufen immer übers
-   Netz — veraltete Kilometerstände wären schlimmer als eine Fehlermeldung. */
-const CACHE = "carservice-v6";
+/* Hält die App offline verfügbar.
+
+   Die Daten selbst laufen weiter übers Netz — aber nicht mehr nur:
+   Die Seite legt den zuletzt geholten Stand selbst ab und zeigt ihn
+   ohne Empfang mitsamt Datum an. Veraltete Kilometerstände sind
+   schlimmer als eine Fehlermeldung, ein *unbeschrifteter* alter
+   Stand ist es; ein beschrifteter ist besser als nichts. */
+const CACHE = "carservice-v7";
 const SHELL = ["./", "./index.html", "./manifest.json",
   "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./icon-maskable-512.png", "./apple-touch-icon.png",
@@ -28,6 +33,16 @@ self.addEventListener("fetch", e=>{
       })));
     return;
   }
+  /* PDF nur bedienen, wenn sie schon da sind — und niemals von
+     selbst ablegen. Der Unterschied zum Foto-Zweig darüber ist
+     Absicht: Wer jedes abgerufene PDF behielte, zöge nach und nach
+     das ganze Werkstatthandbuch aufs Telefon, über ein Gigabyte.
+     Was mitkommt, entscheidet die Seite (papiereMitnehmen). */
+  if(url.pathname.startsWith("/api/docs/")){
+    e.respondWith(caches.match(e.request).then(treffer => treffer || fetch(e.request)));
+    return;
+  }
+
   // Alles Sitzungsabhängige nie aus dem Cache — sonst sieht ein
   // Abgemeldeter die Oberfläche eines anderen Kontos.
   if(url.pathname.startsWith("/api/")) return;

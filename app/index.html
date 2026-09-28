@@ -1539,9 +1539,25 @@ function num(v){const n=parseFloat(String(v).replace(",","."));return isFinite(n
 let DB = null, CAR = null;
 
 /* ---------- Speicherung ---------------------------------------
-   Gehostet: GET/PUT auf ./api/data. Als Datei geöffnet oder wenn
-   der Server nicht antwortet: localStorage + manueller Export. */
-const LOCAL_KEY = "carservice-v1";
+   Gehostet: GET/PUT auf ./api/data. Als Datei geöffnet: localStorage
+   + manueller Export.
+
+   Dazwischen liegt der Fall, der unterwegs zählt: gehostet, aber
+   gerade kein Netz. Dann arbeitet die App aus einem Spiegel des
+   zuletzt geholten Standes weiter und gleicht ab, sobald die
+   Verbindung zurück ist.
+
+   Früher fiel sie hier auf LOCAL_KEY zurück — in den im Serverbetrieb
+   aber nie etwas geschrieben wurde. Der Speicher war leer, seedData()
+   sprang ein, und auf dem Bildschirm stand ein Saat-Fahrzeug, das
+   zufällig „Toyota Hilux Extra Cab" heißt. Eine falsche Anzeige ist
+   schlimmer als eine ehrliche Fehlermeldung, erst recht im Gelände.
+
+   Deshalb zwei getrennte Schlüssel: LOCAL_KEY gehört dem Datei-Modus
+   und ist dort die Wahrheit, SPIEGEL_KEY ist eine Kopie des
+   Serverstandes und nie mehr als das.                              */
+const LOCAL_KEY   = "carservice-v1";
+const SPIEGEL_KEY = "carservice-spiegel";
 
 /* Sieht ein Admin fremde Daten an, steht die Konto-Kennung in der
    Adresszeile und muss an jeden API-Aufruf weitergereicht werden. */
@@ -1555,8 +1571,13 @@ function abgemeldet(){
   location.href = "/login?weiter=" + encodeURIComponent(location.pathname + location.search);
 }
 const isFile = location.protocol === "file:";
+/* server  — verbunden, abgeglichen
+   offline — Server weg, der Spiegel trägt
+   local   — echte Datei-Nutzung, es gibt gar keinen Server */
 let mode = isFile ? "local" : "server";
 let saveTimer = null, dirty = false;
+let offenerStand = false;    // offline geändert, noch nicht abgeglichen
+let spiegelStand = null;     // Zeitpunkt des Spiegels, ISO
 
 function badge(state,text){
   const b=$("#syncBadge"); b.className="sync "+(state||""); b.textContent=text;
@@ -1566,19 +1587,149 @@ function toast(msg,isErr){
   clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast",2600);
 }
 
+/* ---------- Spiegel ---------------------------------------------
+   Der zuletzt vom Server geholte Stand, auf dem Gerät abgelegt. Er
+   trägt, wem er gehört: Meldet sich jemand anderes auf demselben
+   Telefon an, darf er die Daten des Vorgängers nicht sehen.      */
+
+function spiegelSchreiben(){
+  if(isFile) return;
+  const jetzt = new Date().toISOString();
+  try{
+    localStorage.setItem(SPIEGEL_KEY, JSON.stringify({
+      benutzer: NUTZER ? NUTZER.id   : null,
+      name:     NUTZER ? NUTZER.name : "",
+      stand: jetzt, offen: offenerStand, db: DB
+    }));
+    spiegelStand = jetzt;
+  }catch(e){
+    /* Speicher voll oder gesperrt (privates Fenster). Lieber ohne
+       Spiegel weiterlaufen als die Sitzung daran scheitern lassen. */
+  }
+}
+
+function spiegelLesen(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SPIEGEL_KEY) || "null");
+    if(!s || !s.db) return null;
+    if(NUTZER && s.benutzer && s.benutzer !== NUTZER.id) return null;
+    return s;
+  }catch(e){ return null; }
+}
+
+function spiegelLoeschen(){
+  try{ localStorage.removeItem(SPIEGEL_KEY); }catch(e){}
+  spiegelStand = null; offenerStand = false;
+}
+
+/** Wie alt sind die Daten? Ohne diese Angabe ist der Offline-Modus
+    gefährlicher als gar keine Daten. */
+function standText(iso){
+  if(!iso) return "Stand unbekannt";
+  const d = new Date(iso);
+  return "Stand " + d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})
+       + ", "     + d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+}
+
+/** Eine Stelle für das Abzeichen — sonst driften die Zustände ab. */
+function zeigeZustand(){
+  if(mode === "offline")
+    badge("err", "offline — " + standText(spiegelStand)
+                 + (offenerStand ? " · Änderungen warten" : ""));
+  else if(mode === "local") badge("", "lokal");
+  else badge("ok", "synchron");
+}
+
+/** Wer ist angemeldet — und gehört der Spiegel auf diesem Gerät noch
+    zu diesem Konto? Wenn nicht, müssen Stand und Papiere des
+    Vorgängers herunter, bevor irgendetwas gezeichnet wird. Der Cache
+    kennt keine Konten.
+
+    Muss auch nach einem Wiederanlauf laufen: Wer die App ohne Netz
+    öffnet, hat keinen Benutzer — der Spiegel bekäme sonst gar keinen
+    Besitzer eingetragen und der Schutz liefe leer. */
+async function nutzerLaden(){
+  if(isFile) return null;
+  try{
+    const r = await fetch(api("me"));
+    if(r.status === 401){ abgemeldet(); return null; }
+    if(!r.ok) return NUTZER;
+    NUTZER = await r.json();
+  }catch(e){ return NUTZER; }
+
+  let alt = null;
+  try{ alt = JSON.parse(localStorage.getItem(SPIEGEL_KEY) || "null"); }catch(e){}
+  if(alt && alt.benutzer && alt.benutzer !== NUTZER.id) await offlineDatenLoeschen();
+  return NUTZER;
+}
+
 async function loadDB(){
   if(mode==="server"){
+    /* Erst klären, wer hier ist: Ein fremder Spiegel wird dabei
+       verworfen, und nur deshalb darf der nächste Schritt ihm
+       trauen. */
+    if(!NUTZER) await nutzerLaden();
+    /* Dann nachsehen, ob auf dem Gerät noch etwas wartet. Wer offline
+       eingetragen hat und die Seite später mit Netz neu lädt, verlöre
+       seine Einträge sonst still an den Serverstand — genau das, was
+       der Offline-Modus verhindern soll. */
+    const wartend = spiegelLesen();
     try{
       const r = await fetch(api("data"),{cache:"no-store"});
       if(r.status === 401) return abgemeldet();
       if(r.ok){
-        DB = migrate(await r.json());
-        useCar(DB.activeId); badge("ok","synchron"); return;
+        const vomServer = migrate(await r.json());
+
+        if(wartend && wartend.offen){
+          DB = migrate(wartend.db);
+          spiegelStand = wartend.stand;
+          offenerStand = true;
+          useCar(DB.activeId);
+          if((DB.rev ?? 0) === (vomServer.rev ?? 0)){
+            // Niemand sonst war dran — einfach nachreichen.
+            mode = "server";
+            await pushDB();
+            if(mode === "server") toast("Änderungen von unterwegs übertragen");
+          }else{
+            mode = "offline";
+            zeigeZustand();
+            konfliktDialog();
+          }
+          return;
+        }
+
+        DB = vomServer;
+        useCar(DB.activeId);
+        spiegelSchreiben();
+        zeigeZustand();
+        papiereMitnehmen();          // läuft nebenher, hält niemanden auf
+        return;
       }
       throw new Error("HTTP "+r.status);
     }catch(e){
-      mode="local"; badge("err","offline — lokal");
-      toast("Server nicht erreichbar, arbeite lokal weiter",true);
+      mode = "offline";
+      const s = spiegelLesen();
+      if(s){
+        DB = migrate(s.db);
+        spiegelStand = s.stand;
+        offenerStand = !!s.offen;
+        /* Ohne /api/me kennen wir den Benutzer nicht — der Spiegel
+           weiß, für wen er angelegt wurde. Sonst stünde im Menü
+           niemand, obwohl man angemeldet ist. */
+        if(!NUTZER && s.benutzer) NUTZER = {id:s.benutzer, name:s.name||"", rolle:""};
+        useCar(DB.activeId);
+        zeigeZustand();
+        toast("Kein Netz — " + standText(spiegelStand), true);
+        return;
+      }
+      /* Kein Spiegel: Die App war auf diesem Gerät noch nie
+         verbunden. Hier stand früher seedData() — ein leeres
+         Fahrzeug, das aussah wie das eigene. Lieber nichts zeigen
+         als das Falsche. */
+      DB = {version:5, rev:0, activeId:null, vehicles:[]};
+      CAR = null;
+      badge("err","offline — keine Daten auf diesem Gerät");
+      return;
     }
   }
   const raw = localStorage.getItem(LOCAL_KEY);
@@ -1586,7 +1737,7 @@ async function loadDB(){
   if(!DB) DB = seedData();
   DB = migrate(DB);
   useCar(DB.activeId);
-  badge(mode==="local"?"":"ok", mode==="local"?"lokal":"synchron");
+  zeigeZustand();
 }
 
 function save(){
@@ -1594,6 +1745,14 @@ function save(){
   if(mode==="local"){
     try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(DB)); badge("","lokal gespeichert"); }
     catch(e){ badge("err","Speichern fehlgeschlagen"); }
+    return;
+  }
+  if(mode==="offline"){
+    /* Nichts geht verloren, nur nichts geht raus. Der Spiegel ist
+       jetzt neuer als der Server — das merkt er sich. */
+    offenerStand = true;
+    spiegelSchreiben();
+    zeigeZustand();
     return;
   }
   badge("busy","speichert…");
@@ -1608,18 +1767,159 @@ async function pushDB(){
       body: JSON.stringify(DB)
     });
     if(r.status === 401) return abgemeldet();
-    if(r.status===409){
-      badge("err","Konflikt");
-      toast("Auf einem anderen Gerät geändert — Seite neu laden",true);
-      return;
-    }
+    if(r.status===409) return konfliktDialog();
     if(!r.ok) throw new Error("HTTP "+r.status);
     const res = await r.json();
-    DB.rev = res.rev; dirty = false; badge("ok","synchron");
+    DB.rev = res.rev; dirty = false; offenerStand = false;
+    mode = "server";
+    spiegelSchreiben();
+    zeigeZustand();
   }catch(e){
-    badge("err","nicht gespeichert");
-    try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(DB)); }catch(_){}
+    /* Verbindung weg, während man arbeitet. Der Stand bleibt auf dem
+       Gerät, der Abgleich holt ihn nach. */
+    mode = "offline"; offenerStand = true;
+    spiegelSchreiben();
+    zeigeZustand();
   }
+}
+
+/** Alle Fahrzeuge als JSON herunterladen. Auch der Notausgang im
+    Konfliktfall — deshalb eine eigene Funktion und nicht nur ein
+    Klickereignis im Einstellungsdialog. */
+function sicherungLaden(){
+  const b = new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = "fahrzeuge-" + today() + ".json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 30000);
+}
+
+/* ---------- Papiere aufs Gerät ----------------------------------
+   Die Zulassungsbescheinigung braucht man bei einer Kontrolle, und
+   Kontrollen finden selten dort statt, wo Empfang ist. Also legt die
+   Seite sie nach jedem erfolgreichen Laden in den Cache des Service
+   Workers — ausdrücklich nur die Papiere, nicht die Anleitungen:
+   Das Werkstatthandbuch ist über ein Gigabyte gross.
+
+   Bewusst hier und nicht im Worker. Der Worker weiss nicht, welche
+   PDF ein Papier ist; die Seite schon.                            */
+const OFFLINE_CACHE = "carservice-v7";
+
+function papierUrls(){
+  const raus = [];
+  for(const v of (DB && DB.vehicles) || [])
+    for(const p of v.papiere || []){
+      for(const d of p.pdfs   || []) raus.push(api("docs/"   + d.id));
+      for(const f of p.photos || []) raus.push(api("photos/" + f.id));
+    }
+  return raus;
+}
+
+async function papiereMitnehmen(){
+  if(isFile || !("caches" in window)) return;
+  try{
+    const c = await caches.open(OFFLINE_CACHE);
+    for(const u of papierUrls()){
+      try{
+        const r = await fetch(u, {cache:"no-store"});
+        if(r.ok) await c.put(u, r.clone());
+      }catch(e){ /* eine Datei weniger, kein Grund aufzuhören */ }
+    }
+  }catch(e){}
+}
+
+/** Beim Abmelden und beim Kontowechsel muss alles runter vom Gerät. */
+async function offlineDatenLoeschen(){
+  spiegelLoeschen();
+  try{
+    if("caches" in window)
+      for(const k of await caches.keys()) await caches.delete(k);
+  }catch(e){}
+}
+
+/* ---------- Zurück ins Netz -------------------------------------
+   „online" allein genügt nicht: iOS feuert das Ereignis beim
+   Aufwachen unzuverlässig. Der Wechsel zurück in die App ist der
+   verlässlichere Anlass.                                          */
+let abgleichLaeuft = false;
+async function abgleichen(){
+  if(isFile || abgleichLaeuft) return;
+  if(mode === "server" && !offenerStand) return;
+  abgleichLaeuft = true;
+  try{
+    if(!NUTZER) await nutzerLaden();
+    if(offenerStand){ await pushDB(); return; }
+    // Nur offline gewesen, nichts geändert: frisch holen ist richtig.
+    const r = await fetch(api("data"),{cache:"no-store"});
+    if(!r.ok) return;
+    DB = migrate(await r.json());
+    useCar(DB.activeId);
+    mode = "server";
+    spiegelSchreiben();
+    zeigeZustand();
+    renderAll();
+    papiereMitnehmen();
+  }catch(e){
+    /* immer noch kein Netz — beim nächsten Anlass erneut */
+  }finally{ abgleichLaeuft = false; }
+}
+window.addEventListener("online", abgleichen);
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") abgleichen();
+});
+
+/* ---------- Konflikt --------------------------------------------
+   Beide Seiten haben sich geändert. Kein automatisches
+   Zusammenführen: Ein Drei-Wege-Abgleich über Fahrzeuge,
+   Positionen, Historie, Teile und Papiere wäre ein eigenes Projekt,
+   und wenn er danebengeht, fehlt ein Ölwechsel im Nachweis. Also
+   eine bewusste Entscheidung — und vorher eine Sicherung.        */
+function konfliktDialog(){
+  mode = "offline"; offenerStand = true;
+  spiegelSchreiben();
+  zeigeZustand();
+  openDlg("Auf beiden Seiten geändert", `
+    <p style="margin:0 0 8px">Während dieses Gerät ohne Netz war, hat sich auch
+       auf dem Server etwas geändert — vermutlich an einem anderen Gerät.</p>
+    <p class="tiny faint" style="margin:0">Dein Stand hier ist von
+       ${esc(standText(spiegelStand).replace("Stand ",""))}. Zusammenführen kann
+       die App nicht. Sichere ihn zuerst, dann entscheide.</p>
+    <p class="tiny" style="margin:10px 0 0"><button class="btn sm" type="button"
+       id="kfSichern">⤓ Offline-Stand sichern</button></p>`, null);
+
+  $("#dlgFoot").innerHTML =
+    `<button class="btn" type="button" id="kfServer">Serverstand behalten</button>
+     <button class="btn primary" type="button" id="kfMeine">Meine übernehmen</button>`;
+
+  $("#kfSichern").onclick = sicherungLaden;
+
+  $("#kfMeine").onclick = async ()=>{
+    /* Bewusstes Überschreiben: erst die fremde Revision holen, sonst
+       weist der Server den Schreibvorgang wieder mit 409 ab. */
+    try{
+      const r = await fetch(api("data"),{cache:"no-store"});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      DB.rev = (await r.json()).rev;
+    }catch(e){ return toast("Kein Netz — später erneut versuchen", true); }
+    dlgSave = null; $("#dlg").close();
+    mode = "server";
+    await pushDB();
+    if(mode === "server") toast("Dein Stand ist jetzt auf dem Server");
+  };
+
+  $("#kfServer").onclick = async ()=>{
+    if(!confirm("Deine Änderungen von unterwegs werden verworfen. Sicher?")) return;
+    dlgSave = null; $("#dlg").close();
+    /* Den Spiegel wegwerfen, nicht nur das Merkmal im Arbeitsspeicher.
+       Sonst sieht loadDB() gleich wieder einen wartenden Stand und
+       öffnet denselben Dialog von Neuem. */
+    spiegelLoeschen();
+    mode = "server";
+    await loadDB();
+    renderAll();
+    toast("Serverstand übernommen");
+  };
 }
 window.addEventListener("beforeunload", e=>{ if(dirty && mode==="server"){ e.preventDefault(); e.returnValue=""; } });
 
@@ -4608,6 +4908,14 @@ function fotoFeld(photos, hinweis){
   if(mode==="local")
     return `<div class="field"><label>Fotos</label>
       <div class="tiny faint">Fotos brauchen den Server — im lokalen Dateimodus nicht verfügbar.</div></div>`;
+  /* Offline laedt nichts hoch. Den Knopf trotzdem anzubieten hiesse,
+     jemanden im Gelaende dreimal auf eine Fehlermeldung tippen zu
+     lassen. Der Text sagt, was zu tun ist. */
+  if(mode==="offline")
+    return `<div class="field"><label>Fotos</label>
+      <div class="tiny faint">Ohne Verbindung lässt sich kein Bild übertragen.
+        Text und Werte kannst du eintragen — Fotos später mit Netz nachreichen.</div>
+      ${photos && photos.length ? fotoStreifen(photos) : ""}</div>`;
   return `<div class="field"><label>Fotos und Videos</label>
     <div class="fotos" id="fotoBox" data-ids="${esc((photos||[]).join(","))}"></div>
     <div class="row" style="margin-top:8px">
@@ -5287,10 +5595,15 @@ function vehicleDialog(id){
     <p class="tiny muted" id="kontoZeile">…</p>
 
     <div class="sec-head"><h2>Daten</h2><div class="line"></div></div>
-    <p class="tiny muted">Modus: <strong>${mode==="server"?"Server-Sync":"lokal im Browser"}</strong>.
+    <p class="tiny muted">Modus: <strong>${
+        mode==="server"  ? "Server-Sync"
+      : mode==="offline" ? "offline — " + esc(standText(spiegelStand))
+      : "lokal im Browser"}</strong>.
       ${mode==="local"?"Denk an regelmäßige Sicherungen — lokale Browserdaten können verloren gehen.":""}
+      ${mode==="offline"?"Änderungen bleiben auf diesem Gerät, bis der Server wieder erreichbar ist.":""}
       Eine Sicherung enthält <em>alle</em> Fahrzeuge.</p>
     <div class="tiny faint" id="lagerInfo" style="margin:-4px 0 10px">Fotospeicher wird ermittelt …</div>
+    <div class="tiny faint" id="geraetInfo" style="margin:-4px 0 10px">Gerätespeicher wird ermittelt …</div>
     <div class="row">
       <button type="button" class="btn sm" id="expJson">JSON sichern</button>
       <button type="button" class="btn sm" id="impJson">JSON laden</button>
@@ -5556,6 +5869,37 @@ function vehicleDialog(id){
       : "Nicht angemeldet.";
   })();
 
+  /* Was liegt auf diesem Gerät? Gegenstück zur Serveransicht darüber,
+     damit beide Fragen an einer Stelle beantwortet sind. */
+  (async()=>{
+    const el = $("#geraetInfo"); if(!el) return;
+    if(isFile || !("caches" in window)) return el.remove();
+    try{
+      const c      = await caches.open(OFFLINE_CACHE);
+      const alle   = await c.keys();
+      const dok    = alle.filter(r=>new URL(r.url).pathname.includes("/api/docs/")).length;
+      const fotos  = alle.filter(r=>new URL(r.url).pathname.includes("/api/photos/")).length;
+      const schaetz = navigator.storage && navigator.storage.estimate
+                    ? await navigator.storage.estimate() : null;
+      /* Unter einem Megabyte in Kilobyte — „0 MB belegt" liest sich
+         wie ein Fehler, obwohl es stimmt. */
+      const platz = n => n < 1048576
+        ? Math.round(n/1024).toLocaleString("de-DE") + " kB"
+        : (n/1048576).toLocaleString("de-DE",{maximumFractionDigits:1}) + " MB";
+      el.innerHTML = `Auf diesem Gerät: <strong>${dok}</strong> Papier-PDF, `
+        + `<strong>${fotos}</strong> Bilder`
+        + (schaetz && schaetz.usage ? `, ${platz(schaetz.usage)} belegt` : "")
+        + ` <button type="button" class="btn sm" id="geraetPutz" style="margin-left:6px">leeren</button>`;
+      $("#geraetPutz").onclick = async()=>{
+        if(offenerStand && !confirm("Es warten noch Änderungen von unterwegs. "
+          + "Beim Leeren gehen sie verloren. Trotzdem?")) return;
+        await offlineDatenLoeschen();
+        el.textContent = "Gerätespeicher geleert. Beim nächsten Laden mit Netz "
+                       + "kommen die Papiere zurück.";
+      };
+    }catch(e){ el.remove(); }
+  })();
+
   // Fotospeicher nachladen — zeigt auch verwaiste Dateien an
   if(mode==="server") (async()=>{
     try{
@@ -5574,11 +5918,7 @@ function vehicleDialog(id){
     }catch(e){}
   })();
 
-  $("#expJson").onclick=()=>{
-    const b=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
-    const a=document.createElement("a"); a.href=URL.createObjectURL(b);
-    a.download="fahrzeuge-"+today()+".json"; a.click();
-  };
+  $("#expJson").onclick = sicherungLaden;
   $("#impJson").onclick=()=>{
     const i=document.createElement("input"); i.type="file"; i.accept=".json";
     i.onchange=async()=>{ try{
@@ -6091,6 +6431,22 @@ function zeigeLeer(){
   $("#kmHinweis").hidden = true;
   const box = $("#leerHinweis");
   box.hidden = false;
+  /* Ohne Netz und ohne Spiegel ist nichts da — dann darf hier keine
+     Einladung stehen, ein Fahrzeug anzulegen. Wer das im Gelände tut,
+     legt ein zweites an und wundert sich später. */
+  if(mode === "offline" && !spiegelStand){
+    box.innerHTML = `<div class="empty">
+      <p style="font-size:16px;color:var(--text)">Keine Daten auf diesem Gerät.</p>
+      <p>Die App war hier noch nie mit dem Server verbunden — es gibt nichts,
+         was sie ohne Netz zeigen könnte.</p>
+      <p class="tiny faint">Einmal mit Verbindung öffnen, dann stehen Plan,
+         Historie und Papiere auch offline zur Verfügung.</p>
+      <button class="btn primary" id="leerErneut">Erneut versuchen</button></div>`;
+    $("#leerErneut").onclick = async ()=>{
+      mode = "server"; await loadDB(); renderAll();
+    };
+    return;
+  }
   box.innerHTML = fremd
     ? `<div class="empty"><p><strong>${esc(NUTZER.betrachtet.name)}</strong> hat noch kein Fahrzeug angelegt.</p>
        <a class="btn" href="/admin">Zurück zur Verwaltung</a></div>`
@@ -6448,8 +6804,16 @@ $("#menue").addEventListener("click", async e=>{
     }
   }
   if(punkt.dataset.menue === "abmelden"){
-    if(!confirm("Wirklich abmelden?")) return;
+    /* Die Rückfrage muss sagen, was sie anrichtet. Wer sich vor einer
+       Tour abmeldet, steht sonst ohne Papiere da. */
+    if(!confirm("Wirklich abmelden?\n\nDamit werden auch die offline "
+              + "gespeicherten Papiere und der lokale Stand von diesem "
+              + "Gerät gelöscht.")) return;
+    if(offenerStand &&
+       !confirm("Es warten noch Änderungen von unterwegs, die nicht auf dem "
+              + "Server sind. Beim Abmelden gehen sie verloren. Trotzdem?")) return;
     try{ await fetch("api/logout", {method:"POST"}); }catch(err){}
+    await offlineDatenLoeschen();
     location.href = "/login";
   }
 });
@@ -6540,21 +6904,17 @@ $("#kmNow").onchange=()=>{
 
 (async function init(){
   if(mode === "server"){
-    try{
-      const r = await fetch(api("me"));
-      if(r.status === 401) return abgemeldet();
-      if(r.ok){
-        NUTZER = await r.json();
-        if(NUTZER.betrachtet && NUTZER.betrachtet.fremd){
-          $("#fremdText").innerHTML =
-            `Du siehst die Daten von <strong>${esc(NUTZER.betrachtet.name)}</strong>. Änderungen wirken in diesem Konto.`;
-          $("#fremdBalken").hidden = false;
-        }
-      }
-    }catch(e){}
+    await nutzerLaden();
+    if(NUTZER && NUTZER.betrachtet && NUTZER.betrachtet.fremd){
+      $("#fremdText").innerHTML =
+        `Du siehst die Daten von <strong>${esc(NUTZER.betrachtet.name)}</strong>. Änderungen wirken in diesem Konto.`;
+      $("#fremdBalken").hidden = false;
+    }
   }
   zeichneMenue();
   await loadDB();
+  /* Offline kennt erst loadDB() den Benutzer — aus dem Spiegel. */
+  if(NUTZER) zeichneMenue();
   $("#kmNow").value = CAR ? (CAR.km || "") : "";
   renderAll();
   if(location.hash==="#bericht" && CAR) oeffneBericht(berichtOptionen());

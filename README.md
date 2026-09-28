@@ -519,10 +519,41 @@ Der Menuepunkt ist auch der iOS-Weg: dort zeigt er die drei Schritte, weil iOS
 keinen programmgesteuerten Installdialog kennt. Sobald die App installiert
 laeuft, verschwindet er.
 
-**Ohne Netz** bleibt die Oberflaeche stehen, samt Schriften, Symbolen und den
-zuletzt geladenen Daten; Fotos kommen aus dem Cache. Was fehlt, ist der
-Abgleich — Aenderungen landen dann erst beim naechsten Start mit Verbindung
-auf dem Server.
+## Ohne Netz
+
+Unterwegs gibt es kein NetBird, ohne NetBird keinen Server. Die App faellt
+dann auf einen **Spiegel** des zuletzt geholten Standes zurueck, den sie nach
+jedem erfolgreichen Abgleich auf dem Geraet ablegt.
+
+Verfuegbar bleiben **Wartungsplan, Historie, Teile, Reparaturen, Fotos** und
+die **Fahrzeugpapiere** — letztere, weil eine Kontrolle selten dort
+stattfindet, wo Empfang ist. Die Werkstattanleitungen bleiben draussen: Das
+Handbuch des Hilux allein ist ueber ein Gigabyte gross, so viel gibt iOS einer
+Web-App nicht verlaesslich.
+
+**Das Abzeichen oben nennt immer den Stand** — `offline — Stand 28.09., 10:14`.
+Daten ohne Altersangabe sind unterwegs gefaehrlicher als gar keine.
+
+**Eintragen geht weiter.** Aenderungen bleiben auf dem Geraet (`Aenderungen
+warten` im Abzeichen) und gehen hoch, sobald der Server wieder da ist — beim
+Zurueckwechseln in die App oder beim naechsten Start. Auch ein Neustart der
+Seite mit Verbindung verliert sie nicht: Die App erkennt den wartenden Stand,
+bevor sie den Serverstand uebernimmt.
+
+**Hat sich beidseitig etwas geaendert**, fragt sie nach, statt zu raten:
+Offline-Stand sichern, meine uebernehmen oder Serverstand behalten.
+Zusammengefuehrt wird bewusst nicht — ein Drei-Wege-Abgleich, der danebengeht,
+kostet einen Nachweis.
+
+**Beim Abmelden wird geraeumt**: Spiegel und Cache gehen herunter, Papiere
+inklusive. Die Rueckfrage sagt das. Meldet sich ein anderes Konto auf
+demselben Geraet an, passiert dasselbe automatisch.
+
+Was auf dem Geraet liegt, steht in den Fahrzeugdaten unter *Sicherung* —
+mitsamt Knopf zum Leeren.
+
+**Was offline nicht geht:** Fotos und Videos aufnehmen (sie brauchen den
+Upload), Anleitungen oeffnen, der Servicebericht und alles unter `/admin`.
 
 **Angemeldet bleiben:** Die Sitzung laeuft nach 30 Tagen ab, verlaengert sich
 aber bei jedem Start wieder auf 30, solange mehr als die Haelfte verbraucht
