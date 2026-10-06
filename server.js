@@ -824,19 +824,38 @@ const server = http.createServer((req,res)=>{
     }));
   }
 
+  /* Vor der Benutzerverwaltung lag ein einziges data.json in der
+     Wurzel, seitdem eines je Konto. Dieser Test fragte weiter nach
+     der alten Form: readDB() ohne Argument stolperte ueber pf.datei
+     eines undefined, der try fing es, null kam zurueck. Ergebnis war
+     ein dauerhaftes "unhealthy" bei kerngesunder Installation —
+     unabhaengig von den Daten, drei Wochen lang unbemerkt.
+
+     Gesund heisst jetzt: Das Verzeichnis ist beschreibbar, und keine
+     vorhandene Datendatei ist kaputt. Ein frisch aufgesetzter Server
+     ohne Konto ist gesund — er soll ja gerade die Einrichtung
+     anbieten koennen.                                              */
   if(p === "/api/health"){
-    const db = readDB();
-    const dataOk     = !!db && (Array.isArray(db.vehicles) || Array.isArray(db.tasks));
-    const writableOk = canWrite();
-    const ok = dataOk && writableOk;
+    const schreibbar = canWrite();
+    const konten = ladeBenutzer();
+    let lesbar = true, mitDaten = 0, fahrzeuge = 0;
+    for(const b of konten){
+      const pfK = pfade(b.id);
+      if(!fs.existsSync(pfK.datei)) continue;     // Konto ohne Daten ist in Ordnung
+      const db = readDB(pfK);
+      if(db && Array.isArray(db.vehicles)){ mitDaten++; fahrzeuge += db.vehicles.length; }
+      else lesbar = false;                        // Datei da, aber unbrauchbar
+    }
+    const ok = schreibbar && lesbar;
     return send(res, ok ? 200 : 503, JSON.stringify({
       ok,
-      status:    ok ? "gesund" : !writableOk ? "Datenverzeichnis nicht beschreibbar" : "Daten fehlen oder unlesbar",
-      lesbar:    dataOk,
-      schreibbar:writableOk,
-      fahrzeuge: db && Array.isArray(db.vehicles) ? db.vehicles.length : 0,
-      revision:  db ? (db.rev||0) : null,
-      benutzer:    ladeBenutzer().length,
+      status: ok ? "gesund"
+            : !schreibbar ? "Datenverzeichnis nicht beschreibbar"
+            : "Daten eines Kontos unlesbar",
+      schreibbar, lesbar,
+      konten:      konten.length,
+      mitDaten,
+      fahrzeuge,
       medien:      zaehleUeberAlle("fotos", /\.(jpg|mp4|mov|webm)$/),
       anleitungen: zaehleUeberAlle("docs",  /\.pdf$/),
       laufzeit:  Math.round(process.uptime()) + "s"

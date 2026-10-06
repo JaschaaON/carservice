@@ -1076,14 +1076,26 @@ ueber die Kamera.
 
 ```jsonc
 { "ok": true, "status": "gesund",
-  "lesbar": true,        // data.json vorhanden und gültig
   "schreibbar": true,    // Datenverzeichnis beschreibbar
-  "fahrzeuge": 1, "revision": 12, "versionen": 8, "laufzeit": "3612s" }
+  "lesbar": true,        // keine vorhandene Datendatei ist kaputt
+  "konten": 2, "mitDaten": 2, "fahrzeuge": 3,
+  "medien": 48, "anleitungen": 730, "laufzeit": "3612s" }
 ```
+
+Geprueft wird ueber **alle Konten**: Jedes vorhandene `data.json` muss sich
+lesen lassen. Ein Konto ohne Daten ist in Ordnung, ein frisch aufgesetzter
+Server ohne Konto ebenfalls — er soll die Einrichtung ja noch anbieten
+koennen.
 
 Ist eines von beidem nicht erfüllt, liefert der Endpoint **HTTP 503** und der
 Container erscheint in Dockhand als `unhealthy`. Damit fällt der häufigste
 Betriebsfehler sofort auf: falsche Verzeichnisrechte nach dem ersten Deploy.
+
+> Bis 2026-10-06 fragte dieser Test nach dem einzelnen `data.json` in der
+> Wurzel, das es seit der Benutzerverwaltung nicht mehr gibt. Jede
+> Installation mit Konten meldete sich dauerhaft als `unhealthy`, obwohl
+> nichts fehlte. Wer den Test anfasst: Er muss **beide** echten Fehler noch
+> auslösen — unlesbare Datendatei und schreibgeschütztes Verzeichnis.
 
 ```bash
 docker inspect --format '{{.State.Health.Status}}' carservice
