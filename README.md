@@ -16,7 +16,7 @@ Angelegt ist der Toyota Hilux Extra Cab (2023, 2.8 D-4D, Automatik, 4x4).
 | **Fotos und Videos** | Belege an jedem Historieneintrag, Referenzmaterial an jeder Wartungsposition |
 | **Bibliothek** | 60 Wartungsbausteine zum Auswählen — Diesel, Benzin, Hybrid, DSG, Haldex, Zahnriemen … |
 | **Anleitungen** | Werkstattunterlagen als PDF, direkt an der Wartungsposition abrufbar |
-| **Umbauten** | Anbauteile mit Einbaudatum, Kosten, Bezugsquelle |
+| **Umbauten** | Anbauteile mit Einbaudatum, Kosten, Bezugsquelle, Fotos und Gutachten |
 | **Tour** | Was vor einer Reise fällig wird und welche Teile mitgehören |
 | **Kosten** | Summen pro Jahr, Kosten je Kilometer |
 
@@ -1044,9 +1044,9 @@ Ein Klick oeffnet die grosse Ansicht.
 > **Regel, die schon dreimal gebissen hat:** Wer Fotos an einer neuen Stelle
 > anhaengt, muss `/api/storage` mitziehen. Das Aufraeumen haelt jede Datei fuer
 > verwaist, die es in keinem Eintrag findet. Durchsucht werden inzwischen
-> `tasks`, `history`, `parts`, `repairs`, `papiere` und das Fahrzeug selbst —
-> fehlt eine Sammlung, loescht „verwaiste Dateien entfernen" genau deren
-> Bilder.
+> `tasks`, `history`, `parts`, `repairs`, `mods`, `papiere` und das Fahrzeug
+> selbst — fehlt eine Sammlung, loescht „verwaiste Dateien entfernen" genau
+> deren Bilder. Beim vierten Mal, den Umbauten, war es derselbe Griff.
 
 Der Browser verkleinert jedes Bild vor dem Hochladen auf 1600 px und wandelt es
 in JPEG — aus einem 4-MB-Handyfoto werden rund 300 KB. Zusaetzlich entsteht ein

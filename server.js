@@ -782,10 +782,12 @@ const server = http.createServer((req,res)=>{
     const benutzt = new Set();
     for(const v of (db && db.vehicles) || [])
       // Fotos haengen inzwischen an vielen Stellen — Teile, Reparaturen,
-      // Fahrzeugpapiere und das Fahrzeug selbst. Fehlt eine Sammlung hier,
-      // loescht das Aufraeumen genau deren Bilder als vermeintlich verwaist.
+      // Umbauten, Fahrzeugpapiere und das Fahrzeug selbst. Fehlt eine
+      // Sammlung hier, loescht das Aufraeumen genau deren Bilder als
+      // vermeintlich verwaist. Das ist schon dreimal passiert: Wer
+      // Fotos an einer neuen Stelle anhaengt, traegt sie hier ein.
       for(const liste of [v.tasks||[], v.history||[], v.parts||[],
-                          v.repairs||[], v.papiere||[], [v]])
+                          v.repairs||[], v.mods||[], v.papiere||[], [v]])
         for(const eintrag of liste)
           for(const id of eintrag.photos || []){ benutzt.add(id); benutzt.add(id + "_t"); }
 

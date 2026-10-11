@@ -1511,6 +1511,13 @@ function migrate5(db){
       if(!Array.isArray(t.docs))   t.docs   = [];
     }
     for(const r of v.repairs) if(!Array.isArray(r.photos)) r.photos = [];
+    /* Umbauten bekamen Bilder und Anleitungen spaeter als die Teile.
+       Bestehende Eintraege haben die Felder nicht — ohne Vorgabe
+       stolpert der Dialog beim ersten Oeffnen. */
+    for(const m of v.mods||[]){
+      if(!Array.isArray(m.photos)) m.photos = [];
+      if(!Array.isArray(m.docs))   m.docs   = [];
+    }
   }
   db.version = 5;
   return db;
@@ -3081,6 +3088,8 @@ function renderMods(){
         <div class="tiny faint" style="margin-top:4px">
           Eingebaut ${dDE(m.date)}${m.km!=null?" bei "+nKm(m.km)+" km":""}${m.brand?" · "+esc(m.brand):""}</div>
         ${m.note?`<div class="tiny muted" style="margin-top:6px">${esc(m.note)}</div>`:""}
+        ${anleitungStreifen(m.docs)}
+        ${fotoStreifen(m.photos)}
         <div class="links" style="margin-top:8px">${links}</div></div>
       <div style="text-align:right;white-space:nowrap">
         <div class="num" style="font-weight:600">${m.cost!=null?eur(m.cost):"—"}</div>
@@ -5434,7 +5443,9 @@ function histDialog(id, preselect, nachtragen){
 /* -- Umbau -- */
 function modDialog(id){
   const m = id?CAR.mods.find(x=>x.id===id)
-              :{id:uid("m"),name:"",cat:"Zubehör",brand:"",date:today(),km:CAR.km||null,cost:null,links:[],note:""};
+              :{id:uid("m"),name:"",cat:"Zubehör",brand:"",date:today(),km:CAR.km||null,
+                cost:null,links:[],note:"",photos:[],docs:[]};
+  dokAuswahl = (m.docs||[]).map(x=>({d:x.d, p:x.p||1}));
   openDlg(id?"Umbau bearbeiten":"Neuer Umbau",`
     <div class="field"><label>Bezeichnung</label><input id="f-name" value="${esc(m.name)}" required placeholder="z. B. Dachzelt, Fahrwerk, Seilwinde"></div>
     <div class="grid2">
@@ -5449,12 +5460,16 @@ function modDialog(id){
     <div class="field"><label>Bezugsquellen</label><div id="linkBox">${linkRows(m.links)}</div>
       <button type="button" class="btn sm" id="addLink">+ Link hinzufügen</button></div>
     <div class="field"><label>Notiz</label><textarea id="f-note" placeholder="Anzugsmomente, Einbauhinweise, Wartungsbedarf…">${esc(m.note||"")}</textarea></div>
+    ${anleitungFeld("Einbauanleitung, Rechnung, Gutachten oder Teilegutachten für den TÜV.")}
+    ${fotoFeld(m.photos, "Vorher, nachher, die Einbaustelle — und das Typenschild, falls eins dran ist.")}
     ${id?`<button type="button" class="btn sm danger" id="delMod">Umbau löschen</button>`:""}`,
   ()=>{
     if(!val("f-name")){ toast("Bezeichnung fehlt",true); return false; }
     m.name=val("f-name"); m.cat=val("f-cat"); m.brand=val("f-brand");
     m.date=val("f-date"); m.km=num(val("f-km")); m.cost=num(val("f-cost"));
     m.note=$("#f-note").value.trim(); m.links=readLinks();
+    const fotos = liesFotos(); if(fotos) m.photos = fotos;
+    if($("#dokZuordnung")) m.docs = dokAuswahl.map(x=>x.p>1?{d:x.d,p:x.p}:{d:x.d});
     if(!id) CAR.mods.push(m);
   });
   if(id) $("#delMod").onclick=()=>{
